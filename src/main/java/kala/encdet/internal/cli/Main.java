@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Glavo
 // SPDX-License-Identifier: MPL-2.0
 
-package kala.encdet.cli;
+package kala.encdet.internal.cli;
 
 import kala.encdet.DetectionOptions;
 import kala.encdet.DetectionResult;

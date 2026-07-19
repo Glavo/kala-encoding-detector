@@ -3,4 +3,4 @@
 
 /// Provides the `kala-encdet` command-line entry point.
 @org.jetbrains.annotations.NotNullByDefault
-package kala.encdet.cli;
+package kala.encdet.internal.cli;

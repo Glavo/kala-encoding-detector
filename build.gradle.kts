@@ -23,7 +23,7 @@ dependencies {
 application {
     applicationName = "kala-encdet"
     mainModule = "kala.encdet"
-    mainClass = "kala.encdet.cli.Main"
+    mainClass = "kala.encdet.internal.cli.Main"
     applicationDistribution.from("README.md", "LICENSE", "THIRD_PARTY_NOTICES.md")
 }
 
