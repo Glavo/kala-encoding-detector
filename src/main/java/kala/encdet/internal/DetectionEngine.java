@@ -135,8 +135,11 @@ public final class DetectionEngine {
             byte @Unmodifiable [] input,
             EncodingDetector detector
     ) {
-        List<PipelineResult> results = runCore(input, detector);
-        results = fillLanguages(input, results);
+        byte[] data = input.length <= detector.maxBytes()
+                ? input
+                : Arrays.copyOf(input, detector.maxBytes());
+        List<PipelineResult> results = runCore(data, detector);
+        results = fillLanguages(data, results);
         ArrayList<DetectionResult> publicResults = new ArrayList<>(results.size());
         for (PipelineResult result : results) {
             String mimeType = result.mimeType() != null
@@ -159,16 +162,13 @@ public final class DetectionEngine {
 
     /// Runs all detection stages through post-processing in reference order.
     ///
-    /// @param original complete caller input
+    /// @param data     caller input already bounded by the configured maximum
     /// @param detector immutable detector configuration
     /// @return internal canonical candidates
     private static List<PipelineResult> runCore(
-            byte @Unmodifiable [] original,
+            byte @Unmodifiable [] data,
             EncodingDetector detector
     ) {
-        byte[] data = original.length <= detector.maxBytes()
-                ? original
-                : Arrays.copyOf(original, detector.maxBytes());
         List<EncodingRegistry.Info> candidates = EncodingRegistry.candidates(detector);
         LinkedHashSet<String> mutableAllowed = new LinkedHashSet<>(candidates.size());
         for (EncodingRegistry.Info candidate : candidates) {

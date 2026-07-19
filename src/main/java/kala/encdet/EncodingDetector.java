@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -340,16 +341,49 @@ public final class EncodingDetector {
         return DetectionEngine.detect(input, this).get(0);
     }
 
+    /// Returns the highest-ranked result for the remaining buffer bytes.
+    ///
+    /// Only the first [#maxBytes()] bytes between the buffer's position and
+    /// limit are examined. The buffer's content, position, limit, and mark are
+    /// not modified, and the buffer is not retained.
+    ///
+    /// @param input buffer whose remaining bytes are examined
+    /// @return highest-ranked result
+    /// @throws NullPointerException if `input` is `null`
+    public DetectionResult detect(ByteBuffer input) {
+        return DetectionEngine.detect(snapshot(input), this).get(0);
+    }
+
     /// Returns candidates above the default confidence threshold.
     ///
     /// If no candidate has confidence greater than `0.20`, the unfiltered
     /// candidates are returned. The result is sorted stably by descending
-    /// confidence and cannot be modified.
+    /// confidence and cannot be modified. Only the first [#maxBytes()] input
+    /// bytes are examined.
     ///
     /// @param input bytes to examine
     /// @return immutable filtered candidates
     /// @throws NullPointerException if `input` is `null`
     public @Unmodifiable List<DetectionResult> detectAll(byte[] input) {
+        List<DetectionResult> all = detectAllUnfiltered(input);
+        List<DetectionResult> filtered = all.stream()
+                .filter(result -> result.confidence() > MINIMUM_THRESHOLD)
+                .toList();
+        return filtered.isEmpty() ? all : filtered;
+    }
+
+    /// Returns candidates above the default confidence threshold for a buffer.
+    ///
+    /// Only the first [#maxBytes()] remaining bytes are examined. The buffer's
+    /// content, position, limit, and mark are not modified. If no candidate has
+    /// confidence greater than `0.20`, the unfiltered candidates are returned.
+    /// The result is sorted stably by descending confidence and cannot be
+    /// modified.
+    ///
+    /// @param input buffer whose remaining bytes are examined
+    /// @return immutable filtered candidates
+    /// @throws NullPointerException if `input` is `null`
+    public @Unmodifiable List<DetectionResult> detectAll(ByteBuffer input) {
         List<DetectionResult> all = detectAllUnfiltered(input);
         List<DetectionResult> filtered = all.stream()
                 .filter(result -> result.confidence() > MINIMUM_THRESHOLD)
@@ -369,6 +403,22 @@ public final class EncodingDetector {
     public @Unmodifiable List<DetectionResult> detectAllUnfiltered(byte[] input) {
         Objects.requireNonNull(input, "input");
         return DetectionEngine.detect(input, this).stream()
+                .sorted(Comparator.comparingDouble(DetectionResult::confidence).reversed())
+                .toList();
+    }
+
+    /// Returns every detection candidate for the remaining buffer bytes.
+    ///
+    /// The result is sorted stably by descending confidence and cannot be
+    /// modified. Only the first [#maxBytes()] bytes between the buffer's
+    /// position and limit are examined. The buffer's content, position, limit,
+    /// and mark are not modified, and the buffer is not retained.
+    ///
+    /// @param input buffer whose remaining bytes are examined
+    /// @return immutable unfiltered candidates
+    /// @throws NullPointerException if `input` is `null`
+    public @Unmodifiable List<DetectionResult> detectAllUnfiltered(ByteBuffer input) {
+        return DetectionEngine.detect(snapshot(input), this).stream()
                 .sorted(Comparator.comparingDouble(DetectionResult::confidence).reversed())
                 .toList();
     }
@@ -398,6 +448,19 @@ public final class EncodingDetector {
     /// @return an immutable ordered set
     public static @Unmodifiable Set<String> supportedEncodings() {
         return EncodingRegistry.supportedEncodings();
+    }
+
+    /// Copies the bounded remaining window of a buffer without consuming it.
+    ///
+    /// @param input source buffer
+    /// @return a byte array containing at most [#maxBytes()] remaining bytes
+    /// @throws NullPointerException if `input` is `null`
+    private byte[] snapshot(ByteBuffer input) {
+        ByteBuffer source = Objects.requireNonNull(input, "input").duplicate();
+        int length = Math.min(source.remaining(), maxBytes);
+        byte[] data = new byte[length];
+        source.get(data);
+        return data;
     }
 
     /// Creates an immutable copy with all supplied configuration values.

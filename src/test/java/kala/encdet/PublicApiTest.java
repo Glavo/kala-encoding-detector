@@ -6,6 +6,7 @@ package kala.encdet;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.junit.jupiter.api.Test;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
@@ -142,6 +143,45 @@ final class PublicApiTest {
         );
     }
 
+    /// Verifies heap and direct buffers have the same detection semantics as arrays.
+    @Test
+    void byteBufferInputsMatchArraysAndPreserveBufferState() {
+        byte[] data = "Héllo 世界 — Καλημέρα".getBytes(StandardCharsets.UTF_8);
+        EncodingDetector detector = EncodingDetector.DEFAULT;
+        DetectionResult expected = detector.detect(data);
+        List<DetectionResult> expectedAll = detector.detectAllUnfiltered(data);
+
+        ByteBuffer direct = ByteBuffer.allocateDirect(data.length + 4);
+        direct.put((byte) 0x80);
+        int start = direct.position();
+        direct.put(data);
+        int end = direct.position();
+        direct.put((byte) 0x81);
+        direct.position(start).limit(end);
+        direct.mark();
+
+        assertEquals(expected, detector.detect(direct));
+        assertEquals(expectedAll, detector.detectAllUnfiltered(direct));
+        assertEquals(start, direct.position());
+        assertEquals(end, direct.limit());
+        direct.reset();
+        assertEquals(start, direct.position());
+
+        byte[] framed = new byte[data.length + 4];
+        framed[0] = (byte) 0x80;
+        System.arraycopy(data, 0, framed, 2, data.length);
+        framed[framed.length - 1] = (byte) 0x81;
+        ByteBuffer readOnlySlice = ByteBuffer.wrap(framed, 2, data.length)
+                .slice()
+                .asReadOnlyBuffer();
+        assertEquals(expected, detector.detect(readOnlySlice));
+        assertEquals(detector.detectAll(data), detector.detectAll(readOnlySlice));
+
+        ByteBuffer empty = ByteBuffer.allocateDirect(4);
+        empty.position(2).limit(2);
+        assertEquals(detector.detect(new byte[0]), detector.detect(empty));
+    }
+
     /// Verifies canonical naming and preferred-superset transformations.
     @Test
     void appliesRequestedOutputNameTransforms() {
@@ -213,7 +253,10 @@ final class PublicApiTest {
         System.arraycopy(ascii, 0, data, 0, ascii.length);
         System.arraycopy(suffix, 0, data, ascii.length, suffix.length);
         EncodingDetector bounded = EncodingDetector.DEFAULT.withMaxBytes(ascii.length);
-        assertEquals("ascii", bounded.detect(data).encoding());
+        DetectionResult boundedExpected = bounded.detect(ascii);
+        assertEquals(boundedExpected, bounded.detect(data));
+        assertEquals(boundedExpected, bounded.detect(ByteBuffer.wrap(data)));
+        assertEquals("ascii", boundedExpected.encoding());
         assertEquals("utf-8", EncodingDetector.DEFAULT.detect(data).encoding());
     }
 
@@ -248,7 +291,13 @@ final class PublicApiTest {
     @Test
     @SuppressWarnings("DataFlowIssue")
     void rejectsNullArgumentsAndInvalidResults() {
-        assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect(null));
+        assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect((byte[]) null));
+        assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect((ByteBuffer) null));
+        assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detectAll((ByteBuffer) null));
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.detectAllUnfiltered((ByteBuffer) null)
+        );
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withEncodingEras(null));
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withNameStyle(null));
         assertThrows(NullPointerException.class, () -> EncodingDetector.lookupEncoding(null));

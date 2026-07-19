@@ -48,6 +48,11 @@ System.out.println(result.language());
 System.out.println(result.mimeType());
 ```
 
+`detect`, `detectAll`, and `detectAllUnfiltered` accept either a `byte[]` or a
+`ByteBuffer`. Buffer overloads inspect the bytes between `position` and
+`limit`, including direct and read-only buffers, without changing the buffer's
+content, position, limit, or mark.
+
 `detectAll` keeps candidates whose confidence is strictly greater than `0.20`.
 If that would remove every candidate, it returns the unfiltered list.
 `detectAllUnfiltered` always returns every candidate. Both lists are immutable
@@ -104,6 +109,7 @@ import kala.encdet.StreamingEncodingDetector;
 StreamingEncodingDetector streaming = detector.newStreamingDetector();
 streaming.feed(firstChunk);
 streaming.feed(secondChunk, 0, secondChunk.length);
+streaming.feed(directByteBuffer);
 DetectionResult result = streaming.finish();
 ```
 
@@ -111,7 +117,9 @@ The streaming detector copies and retains at most `maxBytes` bytes. Once the
 limit is reached, later input is ignored. `finish` is idempotent; `feed` after
 `finish` throws `IllegalStateException`; and `reset` starts a new lifecycle
 with the same detector configuration. `result` returns a zero-confidence
-sentinel before finalization. Streaming instances are not thread-safe.
+sentinel before finalization. A `ByteBuffer` feed copies its remaining bytes
+without changing its content, position, limit, or mark. Streaming instances
+are not thread-safe.
 
 `EncodingDetector` instances are safe for concurrent use. Registry, validity,
 decode, model, and confusion data are immutable after thread-safe lazy

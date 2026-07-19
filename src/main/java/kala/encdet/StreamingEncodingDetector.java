@@ -6,9 +6,10 @@ package kala.encdet;
 import org.jetbrains.annotations.NotNullByDefault;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
-/// Incrementally buffers bytes and runs encoding detection when finished.
+/// Incrementally buffers bytes from arrays or buffers and detects when finished.
 ///
 /// At most `detector().maxBytes()` bytes are retained. Reaching that limit
 /// makes [#isDone()] return `true` and causes later feeds to be ignored, but
@@ -92,6 +93,33 @@ public final class StreamingEncodingDetector {
         int remaining = detector.maxBytes() - buffer.size();
         int accepted = Math.min(remaining, length);
         buffer.write(input, offset, accepted);
+        saturated = buffer.size() >= detector.maxBytes();
+    }
+
+    /// Copies remaining bytes from a buffer into the bounded input buffer.
+    ///
+    /// At most the remaining configured capacity is retained. The source
+    /// buffer's content, position, limit, and mark are not modified, and later
+    /// changes to its content do not affect retained bytes. Once the configured
+    /// maximum has been reached, this method validates its argument and returns
+    /// without reading it.
+    ///
+    /// @param input source buffer
+    /// @throws NullPointerException  if `input` is `null` and the detector has
+    /// not been finished
+    /// @throws IllegalStateException if [#finish()] has already been called
+    public void feed(ByteBuffer input) {
+        ensureFeedPhase();
+        ByteBuffer source = Objects.requireNonNull(input, "input").duplicate();
+        if (saturated || !source.hasRemaining()) {
+            return;
+        }
+
+        int remaining = detector.maxBytes() - buffer.size();
+        int accepted = Math.min(remaining, source.remaining());
+        byte[] data = new byte[accepted];
+        source.get(data);
+        buffer.write(data, 0, data.length);
         saturated = buffer.size() >= detector.maxBytes();
     }
 

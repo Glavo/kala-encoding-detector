@@ -6,6 +6,7 @@ package kala.encdet;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.junit.jupiter.api.Test;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,13 +41,45 @@ final class StreamingEncodingDetectorTest {
         assertEquals("ascii", detector.finish().encoding());
     }
 
+    /// Verifies direct-buffer feeds copy only remaining bytes without consuming the buffer.
+    @Test
+    void byteBufferFeedCopiesRemainingBytesAndPreservesState() {
+        byte[] data = "Héllo 世界 — Καλημέρα".getBytes(StandardCharsets.UTF_8);
+        DetectionResult expected = EncodingDetector.DEFAULT.detect(data);
+        ByteBuffer direct = ByteBuffer.allocateDirect(data.length + 4);
+        direct.put((byte) 0x80);
+        int start = direct.position();
+        direct.put(data);
+        int end = direct.position();
+        direct.put((byte) 0x81);
+        direct.position(start).limit(end);
+        direct.mark();
+
+        StreamingEncodingDetector detector = new StreamingEncodingDetector();
+        detector.feed(direct);
+        assertEquals(start, direct.position());
+        assertEquals(end, direct.limit());
+        direct.put(start, (byte) 0);
+        assertEquals(expected, detector.finish());
+        direct.reset();
+        assertEquals(start, direct.position());
+
+        StreamingEncodingDetector readOnlyDetector = new StreamingEncodingDetector();
+        ByteBuffer readOnly = ByteBuffer.wrap(data).asReadOnlyBuffer();
+        readOnlyDetector.feed(readOnly);
+        assertEquals(expected, readOnlyDetector.finish());
+        assertEquals(0, readOnly.position());
+    }
+
     /// Verifies the maximum byte count saturates the detector and discards later data.
     @Test
     void maximumBytesBoundsRetainedInput() {
         EncodingDetector configuration = EncodingDetector.DEFAULT.withMaxBytes(5);
         StreamingEncodingDetector detector = new StreamingEncodingDetector(configuration);
-        detector.feed("Hello".getBytes(StandardCharsets.US_ASCII));
+        ByteBuffer input = ByteBuffer.wrap("Hello 世界".getBytes(StandardCharsets.UTF_8));
+        detector.feed(input);
         assertTrue(detector.isDone());
+        assertEquals(0, input.position());
         detector.feed(" 世界".getBytes(StandardCharsets.UTF_8));
         assertEquals("ascii", detector.finish().encoding());
     }
@@ -57,6 +90,7 @@ final class StreamingEncodingDetectorTest {
         StreamingEncodingDetector detector = new StreamingEncodingDetector();
         assertFalse(detector.isDone());
         assertEquals(new DetectionResult(null, 0.0, null, null), detector.result());
+        assertThrows(NullPointerException.class, () -> detector.feed((ByteBuffer) null));
         detector.feed(new byte[0]);
         DetectionResult first = detector.finish();
         assertSame(first, detector.finish());
@@ -67,7 +101,8 @@ final class StreamingEncodingDetectorTest {
                 IllegalStateException.class,
                 () -> detector.feed(new byte[1], 0, 1)
         );
-        assertThrows(IllegalStateException.class, () -> detector.feed(null));
+        assertThrows(IllegalStateException.class, () -> detector.feed((byte[]) null));
+        assertThrows(IllegalStateException.class, () -> detector.feed((ByteBuffer) null));
         assertThrows(IllegalStateException.class, () -> detector.feed(null, 0, 0));
     }
 
