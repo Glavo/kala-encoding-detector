@@ -9,9 +9,10 @@ import kala.encdet.EncodingNameStyle;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.UnmodifiableView;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -132,12 +133,10 @@ public final class DetectionEngine {
     /// @param detector immutable detector configuration
     /// @return immutable public candidates in stable ranking order
     public static @Unmodifiable List<DetectionResult> detect(
-            byte @Unmodifiable [] input,
+            @UnmodifiableView ByteBuffer input,
             EncodingDetector detector
     ) {
-        byte[] data = input.length <= detector.maxBytes()
-                ? input
-                : Arrays.copyOf(input, detector.maxBytes());
+        @UnmodifiableView ByteBuffer data = ByteBufferSupport.prefix(input, detector.maxBytes());
         List<PipelineResult> results = runCore(data, detector);
         results = fillLanguages(data, results);
         ArrayList<DetectionResult> publicResults = new ArrayList<>(results.size());
@@ -166,7 +165,7 @@ public final class DetectionEngine {
     /// @param detector immutable detector configuration
     /// @return internal canonical candidates
     private static List<PipelineResult> runCore(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             EncodingDetector detector
     ) {
         List<EncodingRegistry.Info> candidates = EncodingRegistry.candidates(detector);
@@ -176,7 +175,7 @@ public final class DetectionEngine {
         }
         Set<String> allowed = Collections.unmodifiableSet(mutableAllowed);
 
-        if (data.length == 0) {
+        if (data.remaining() == 0) {
             return fallback(detector.emptyInputEncoding(), allowed, "emptyInputEncoding");
         }
 
@@ -260,9 +259,10 @@ public final class DetectionEngine {
             }
         }
 
-        byte[] statisticalData = data.length <= STAT_SCORE_MAX_BYTES
-                ? data
-                : Arrays.copyOf(data, STAT_SCORE_MAX_BYTES);
+        @UnmodifiableView ByteBuffer statisticalData = ByteBufferSupport.prefix(
+                data,
+                STAT_SCORE_MAX_BYTES
+        );
         List<PipelineResult> scored = scoreCandidates(statisticalData, validCandidates);
         if (scored.isEmpty()) {
             return fallback(detector.noMatchEncoding(), allowed, "noMatchEncoding");
@@ -308,14 +308,14 @@ public final class DetectionEngine {
     ///
     /// @param data bytes to inspect
     /// @return BOM result, or `null`
-    private static @Nullable PipelineResult detectBom(byte @Unmodifiable [] data) {
+    private static @Nullable PipelineResult detectBom(@UnmodifiableView ByteBuffer data) {
         if (startsWith(data, 0x00, 0x00, 0xfe, 0xff)) {
-            if ((data.length - 4) % 4 == 0) {
+            if ((data.remaining() - 4) % 4 == 0) {
                 return new PipelineResult("utf-32", 1.0, null, null);
             }
         }
         if (startsWith(data, 0xff, 0xfe, 0x00, 0x00)) {
-            if ((data.length - 4) % 4 == 0) {
+            if ((data.remaining() - 4) % 4 == 0) {
                 return new PipelineResult("utf-32", 1.0, null, null);
             }
         }
@@ -332,13 +332,13 @@ public final class DetectionEngine {
     ///
     /// @param data bytes to inspect
     /// @return ASCII result, or `null`
-    private static @Nullable PipelineResult detectAscii(byte @Unmodifiable [] data) {
-        if (data.length == 0) {
+    private static @Nullable PipelineResult detectAscii(@UnmodifiableView ByteBuffer data) {
+        if (data.remaining() == 0) {
             return null;
         }
         int nulls = 0;
-        for (byte value : data) {
-            int unsigned = Byte.toUnsignedInt(value);
+        for (int index = 0; index < data.remaining(); index++) {
+            int unsigned = unsigned(data, index);
             boolean allowed = unsigned == '\t'
                     || unsigned == '\n'
                     || unsigned == '\r'
@@ -354,7 +354,7 @@ public final class DetectionEngine {
         if (nulls == 0) {
             return new PipelineResult("ascii", 1.0, null, null);
         }
-        return (double) nulls / data.length <= 0.05
+        return (double) nulls / data.remaining() <= 0.05
                 ? new PipelineResult("ascii", 0.99, null, null)
                 : null;
     }
@@ -363,14 +363,14 @@ public final class DetectionEngine {
     ///
     /// @param data bytes to inspect
     /// @return UTF-8 result, or `null`
-    private static @Nullable PipelineResult detectUtf8(byte @Unmodifiable [] data) {
-        if (data.length == 0) {
+    private static @Nullable PipelineResult detectUtf8(@UnmodifiableView ByteBuffer data) {
+        if (data.remaining() == 0) {
             return null;
         }
         int sequences = 0;
         int multibyteBytes = 0;
-        for (int index = 0; index < data.length; ) {
-            int first = Byte.toUnsignedInt(data[index]);
+        for (int index = 0; index < data.remaining(); ) {
+            int first = unsigned(data, index);
             if (first < 0x80) {
                 index++;
                 continue;
@@ -385,15 +385,15 @@ public final class DetectionEngine {
             } else {
                 return null;
             }
-            if (index + length > data.length) {
+            if (index + length > data.remaining()) {
                 break;
             }
             for (int continuation = 1; continuation < length; continuation++) {
-                if (!between(Byte.toUnsignedInt(data[index + continuation]), 0x80, 0xbf)) {
+                if (!between(unsigned(data, index + continuation), 0x80, 0xbf)) {
                     return null;
                 }
             }
-            int second = Byte.toUnsignedInt(data[index + 1]);
+            int second = unsigned(data, index + 1);
             if ((first == 0xe0 && second < 0xa0)
                     || (first == 0xed && second > 0x9f)
                     || (first == 0xf0 && second < 0x90)
@@ -407,7 +407,7 @@ public final class DetectionEngine {
         if (sequences == 0) {
             return null;
         }
-        double ratio = (double) multibyteBytes / data.length;
+        double ratio = (double) multibyteBytes / data.remaining();
         double confidence = Math.min(
                 0.99,
                 0.80 + 0.19 * Math.min(ratio * 6.0, 1.0)
@@ -419,18 +419,18 @@ public final class DetectionEngine {
     ///
     /// @param data bounded bytes to inspect
     /// @return whether input is binary
-    private static boolean isBinary(byte @Unmodifiable [] data) {
-        if (data.length == 0) {
+    private static boolean isBinary(@UnmodifiableView ByteBuffer data) {
+        if (data.remaining() == 0) {
             return false;
         }
         int controls = 0;
-        for (byte value : data) {
-            int unsigned = Byte.toUnsignedInt(value);
+        for (int index = 0; index < data.remaining(); index++) {
+            int unsigned = unsigned(data, index);
             if (unsigned <= 0x08 || between(unsigned, 0x0e, 0x1f)) {
                 controls++;
             }
         }
-        return (double) controls / data.length > 0.01;
+        return (double) controls / data.remaining() > 0.01;
     }
 
     /// Applies all CJK structural gates and caches their metrics.
@@ -440,7 +440,7 @@ public final class DetectionEngine {
     /// @param context    per-run context
     /// @return immutable gated candidates
     private static @Unmodifiable List<EncodingRegistry.Info> gateCjkCandidates(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             List<EncodingRegistry.Info> candidates,
             PipelineContext context
     ) {
@@ -490,7 +490,7 @@ public final class DetectionEngine {
     /// @param context          per-run context
     /// @return statistically ranked and coverage-boosted candidates
     private static List<PipelineResult> scoreStructuralCandidates(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             List<ScoredEncoding> structuralScores,
             List<EncodingRegistry.Info> validCandidates,
             PipelineContext context
@@ -513,9 +513,10 @@ public final class DetectionEngine {
                 ordered.add(candidate);
             }
         }
-        byte[] statisticalData = data.length <= STAT_SCORE_MAX_BYTES
-                ? data
-                : Arrays.copyOf(data, STAT_SCORE_MAX_BYTES);
+        @UnmodifiableView ByteBuffer statisticalData = ByteBufferSupport.prefix(
+                data,
+                STAT_SCORE_MAX_BYTES
+        );
         List<PipelineResult> scored = scoreCandidates(statisticalData, ordered);
         ArrayList<PipelineResult> boosted = new ArrayList<>(scored.size());
         for (PipelineResult result : scored) {
@@ -541,10 +542,10 @@ public final class DetectionEngine {
     /// @param candidates candidates in tie-breaking order
     /// @return stable descending positive-score results
     private static List<PipelineResult> scoreCandidates(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             List<EncodingRegistry.Info> candidates
     ) {
-        if (data.length == 0 || candidates.isEmpty()) {
+        if (data.remaining() == 0 || candidates.isEmpty()) {
             return List.of();
         }
         ModelStore.Profile profile = ModelStore.profile(data);
@@ -570,12 +571,13 @@ public final class DetectionEngine {
     /// @param results  pipeline results
     /// @return results with languages filled where possible
     private static List<PipelineResult> fillLanguages(
-            byte @Unmodifiable [] original,
+            @UnmodifiableView ByteBuffer original,
             List<PipelineResult> results
     ) {
-        byte[] data = original.length <= LANGUAGE_SCORE_MAX_BYTES
-                ? original
-                : Arrays.copyOf(original, LANGUAGE_SCORE_MAX_BYTES);
+        @UnmodifiableView ByteBuffer data = ByteBufferSupport.prefix(
+                original,
+                LANGUAGE_SCORE_MAX_BYTES
+        );
         ArrayList<PipelineResult> filled = new ArrayList<>(results.size());
         @Nullable ModelStore.Profile profile = null;
         @Nullable ModelStore.Profile utf8Profile = null;
@@ -586,15 +588,15 @@ public final class DetectionEngine {
             }
             String encoding = result.encoding();
             @Nullable String language = ModelStore.inferSingleLanguage(encoding);
-            if (language == null && data.length > 0 && ModelStore.hasVariants(encoding)) {
+            if (language == null && data.remaining() > 0 && ModelStore.hasVariants(encoding)) {
                 if (profile == null) {
                     profile = ModelStore.profile(data);
                 }
                 language = ModelStore.scoreBestLanguage(encoding, profile).language();
             }
-            if (language == null && data.length > 0 && ModelStore.hasVariants("utf-8")) {
-                byte @Nullable [] utf8Data = TextDecoder.toUtf8(data, encoding);
-                if (utf8Data != null && utf8Data.length > 0) {
+            if (language == null && data.remaining() > 0 && ModelStore.hasVariants("utf-8")) {
+                @Nullable @UnmodifiableView ByteBuffer utf8Data = TextDecoder.toUtf8(data, encoding);
+                if (utf8Data != null && utf8Data.remaining() > 0) {
                     if (utf8Profile == null || !encoding.equals("utf-8")) {
                         utf8Profile = ModelStore.profile(utf8Data);
                     }
@@ -637,10 +639,10 @@ public final class DetectionEngine {
     ///
     /// @param data bytes to inspect
     /// @return non-ASCII count
-    private static int countNonAscii(byte @Unmodifiable [] data) {
+    private static int countNonAscii(@UnmodifiableView ByteBuffer data) {
         int count = 0;
-        for (byte value : data) {
-            count += value < 0 ? 1 : 0;
+        for (int index = 0; index < data.remaining(); index++) {
+            count += data.get(index) < 0 ? 1 : 0;
         }
         return count;
     }
@@ -660,16 +662,28 @@ public final class DetectionEngine {
     /// @param data   source bytes
     /// @param prefix unsigned prefix bytes
     /// @return whether it matches
-    private static boolean startsWith(byte @Unmodifiable [] data, int @Unmodifiable ... prefix) {
-        if (data.length < prefix.length) {
+    private static boolean startsWith(
+            @UnmodifiableView ByteBuffer data,
+            int @Unmodifiable ... prefix
+    ) {
+        if (data.remaining() < prefix.length) {
             return false;
         }
         for (int index = 0; index < prefix.length; index++) {
-            if (Byte.toUnsignedInt(data[index]) != prefix[index]) {
+            if (unsigned(data, index) != prefix[index]) {
                 return false;
             }
         }
         return true;
+    }
+
+    /// Returns one byte as an unsigned integer.
+    ///
+    /// @param data  source buffer
+    /// @param index logical index in the normalized buffer
+    /// @return value in the range `0` through `255`
+    private static int unsigned(@UnmodifiableView ByteBuffer data, int index) {
+        return Byte.toUnsignedInt(data.get(index));
     }
 
     /// Stores per-invocation structural caches and counters.

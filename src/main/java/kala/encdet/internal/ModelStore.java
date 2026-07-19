@@ -6,6 +6,7 @@ package kala.encdet.internal;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.UnmodifiableView;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,9 +71,9 @@ final class ModelStore {
 
     /// Creates an IDF-weighted bigram profile for a byte sequence.
     ///
-    /// @param data bytes to profile
+    /// @param data normalized read-only bytes to profile
     /// @return reusable profile
-    static Profile profile(byte @Unmodifiable [] data) {
+    static Profile profile(@UnmodifiableView ByteBuffer data) {
         return new Profile(data, IdfHolder.WEIGHTS);
     }
 
@@ -403,8 +404,11 @@ final class ModelStore {
         ///
         /// @param data bytes to profile
         /// @param idf  unsigned IDF weights
-        private Profile(byte @Unmodifiable [] data, byte @Unmodifiable [] idf) {
-            int bigramCount = data.length - 1;
+        private Profile(
+                @UnmodifiableView ByteBuffer data,
+                byte @Unmodifiable [] idf
+        ) {
+            int bigramCount = data.limit() - 1;
             if (bigramCount <= 0) {
                 this.frequencies = new int[0];
                 this.nonzero = new int[0];
@@ -416,8 +420,8 @@ final class ModelStore {
             int[] mutableNonzero = new int[Math.min(bigramCount, MODEL_SIZE)];
             int distinct = 0;
             for (int index = 0; index < bigramCount; index++) {
-                int bigram = (Byte.toUnsignedInt(data[index]) << 8)
-                        | Byte.toUnsignedInt(data[index + 1]);
+                int bigram = (Byte.toUnsignedInt(data.get(index)) << 8)
+                        | Byte.toUnsignedInt(data.get(index + 1));
                 if (mutableFrequencies[bigram] == 0) {
                     mutableNonzero[distinct++] = bigram;
                 }

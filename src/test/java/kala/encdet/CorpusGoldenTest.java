@@ -54,7 +54,7 @@ final class CorpusGoldenTest {
         assertEquals(2531, count);
     }
 
-    /// Verifies every result field, confidence, order, and streaming top result.
+    /// Verifies every result field, confidence, and candidate order.
     ///
     /// @throws IOException if a test resource cannot be read
     @Test
@@ -81,7 +81,6 @@ final class CorpusGoldenTest {
                 List<ExpectedResult> expected = parseResults(fields[2]);
                 List<DetectionResult> actual = EncodingDetector.DEFAULT.detectAllUnfiltered(data);
                 compareResults(path, expected, actual, mismatches);
-                compareStreaming(path, data, actual.get(0), mismatches);
                 samples++;
             }
         }
@@ -129,29 +128,6 @@ final class CorpusGoldenTest {
                 );
                 return;
             }
-        }
-    }
-
-    /// Verifies streaming detection with deterministic variable chunk sizes.
-    ///
-    /// @param path        corpus path
-    /// @param data        input bytes
-    /// @param expectedTop expected top result
-    /// @param mismatches  accumulated mismatch details
-    private static void compareStreaming(
-            String path,
-            byte @Unmodifiable [] data,
-            DetectionResult expectedTop,
-            List<String> mismatches
-    ) {
-        StreamingEncodingDetector detector = new StreamingEncodingDetector();
-        int chunk = Math.floorMod(path.hashCode(), 257) + 1;
-        for (int offset = 0; offset < data.length; offset += chunk) {
-            detector.feed(data, offset, Math.min(chunk, data.length - offset));
-        }
-        DetectionResult actual = detector.finish();
-        if (!expectedTop.equals(actual)) {
-            addMismatch(mismatches, path + ": streaming expected " + expectedTop + " but was " + actual);
         }
     }
 

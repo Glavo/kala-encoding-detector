@@ -4,6 +4,7 @@
 package kala.encdet;
 
 import org.jetbrains.annotations.NotNullByDefault;
+import org.jetbrains.annotations.UnmodifiableView;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
@@ -38,12 +39,28 @@ final class PipelineEdgeCaseTest {
     void detectsBomlessUnicodePatterns() {
         byte[] utf16le = "This is a sufficiently long UTF-16 sample.".getBytes(StandardCharsets.UTF_16LE);
         byte[] utf16be = "This is a sufficiently long UTF-16 sample.".getBytes(StandardCharsets.UTF_16BE);
-        ByteBuffer utf32le = encodeUtf32("UTF-32 little endian sample", ByteOrder.LITTLE_ENDIAN);
-        ByteBuffer utf32be = encodeUtf32("UTF-32 big endian sample", ByteOrder.BIG_ENDIAN);
+        byte[] utf32le = encodeUtf32("UTF-32 little endian sample", ByteOrder.LITTLE_ENDIAN);
+        byte[] utf32be = encodeUtf32("UTF-32 big endian sample", ByteOrder.BIG_ENDIAN);
         assertEquals("utf-16-le", EncodingDetector.DEFAULT.detect(utf16le).encoding());
         assertEquals("utf-16-be", EncodingDetector.DEFAULT.detect(utf16be).encoding());
-        assertEquals("utf-32-le", EncodingDetector.DEFAULT.detect(utf32le.array()).encoding());
-        assertEquals("utf-32-be", EncodingDetector.DEFAULT.detect(utf32be.array()).encoding());
+        assertEquals(
+                EncodingDetector.DEFAULT.detect(utf16le),
+                EncodingDetector.DEFAULT.detect(directView(utf16le))
+        );
+        assertEquals(
+                EncodingDetector.DEFAULT.detect(utf16be),
+                EncodingDetector.DEFAULT.detect(readOnlyView(utf16be))
+        );
+        assertEquals("utf-32-le", EncodingDetector.DEFAULT.detect(utf32le).encoding());
+        assertEquals("utf-32-be", EncodingDetector.DEFAULT.detect(utf32be).encoding());
+        assertEquals(
+                EncodingDetector.DEFAULT.detect(utf32le),
+                EncodingDetector.DEFAULT.detect(directView(utf32le))
+        );
+        assertEquals(
+                EncodingDetector.DEFAULT.detect(utf32be),
+                EncodingDetector.DEFAULT.detect(readOnlyView(utf32be))
+        );
     }
 
     /// Verifies sparse null separators remain ASCII while dense null data is binary.
@@ -109,24 +126,25 @@ final class PipelineEdgeCaseTest {
     void honorsValidDeclarationsAndIgnoresInvalidOnes() {
         EncodingDetector canonical = EncodingDetector.DEFAULT
                 .withNameStyle(EncodingNameStyle.CANONICAL);
-        DetectionResult xml = canonical.detect(
-                "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?><root/>"
-                        .getBytes(StandardCharsets.US_ASCII)
-        );
+        byte[] xmlData = "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?><root/>"
+                .getBytes(StandardCharsets.US_ASCII);
+        DetectionResult xml = canonical.detect(directView(xmlData));
+        assertEquals(canonical.detect(xmlData), xml);
         assertEquals("iso8859-1", xml.encoding());
         assertEquals("text/xml", xml.mimeType());
         assertEquals(0.95, xml.confidence());
 
-        DetectionResult html = canonical.detect(
-                "<meta charset=\"utf-8\"><p>Hello</p>".getBytes(StandardCharsets.US_ASCII)
-        );
+        byte[] htmlData = "<meta charset=\"utf-8\"><p>Hello</p>"
+                .getBytes(StandardCharsets.US_ASCII);
+        DetectionResult html = canonical.detect(readOnlyView(htmlData));
+        assertEquals(canonical.detect(htmlData), html);
         assertEquals("utf-8", html.encoding());
         assertEquals("text/html", html.mimeType());
 
-        DetectionResult pep = canonical.detect(
-                "#!/usr/bin/env python\n# -*- coding: iso-8859-1 -*-\nx='é'\n"
-                        .getBytes(StandardCharsets.ISO_8859_1)
-        );
+        byte[] pepData = "#!/usr/bin/env python\n# -*- coding: iso-8859-1 -*-\nx='é'\n"
+                .getBytes(StandardCharsets.ISO_8859_1);
+        DetectionResult pep = canonical.detect(directView(pepData));
+        assertEquals(canonical.detect(pepData), pep);
         assertEquals("iso8859-1", pep.encoding());
         assertEquals("text/x-python", pep.mimeType());
 
@@ -161,14 +179,39 @@ final class PipelineEdgeCaseTest {
     ///
     /// @param value text to encode
     /// @param order requested byte order
-    /// @return filled byte buffer
-    private static ByteBuffer encodeUtf32(String value, ByteOrder order) {
+    /// @return encoded bytes
+    private static byte[] encodeUtf32(String value, ByteOrder order) {
         int[] codePoints = value.codePoints().toArray();
         ByteBuffer buffer = ByteBuffer.allocate(codePoints.length * Integer.BYTES).order(order);
         for (int codePoint : codePoints) {
             buffer.putInt(codePoint);
         }
+        return buffer.array();
+    }
+
+    /// Creates a direct buffer whose remaining region contains the supplied bytes.
+    ///
+    /// @param data bytes to expose
+    /// @return mutable direct buffer with a nonzero position
+    private static ByteBuffer directView(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.allocateDirect(data.length + 2);
+        buffer.put((byte) 0x55).put(data).put((byte) 0x66);
+        buffer.position(1).limit(data.length + 1);
         return buffer;
+    }
+
+    /// Creates a read-only buffer whose remaining region contains the supplied bytes.
+    ///
+    /// @param data bytes to expose
+    /// @return read-only buffer with a nonzero position
+    private static @UnmodifiableView ByteBuffer readOnlyView(byte[] data) {
+        byte[] framed = new byte[data.length + 2];
+        framed[0] = 0x55;
+        System.arraycopy(data, 0, framed, 1, data.length);
+        framed[framed.length - 1] = 0x66;
+        ByteBuffer buffer = ByteBuffer.wrap(framed);
+        buffer.position(1).limit(data.length + 1);
+        return buffer.asReadOnlyBuffer();
     }
 
     /// Creates one stored empty ZIP local entry.
@@ -202,5 +245,7 @@ final class PipelineEdgeCaseTest {
         assertNull(result.encoding());
         assertEquals(1.0, result.confidence());
         assertEquals(mimeType, result.mimeType());
+        assertEquals(result, EncodingDetector.DEFAULT.detect(directView(data)));
+        assertEquals(result, EncodingDetector.DEFAULT.detect(readOnlyView(data)));
     }
 }

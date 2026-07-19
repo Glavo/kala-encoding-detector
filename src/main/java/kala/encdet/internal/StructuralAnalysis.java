@@ -6,7 +6,9 @@ package kala.encdet.internal;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.UnmodifiableView;
 
+import java.nio.ByteBuffer;
 import java.util.Map;
 
 /// Computes cached CJK multibyte structural metrics in one pass per encoding.
@@ -23,7 +25,7 @@ final class StructuralAnalysis {
     /// @param cache    per-detection cache
     /// @return metrics, or `null` when no analyzer exists
     static @Nullable Analysis get(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             String encoding,
             Map<String, Analysis> cache
     ) {
@@ -53,17 +55,20 @@ final class StructuralAnalysis {
     /// @param data      bytes to analyze
     /// @param upperLead inclusive upper lead byte for the second lead range
     /// @return structural metrics
-    private static Analysis analyzeShiftJis(byte @Unmodifiable [] data, int upperLead) {
+    private static Analysis analyzeShiftJis(
+            @UnmodifiableView ByteBuffer data,
+            int upperLead
+    ) {
         int leadCount = 0;
         int validCount = 0;
         int multibyteBytes = 0;
         boolean[] leads = new boolean[256];
-        for (int index = 0; index < data.length; ) {
-            int value = Byte.toUnsignedInt(data[index]);
+        for (int index = 0; index < data.remaining(); ) {
+            int value = Byte.toUnsignedInt(data.get(index));
             if (between(value, 0x81, 0x9f) || between(value, 0xe0, upperLead)) {
                 leadCount++;
-                if (index + 1 < data.length) {
-                    int trail = Byte.toUnsignedInt(data[index + 1]);
+                if (index + 1 < data.remaining()) {
+                    int trail = Byte.toUnsignedInt(data.get(index + 1));
                     if (between(trail, 0x40, 0x7e) || between(trail, 0x80, 0xfc)) {
                         validCount++;
                         leads[value] = true;
@@ -82,17 +87,17 @@ final class StructuralAnalysis {
     ///
     /// @param data bytes to analyze
     /// @return structural metrics
-    private static Analysis analyzeEucJp(byte @Unmodifiable [] data) {
+    private static Analysis analyzeEucJp(@UnmodifiableView ByteBuffer data) {
         int leadCount = 0;
         int validCount = 0;
         int multibyteBytes = 0;
         boolean[] leads = new boolean[256];
-        for (int index = 0; index < data.length; ) {
-            int value = Byte.toUnsignedInt(data[index]);
+        for (int index = 0; index < data.remaining(); ) {
+            int value = Byte.toUnsignedInt(data.get(index));
             if (value == 0x8e) {
                 leadCount++;
-                if (index + 1 < data.length
-                        && between(Byte.toUnsignedInt(data[index + 1]), 0xa1, 0xdf)) {
+                if (index + 1 < data.remaining()
+                        && between(Byte.toUnsignedInt(data.get(index + 1)), 0xa1, 0xdf)) {
                     validCount++;
                     leads[value] = true;
                     multibyteBytes += 2;
@@ -101,9 +106,9 @@ final class StructuralAnalysis {
                 }
             } else if (value == 0x8f) {
                 leadCount++;
-                if (index + 2 < data.length
-                        && between(Byte.toUnsignedInt(data[index + 1]), 0xa1, 0xfe)
-                        && between(Byte.toUnsignedInt(data[index + 2]), 0xa1, 0xfe)) {
+                if (index + 2 < data.remaining()
+                        && between(Byte.toUnsignedInt(data.get(index + 1)), 0xa1, 0xfe)
+                        && between(Byte.toUnsignedInt(data.get(index + 2)), 0xa1, 0xfe)) {
                     validCount++;
                     leads[value] = true;
                     multibyteBytes += 3;
@@ -112,8 +117,8 @@ final class StructuralAnalysis {
                 }
             } else if (between(value, 0xa1, 0xfe)) {
                 leadCount++;
-                if (index + 1 < data.length
-                        && between(Byte.toUnsignedInt(data[index + 1]), 0xa1, 0xfe)) {
+                if (index + 1 < data.remaining()
+                        && between(Byte.toUnsignedInt(data.get(index + 1)), 0xa1, 0xfe)) {
                     validCount++;
                     leads[value] = true;
                     multibyteBytes += 2;
@@ -130,17 +135,17 @@ final class StructuralAnalysis {
     ///
     /// @param data bytes to analyze
     /// @return structural metrics
-    private static Analysis analyzeEucKr(byte @Unmodifiable [] data) {
+    private static Analysis analyzeEucKr(@UnmodifiableView ByteBuffer data) {
         int leadCount = 0;
         int validCount = 0;
         int multibyteBytes = 0;
         boolean[] leads = new boolean[256];
-        for (int index = 0; index < data.length; ) {
-            int value = Byte.toUnsignedInt(data[index]);
+        for (int index = 0; index < data.remaining(); ) {
+            int value = Byte.toUnsignedInt(data.get(index));
             if (between(value, 0xa1, 0xfe)) {
                 leadCount++;
-                if (index + 1 < data.length
-                        && between(Byte.toUnsignedInt(data[index + 1]), 0xa1, 0xfe)) {
+                if (index + 1 < data.remaining()
+                        && between(Byte.toUnsignedInt(data.get(index + 1)), 0xa1, 0xfe)) {
                     validCount++;
                     leads[value] = true;
                     multibyteBytes += 2;
@@ -157,17 +162,17 @@ final class StructuralAnalysis {
     ///
     /// @param data bytes to analyze
     /// @return structural metrics
-    private static Analysis analyzeCp949(byte @Unmodifiable [] data) {
+    private static Analysis analyzeCp949(@UnmodifiableView ByteBuffer data) {
         int leadCount = 0;
         int validCount = 0;
         int multibyteBytes = 0;
         boolean[] leads = new boolean[256];
-        for (int index = 0; index < data.length; ) {
-            int value = Byte.toUnsignedInt(data[index]);
+        for (int index = 0; index < data.remaining(); ) {
+            int value = Byte.toUnsignedInt(data.get(index));
             if (between(value, 0x81, 0xc8) || between(value, 0xca, 0xfd)) {
                 leadCount++;
-                if (index + 1 < data.length) {
-                    int trail = Byte.toUnsignedInt(data[index + 1]);
+                if (index + 1 < data.remaining()) {
+                    int trail = Byte.toUnsignedInt(data.get(index + 1));
                     if (between(trail, 0x41, 0x5a)
                             || between(trail, 0x61, 0x7a)
                             || between(trail, 0x81, 0xfe)) {
@@ -188,19 +193,19 @@ final class StructuralAnalysis {
     ///
     /// @param data bytes to analyze
     /// @return structural metrics
-    private static Analysis analyzeGb18030(byte @Unmodifiable [] data) {
+    private static Analysis analyzeGb18030(@UnmodifiableView ByteBuffer data) {
         int leadCount = 0;
         int validCount = 0;
         int multibyteBytes = 0;
         boolean[] leads = new boolean[256];
-        for (int index = 0; index < data.length; ) {
-            int value = Byte.toUnsignedInt(data[index]);
+        for (int index = 0; index < data.remaining(); ) {
+            int value = Byte.toUnsignedInt(data.get(index));
             if (between(value, 0x81, 0xfe)) {
                 leadCount++;
-                if (index + 3 < data.length
-                        && between(Byte.toUnsignedInt(data[index + 1]), 0x30, 0x39)
-                        && between(Byte.toUnsignedInt(data[index + 2]), 0x81, 0xfe)
-                        && between(Byte.toUnsignedInt(data[index + 3]), 0x30, 0x39)) {
+                if (index + 3 < data.remaining()
+                        && between(Byte.toUnsignedInt(data.get(index + 1)), 0x30, 0x39)
+                        && between(Byte.toUnsignedInt(data.get(index + 2)), 0x81, 0xfe)
+                        && between(Byte.toUnsignedInt(data.get(index + 3)), 0x30, 0x39)) {
                     validCount++;
                     leads[value] = true;
                     multibyteBytes += 2;
@@ -208,8 +213,8 @@ final class StructuralAnalysis {
                     continue;
                 }
                 if (between(value, 0xa1, 0xf7)
-                        && index + 1 < data.length
-                        && between(Byte.toUnsignedInt(data[index + 1]), 0xa1, 0xfe)) {
+                        && index + 1 < data.remaining()
+                        && between(Byte.toUnsignedInt(data.get(index + 1)), 0xa1, 0xfe)) {
                     validCount++;
                     leads[value] = true;
                     multibyteBytes += 2;
@@ -226,17 +231,17 @@ final class StructuralAnalysis {
     ///
     /// @param data bytes to analyze
     /// @return structural metrics
-    private static Analysis analyzeBig5Hkscs(byte @Unmodifiable [] data) {
+    private static Analysis analyzeBig5Hkscs(@UnmodifiableView ByteBuffer data) {
         int leadCount = 0;
         int validCount = 0;
         int multibyteBytes = 0;
         boolean[] leads = new boolean[256];
-        for (int index = 0; index < data.length; ) {
-            int value = Byte.toUnsignedInt(data[index]);
+        for (int index = 0; index < data.remaining(); ) {
+            int value = Byte.toUnsignedInt(data.get(index));
             if (between(value, 0x87, 0xfe)) {
                 leadCount++;
-                if (index + 1 < data.length) {
-                    int trail = Byte.toUnsignedInt(data[index + 1]);
+                if (index + 1 < data.remaining()) {
+                    int trail = Byte.toUnsignedInt(data.get(index + 1));
                     if (between(trail, 0x40, 0x7e) || between(trail, 0xa1, 0xfe)) {
                         validCount++;
                         leads[value] = true;
@@ -255,19 +260,19 @@ final class StructuralAnalysis {
     ///
     /// @param data bytes to analyze
     /// @return structural metrics
-    private static Analysis analyzeJohab(byte @Unmodifiable [] data) {
+    private static Analysis analyzeJohab(@UnmodifiableView ByteBuffer data) {
         int leadCount = 0;
         int validCount = 0;
         int multibyteBytes = 0;
         boolean[] leads = new boolean[256];
-        for (int index = 0; index < data.length; ) {
-            int value = Byte.toUnsignedInt(data[index]);
+        for (int index = 0; index < data.remaining(); ) {
+            int value = Byte.toUnsignedInt(data.get(index));
             if (between(value, 0x84, 0xd3)
                     || between(value, 0xd8, 0xde)
                     || between(value, 0xe0, 0xf9)) {
                 leadCount++;
-                if (index + 1 < data.length) {
-                    int trail = Byte.toUnsignedInt(data[index + 1]);
+                if (index + 1 < data.remaining()) {
+                    int trail = Byte.toUnsignedInt(data.get(index + 1));
                     if (between(trail, 0x31, 0x7e) || between(trail, 0x91, 0xfe)) {
                         validCount++;
                         leads[value] = true;

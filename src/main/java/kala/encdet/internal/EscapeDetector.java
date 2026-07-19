@@ -6,7 +6,9 @@ package kala.encdet.internal;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.UnmodifiableView;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 /// Detects ISO-2022, HZ-GB-2312, and UTF-7 escape structures.
@@ -27,7 +29,7 @@ final class EscapeDetector {
     /// @param data bytes to examine
     /// @return a deterministic result, or `null`
     static @Nullable PipelineResult detect(
-            byte @Unmodifiable [] data
+            @UnmodifiableView ByteBuffer data
     ) {
         boolean hasEscape = containsByte(data, 0x1b);
         boolean hasTilde = containsByte(data, '~');
@@ -88,7 +90,7 @@ final class EscapeDetector {
     ///
     /// @param data bytes to scan
     /// @return whether a structurally valid region exists
-    private static boolean hasValidHzRegion(byte @Unmodifiable [] data) {
+    private static boolean hasValidHzRegion(@UnmodifiableView ByteBuffer data) {
         byte[] opening = asciiBytes("~{");
         byte[] closing = asciiBytes("~}");
         int start = 0;
@@ -105,7 +107,7 @@ final class EscapeDetector {
             if (length >= 2 && (length & 1) == 0) {
                 boolean valid = true;
                 for (int index = begin + 2; index < end; index++) {
-                    int value = Byte.toUnsignedInt(data[index]);
+                    int value = Byte.toUnsignedInt(data.get(index));
                     if (value < 0x21 || value > 0x7e) {
                         valid = false;
                         break;
@@ -123,7 +125,7 @@ final class EscapeDetector {
     ///
     /// @param data seven-bit bytes
     /// @return whether a valid shifted sequence exists
-    private static boolean hasValidUtf7Sequence(byte @Unmodifiable [] data) {
+    private static boolean hasValidUtf7Sequence(@UnmodifiableView ByteBuffer data) {
         int start = 0;
         while (true) {
             int shift = indexOfByte(data, '+', start);
@@ -131,12 +133,12 @@ final class EscapeDetector {
                 return false;
             }
             int position = shift + 1;
-            if (position < data.length && data[position] == '-') {
+            if (position < data.remaining() && data.get(position) == '-') {
                 start = position + 1;
                 continue;
             }
-            if (position < data.length && data[position] == '+') {
-                while (position < data.length && data[position] == '+') {
+            if (position < data.remaining() && data.get(position) == '+') {
+                while (position < data.remaining() && data.get(position) == '+') {
                     position++;
                 }
                 start = position;
@@ -148,13 +150,13 @@ final class EscapeDetector {
             }
 
             int end = position;
-            while (end < data.length && base64Value(data[end]) >= 0) {
+            while (end < data.remaining() && base64Value(data.get(end)) >= 0) {
                 end++;
             }
             int length = end - position;
             boolean uppercase = false;
             for (int index = position; index < end; index++) {
-                int value = Byte.toUnsignedInt(data[index]);
+                int value = Byte.toUnsignedInt(data.get(index));
                 if (value >= 'A' && value <= 'Z') {
                     uppercase = true;
                     break;
@@ -178,7 +180,7 @@ final class EscapeDetector {
     /// @param end   exclusive Base64 end
     /// @return whether it decodes to well-formed UTF-16BE
     private static boolean isValidUtf7Base64(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             int start,
             int end
     ) {
@@ -186,7 +188,7 @@ final class EscapeDetector {
         int totalBits = length * 6;
         int paddingBits = totalBits % 16;
         if (paddingBits > 0) {
-            int last = base64Value(data[end - 1]);
+            int last = base64Value(data.get(end - 1));
             int mask = (1 << paddingBits) - 1;
             if ((last & mask) != 0) {
                 return false;
@@ -199,7 +201,7 @@ final class EscapeDetector {
         int bitCount = 0;
         int output = 0;
         for (int index = start; index < end; index++) {
-            bitBuffer = (bitBuffer << 6) | base64Value(data[index]);
+            bitBuffer = (bitBuffer << 6) | base64Value(data.get(index));
             bitCount += 6;
             if (bitCount >= 8) {
                 bitCount -= 8;
@@ -244,14 +246,17 @@ final class EscapeDetector {
     /// @param data     source bytes
     /// @param position plus-sign index
     /// @return whether it appears embedded in Base64 data
-    private static boolean isEmbeddedInBase64(byte @Unmodifiable [] data, int position) {
+    private static boolean isEmbeddedInBase64(
+            @UnmodifiableView ByteBuffer data,
+            int position
+    ) {
         int count = 0;
         for (int index = position - 1; index >= 0; index--) {
-            int value = Byte.toUnsignedInt(data[index]);
+            int value = Byte.toUnsignedInt(data.get(index));
             if (value == '\n' || value == '\r') {
                 continue;
             }
-            if (base64Value(data[index]) >= 0 || value == '=') {
+            if (base64Value(data.get(index)) >= 0 || value == '=') {
                 count++;
             } else {
                 break;
@@ -264,9 +269,9 @@ final class EscapeDetector {
     ///
     /// @param data bytes to test
     /// @return whether all bytes are seven-bit
-    private static boolean isSevenBit(byte @Unmodifiable [] data) {
-        for (byte value : data) {
-            if (value < 0) {
+    private static boolean isSevenBit(@UnmodifiableView ByteBuffer data) {
+        for (int index = 0; index < data.remaining(); index++) {
+            if (data.get(index) < 0) {
                 return false;
             }
         }
@@ -278,7 +283,7 @@ final class EscapeDetector {
     /// @param data     source bytes
     /// @param expected unsigned byte
     /// @return whether it occurs
-    private static boolean containsByte(byte @Unmodifiable [] data, int expected) {
+    private static boolean containsByte(@UnmodifiableView ByteBuffer data, int expected) {
         return indexOfByte(data, expected, 0) >= 0;
     }
 
@@ -289,12 +294,12 @@ final class EscapeDetector {
     /// @param start    first index
     /// @return matching index, or `-1`
     private static int indexOfByte(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             int expected,
             int start
     ) {
-        for (int index = Math.max(0, start); index < data.length; index++) {
-            if (Byte.toUnsignedInt(data[index]) == expected) {
+        for (int index = Math.max(0, start); index < data.remaining(); index++) {
+            if (Byte.toUnsignedInt(data.get(index)) == expected) {
                 return index;
             }
         }
@@ -306,7 +311,7 @@ final class EscapeDetector {
     /// @param data     source bytes
     /// @param expected expected text
     /// @return whether it occurs
-    private static boolean containsAscii(byte @Unmodifiable [] data, String expected) {
+    private static boolean containsAscii(@UnmodifiableView ByteBuffer data, String expected) {
         return indexOf(data, asciiBytes(expected), 0) >= 0;
     }
 
@@ -317,15 +322,15 @@ final class EscapeDetector {
     /// @param start   first candidate index
     /// @return matching index, or `-1`
     private static int indexOf(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             byte @Unmodifiable [] pattern,
             int start
     ) {
-        int last = data.length - pattern.length;
+        int last = data.remaining() - pattern.length;
         for (int index = Math.max(0, start); index <= last; index++) {
             boolean match = true;
             for (int patternIndex = 0; patternIndex < pattern.length; patternIndex++) {
-                if (data[index + patternIndex] != pattern[patternIndex]) {
+                if (data.get(index + patternIndex) != pattern[patternIndex]) {
                     match = false;
                     break;
                 }

@@ -5,9 +5,11 @@ package kala.encdet;
 
 import kala.encdet.internal.DetectionEngine;
 import kala.encdet.internal.EncodingRegistry;
+import kala.encdet.internal.ByteBufferSupport;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.UnmodifiableView;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -330,28 +332,29 @@ public final class EncodingDetector {
 
     /// Returns the highest-ranked result.
     ///
-    /// Only the first [#maxBytes()] bytes are examined. The input array is not
-    /// retained or modified.
+    /// Only the first [#maxBytes()] bytes are examined. The input array is read
+    /// directly without copying, is not retained after this method returns, and
+    /// is never modified. Its contents must not be changed during detection.
     ///
     /// @param input bytes to examine
     /// @return highest-ranked result
     /// @throws NullPointerException if `input` is `null`
     public DetectionResult detect(byte[] input) {
-        Objects.requireNonNull(input, "input");
-        return DetectionEngine.detect(input, this).get(0);
+        return detectNormalized(ByteBufferSupport.wrap(Objects.requireNonNull(input, "input")));
     }
 
     /// Returns the highest-ranked result for the remaining buffer bytes.
     ///
     /// Only the first [#maxBytes()] bytes between the buffer's position and
     /// limit are examined. The buffer's content, position, limit, and mark are
-    /// not modified, and the buffer is not retained.
+    /// not modified, and the buffer is not retained. Its underlying bytes are
+    /// read directly without copying and must not change during detection.
     ///
     /// @param input buffer whose remaining bytes are examined
     /// @return highest-ranked result
     /// @throws NullPointerException if `input` is `null`
     public DetectionResult detect(ByteBuffer input) {
-        return DetectionEngine.detect(snapshot(input), this).get(0);
+        return detectNormalized(ByteBufferSupport.view(input));
     }
 
     /// Returns candidates above the default confidence threshold.
@@ -359,7 +362,8 @@ public final class EncodingDetector {
     /// If no candidate has confidence greater than `0.20`, the unfiltered
     /// candidates are returned. The result is sorted stably by descending
     /// confidence and cannot be modified. Only the first [#maxBytes()] input
-    /// bytes are examined.
+    /// bytes are examined. The input array is read directly without copying,
+    /// is not retained, and must not change during detection.
     ///
     /// @param input bytes to examine
     /// @return immutable filtered candidates
@@ -375,10 +379,11 @@ public final class EncodingDetector {
     /// Returns candidates above the default confidence threshold for a buffer.
     ///
     /// Only the first [#maxBytes()] remaining bytes are examined. The buffer's
-    /// content, position, limit, and mark are not modified. If no candidate has
-    /// confidence greater than `0.20`, the unfiltered candidates are returned.
-    /// The result is sorted stably by descending confidence and cannot be
-    /// modified.
+    /// content, position, limit, and mark are not modified, and its underlying
+    /// bytes are read directly without copying. If no candidate has confidence
+    /// greater than `0.20`, the unfiltered candidates are returned. The result
+    /// is sorted stably by descending confidence and cannot be modified. The
+    /// underlying bytes must not change during detection.
     ///
     /// @param input buffer whose remaining bytes are examined
     /// @return immutable filtered candidates
@@ -395,16 +400,16 @@ public final class EncodingDetector {
     ///
     /// The result is sorted stably by descending confidence and cannot be
     /// modified. Only the first [#maxBytes()] bytes are examined, and the
-    /// input array is not retained or modified.
+    /// input array is read directly without copying or modification, is not
+    /// retained, and must not change during detection.
     ///
     /// @param input bytes to examine
     /// @return immutable unfiltered candidates
     /// @throws NullPointerException if `input` is `null`
     public @Unmodifiable List<DetectionResult> detectAllUnfiltered(byte[] input) {
-        Objects.requireNonNull(input, "input");
-        return DetectionEngine.detect(input, this).stream()
-                .sorted(Comparator.comparingDouble(DetectionResult::confidence).reversed())
-                .toList();
+        return detectAllUnfilteredNormalized(
+                ByteBufferSupport.wrap(Objects.requireNonNull(input, "input"))
+        );
     }
 
     /// Returns every detection candidate for the remaining buffer bytes.
@@ -412,22 +417,35 @@ public final class EncodingDetector {
     /// The result is sorted stably by descending confidence and cannot be
     /// modified. Only the first [#maxBytes()] bytes between the buffer's
     /// position and limit are examined. The buffer's content, position, limit,
-    /// and mark are not modified, and the buffer is not retained.
+    /// and mark are not modified, and the buffer is not retained. Its
+    /// underlying bytes are read directly without copying and must not change
+    /// during detection.
     ///
     /// @param input buffer whose remaining bytes are examined
     /// @return immutable unfiltered candidates
     /// @throws NullPointerException if `input` is `null`
     public @Unmodifiable List<DetectionResult> detectAllUnfiltered(ByteBuffer input) {
-        return DetectionEngine.detect(snapshot(input), this).stream()
-                .sorted(Comparator.comparingDouble(DetectionResult::confidence).reversed())
-                .toList();
+        return detectAllUnfilteredNormalized(ByteBufferSupport.view(input));
     }
 
-    /// Creates a streaming detector using this configuration.
+    /// Returns the highest-ranked result for a normalized zero-copy buffer view.
     ///
-    /// @return a new independent streaming detector
-    public StreamingEncodingDetector newStreamingDetector() {
-        return new StreamingEncodingDetector(this);
+    /// @param input bytes to examine
+    /// @return highest-ranked result
+    private DetectionResult detectNormalized(@UnmodifiableView ByteBuffer input) {
+        return DetectionEngine.detect(Objects.requireNonNull(input, "input"), this).get(0);
+    }
+
+    /// Returns every candidate for a normalized zero-copy buffer view.
+    ///
+    /// @param input bytes to examine
+    /// @return immutable unfiltered candidates
+    private @Unmodifiable List<DetectionResult> detectAllUnfilteredNormalized(
+            @UnmodifiableView ByteBuffer input
+    ) {
+        return DetectionEngine.detect(Objects.requireNonNull(input, "input"), this).stream()
+                .sorted(Comparator.comparingDouble(DetectionResult::confidence).reversed())
+                .toList();
     }
 
     /// Resolves a canonical encoding name from a canonical name or alias.
@@ -448,19 +466,6 @@ public final class EncodingDetector {
     /// @return an immutable ordered set
     public static @Unmodifiable Set<String> supportedEncodings() {
         return EncodingRegistry.supportedEncodings();
-    }
-
-    /// Copies the bounded remaining window of a buffer without consuming it.
-    ///
-    /// @param input source buffer
-    /// @return a byte array containing at most [#maxBytes()] remaining bytes
-    /// @throws NullPointerException if `input` is `null`
-    private byte[] snapshot(ByteBuffer input) {
-        ByteBuffer source = Objects.requireNonNull(input, "input").duplicate();
-        int length = Math.min(source.remaining(), maxBytes);
-        byte[] data = new byte[length];
-        source.get(data);
-        return data;
     }
 
     /// Creates an immutable copy with all supplied configuration values.

@@ -6,6 +6,7 @@ package kala.encdet.internal;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.UnmodifiableView;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,18 +44,38 @@ final class TextDecoder {
     /// Invalid residual sequences are ignored. UTF-8 input is returned as-is,
     /// matching the reference language-scoring shortcut.
     ///
-    /// @param data     bytes to decode
+    /// @param data     normalized read-only bytes to decode
     /// @param encoding canonical source encoding
-    /// @return UTF-8 bytes, or `null` when no decoder is implemented
-    static byte @Nullable [] toUtf8(byte @Unmodifiable [] data, String encoding) {
+    /// @return the unchanged input view for UTF-8, a normalized read-only
+    /// derived UTF-8 view for other implemented encodings, or `null`
+    static @Nullable @UnmodifiableView ByteBuffer toUtf8(
+            @UnmodifiableView ByteBuffer data,
+            String encoding
+    ) {
         if (encoding.equals("utf-8")) {
             return data;
         }
+        @Nullable String text = decode(data, encoding);
+        return text == null
+                ? null
+                : ByteBufferSupport.wrap(text.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /// Decodes bytes to text without relying on installed charset providers.
+    ///
+    /// Invalid residual sequences are ignored. BOM-sensitive encodings decode
+    /// to an empty string when their required byte-order mark is absent.
+    ///
+    /// @param data     normalized read-only bytes to decode
+    /// @param encoding canonical source encoding
+    /// @return decoded text, or `null` when no decoder is implemented
+    static @Nullable String decode(@UnmodifiableView ByteBuffer data, String encoding) {
         int @Nullable [] table = TablesHolder.TABLES.get(encoding);
         if (table != null) {
-            return decodeSingleByte(data, table).getBytes(StandardCharsets.UTF_8);
+            return decodeSingleByte(data, table);
         }
-        String text = switch (encoding) {
+        return switch (encoding) {
+            case "utf-8" -> decodeUtf8(data, 0);
             case "utf-8-sig" -> decodeUtf8(data, startsWith(data, 0xef, 0xbb, 0xbf) ? 3 : 0);
             case "utf-16" -> decodeUtf16WithBom(data);
             case "utf-16-be" -> decodeUtf16(data, false, 0);
@@ -65,7 +86,6 @@ final class TextDecoder {
             case "utf-7" -> decodeUtf7(data);
             default -> null;
         };
-        return text == null ? null : text.getBytes(StandardCharsets.UTF_8);
     }
 
     /// Decodes one provider-independent single-byte table.
@@ -73,10 +93,13 @@ final class TextDecoder {
     /// @param data  bytes to decode
     /// @param table byte-to-code-point map, using `-1` for undefined bytes
     /// @return decoded text with undefined bytes omitted
-    private static String decodeSingleByte(byte @Unmodifiable [] data, int @Unmodifiable [] table) {
-        StringBuilder result = new StringBuilder(data.length);
-        for (byte value : data) {
-            int codePoint = table[Byte.toUnsignedInt(value)];
+    private static String decodeSingleByte(
+            @UnmodifiableView ByteBuffer data,
+            int @Unmodifiable [] table
+    ) {
+        StringBuilder result = new StringBuilder(data.limit());
+        for (int index = 0; index < data.limit(); index++) {
+            int codePoint = table[Byte.toUnsignedInt(data.get(index))];
             if (codePoint >= 0) {
                 result.appendCodePoint(codePoint);
             }
@@ -89,10 +112,10 @@ final class TextDecoder {
     /// @param data   bytes to decode
     /// @param offset first byte after an optional signature
     /// @return decoded text
-    private static String decodeUtf8(byte @Unmodifiable [] data, int offset) {
-        StringBuilder result = new StringBuilder(data.length - offset);
-        for (int index = offset; index < data.length; ) {
-            int first = Byte.toUnsignedInt(data[index]);
+    private static String decodeUtf8(@UnmodifiableView ByteBuffer data, int offset) {
+        StringBuilder result = new StringBuilder(data.limit() - offset);
+        for (int index = offset; index < data.limit(); ) {
+            int first = Byte.toUnsignedInt(data.get(index));
             if (first < 0x80) {
                 result.append((char) first);
                 index++;
@@ -113,19 +136,19 @@ final class TextDecoder {
                 index++;
                 continue;
             }
-            if (index + length > data.length) {
+            if (index + length > data.limit()) {
                 break;
             }
             boolean valid = true;
             for (int continuation = 1; continuation < length; continuation++) {
-                int value = Byte.toUnsignedInt(data[index + continuation]);
+                int value = Byte.toUnsignedInt(data.get(index + continuation));
                 if (!between(value, 0x80, 0xbf)) {
                     valid = false;
                     break;
                 }
                 codePoint = (codePoint << 6) | (value & 0x3f);
             }
-            int second = Byte.toUnsignedInt(data[index + 1]);
+            int second = Byte.toUnsignedInt(data.get(index + 1));
             if (!valid
                     || (first == 0xe0 && second < 0xa0)
                     || (first == 0xed && second > 0x9f)
@@ -144,7 +167,7 @@ final class TextDecoder {
     ///
     /// @param data bytes to decode
     /// @return decoded text
-    private static String decodeUtf16WithBom(byte @Unmodifiable [] data) {
+    private static String decodeUtf16WithBom(@UnmodifiableView ByteBuffer data) {
         if (startsWith(data, 0xfe, 0xff)) {
             return decodeUtf16(data, false, 2);
         }
@@ -161,15 +184,15 @@ final class TextDecoder {
     /// @param offset       first payload byte
     /// @return decoded text
     private static String decodeUtf16(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             boolean littleEndian,
             int offset
     ) {
-        StringBuilder result = new StringBuilder((data.length - offset) / 2);
-        for (int index = offset; index + 1 < data.length; index += 2) {
+        StringBuilder result = new StringBuilder((data.limit() - offset) / 2);
+        for (int index = offset; index + 1 < data.limit(); index += 2) {
             int unit = readUnsignedShort(data, index, littleEndian);
             if (between(unit, 0xd800, 0xdbff)) {
-                if (index + 3 < data.length) {
+                if (index + 3 < data.limit()) {
                     int low = readUnsignedShort(data, index + 2, littleEndian);
                     if (between(low, 0xdc00, 0xdfff)) {
                         result.appendCodePoint(
@@ -189,7 +212,7 @@ final class TextDecoder {
     ///
     /// @param data bytes to decode
     /// @return decoded text
-    private static String decodeUtf32WithBom(byte @Unmodifiable [] data) {
+    private static String decodeUtf32WithBom(@UnmodifiableView ByteBuffer data) {
         if (startsWith(data, 0x00, 0x00, 0xfe, 0xff)) {
             return decodeUtf32(data, false, 4);
         }
@@ -206,12 +229,12 @@ final class TextDecoder {
     /// @param offset       first payload byte
     /// @return decoded text
     private static String decodeUtf32(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             boolean littleEndian,
             int offset
     ) {
-        StringBuilder result = new StringBuilder((data.length - offset) / 4);
-        for (int index = offset; index + 3 < data.length; index += 4) {
+        StringBuilder result = new StringBuilder((data.limit() - offset) / 4);
+        for (int index = offset; index + 3 < data.limit(); index += 4) {
             long value = readUnsignedInt(data, index, littleEndian);
             if (value <= 0x10ffffL && !between(value, 0xd800L, 0xdfffL)) {
                 result.appendCodePoint((int) value);
@@ -224,11 +247,11 @@ final class TextDecoder {
     ///
     /// @param data bytes to decode
     /// @return decoded text
-    private static String decodeUtf7(byte @Unmodifiable [] data) {
-        StringBuilder result = new StringBuilder(data.length);
+    private static String decodeUtf7(@UnmodifiableView ByteBuffer data) {
+        StringBuilder result = new StringBuilder(data.limit());
         int index = 0;
-        while (index < data.length) {
-            int value = Byte.toUnsignedInt(data[index]);
+        while (index < data.limit()) {
+            int value = Byte.toUnsignedInt(data.get(index));
             if (value != '+' || value > 0x7f) {
                 if (value <= 0x7f) {
                     result.append((char) value);
@@ -236,17 +259,18 @@ final class TextDecoder {
                 index++;
                 continue;
             }
-            if (index + 1 < data.length && data[index + 1] == '-') {
+            if (index + 1 < data.limit() && data.get(index + 1) == '-') {
                 result.append('+');
                 index += 2;
                 continue;
             }
             int start = ++index;
-            while (index < data.length && base64Value(data[index]) >= 0) {
+            while (index < data.limit()
+                    && base64Value(Byte.toUnsignedInt(data.get(index))) >= 0) {
                 index++;
             }
             appendUtf7Payload(result, data, start, index);
-            if (index < data.length && data[index] == '-') {
+            if (index < data.limit() && data.get(index) == '-') {
                 index++;
             }
         }
@@ -261,7 +285,7 @@ final class TextDecoder {
     /// @param end    exclusive Base64 end
     private static void appendUtf7Payload(
             StringBuilder output,
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             int start,
             int end
     ) {
@@ -269,7 +293,8 @@ final class TextDecoder {
         int accumulated = 0;
         int pendingHigh = -1;
         for (int index = start; index < end; index++) {
-            accumulator = (accumulator << 6) | base64Value(data[index]);
+            accumulator = (accumulator << 6)
+                    | base64Value(Byte.toUnsignedInt(data.get(index)));
             accumulated += 6;
             while (accumulated >= 16) {
                 accumulated -= 16;
@@ -303,12 +328,12 @@ final class TextDecoder {
     /// @param littleEndian byte order
     /// @return value in `[0, 65535]`
     private static int readUnsignedShort(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             int offset,
             boolean littleEndian
     ) {
-        int first = Byte.toUnsignedInt(data[offset]);
-        int second = Byte.toUnsignedInt(data[offset + 1]);
+        int first = Byte.toUnsignedInt(data.get(offset));
+        int second = Byte.toUnsignedInt(data.get(offset + 1));
         return littleEndian ? first | (second << 8) : (first << 8) | second;
     }
 
@@ -319,21 +344,21 @@ final class TextDecoder {
     /// @param littleEndian byte order
     /// @return unsigned 32-bit value
     private static long readUnsignedInt(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             int offset,
             boolean littleEndian
     ) {
         int value;
         if (littleEndian) {
-            value = Byte.toUnsignedInt(data[offset])
-                    | (Byte.toUnsignedInt(data[offset + 1]) << 8)
-                    | (Byte.toUnsignedInt(data[offset + 2]) << 16)
-                    | (Byte.toUnsignedInt(data[offset + 3]) << 24);
+            value = Byte.toUnsignedInt(data.get(offset))
+                    | (Byte.toUnsignedInt(data.get(offset + 1)) << 8)
+                    | (Byte.toUnsignedInt(data.get(offset + 2)) << 16)
+                    | (Byte.toUnsignedInt(data.get(offset + 3)) << 24);
         } else {
-            value = (Byte.toUnsignedInt(data[offset]) << 24)
-                    | (Byte.toUnsignedInt(data[offset + 1]) << 16)
-                    | (Byte.toUnsignedInt(data[offset + 2]) << 8)
-                    | Byte.toUnsignedInt(data[offset + 3]);
+            value = (Byte.toUnsignedInt(data.get(offset)) << 24)
+                    | (Byte.toUnsignedInt(data.get(offset + 1)) << 16)
+                    | (Byte.toUnsignedInt(data.get(offset + 2)) << 8)
+                    | Byte.toUnsignedInt(data.get(offset + 3));
         }
         return Integer.toUnsignedLong(value);
     }
@@ -343,12 +368,15 @@ final class TextDecoder {
     /// @param data   bytes to inspect
     /// @param prefix unsigned prefix bytes
     /// @return whether the prefix matches
-    private static boolean startsWith(byte @Unmodifiable [] data, int @Unmodifiable ... prefix) {
-        if (data.length < prefix.length) {
+    private static boolean startsWith(
+            @UnmodifiableView ByteBuffer data,
+            int @Unmodifiable ... prefix
+    ) {
+        if (data.limit() < prefix.length) {
             return false;
         }
         for (int index = 0; index < prefix.length; index++) {
-            if (Byte.toUnsignedInt(data[index]) != prefix[index]) {
+            if (Byte.toUnsignedInt(data.get(index)) != prefix[index]) {
                 return false;
             }
         }
@@ -379,8 +407,8 @@ final class TextDecoder {
     ///
     /// @param value encoded byte
     /// @return value in `[0, 63]`, or `-1`
-    private static int base64Value(byte value) {
-        return BASE64_VALUES[Byte.toUnsignedInt(value)];
+    private static int base64Value(int value) {
+        return BASE64_VALUES[value];
     }
 
     /// Creates a UTF-7 Base64 lookup table.

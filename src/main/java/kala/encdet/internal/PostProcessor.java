@@ -6,7 +6,9 @@ package kala.encdet.internal;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.UnmodifiableView;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +60,7 @@ final class PostProcessor {
     /// @param results statistically ranked candidates
     /// @return corrected ranking
     static List<PipelineResult> process(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             List<PipelineResult> results
     ) {
         List<PipelineResult> resolved = ConfusionResolver.resolve(data, results);
@@ -72,7 +74,7 @@ final class PostProcessor {
     /// @param results ranked candidates
     /// @return corrected ranking
     private static List<PipelineResult> demoteNicheLatin(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             List<PipelineResult> results
     ) {
         if (results.size() <= 1) {
@@ -125,14 +127,17 @@ final class PostProcessor {
     /// @param encoding candidate encoding
     /// @param data     analyzed bytes
     /// @return whether the candidate should be demoted
-    private static boolean shouldDemote(String encoding, byte @Unmodifiable [] data) {
+    private static boolean shouldDemote(
+            String encoding,
+            @UnmodifiableView ByteBuffer data
+    ) {
         @Nullable @Unmodifiable Set<Integer> distinguishing =
                 DEMOTION_CANDIDATES.get(encoding);
         if (distinguishing == null) {
             return false;
         }
-        for (byte value : data) {
-            int unsigned = Byte.toUnsignedInt(value);
+        for (int index = 0; index < data.remaining(); index++) {
+            int unsigned = Byte.toUnsignedInt(data.get(index));
             if (unsigned > 0x7f && distinguishing.contains(unsigned)) {
                 return false;
             }
@@ -146,7 +151,7 @@ final class PostProcessor {
     /// @param results ranked candidates
     /// @return corrected ranking
     private static List<PipelineResult> promoteKoi8T(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             List<PipelineResult> results
     ) {
         if (results.isEmpty() || !"koi8-r".equals(results.get(0).encoding())) {
@@ -185,11 +190,11 @@ final class PostProcessor {
     /// @param values unsigned byte set
     /// @return whether a matching high byte exists
     private static boolean containsAny(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             @Unmodifiable Set<Integer> values
     ) {
-        for (byte value : data) {
-            int unsigned = Byte.toUnsignedInt(value);
+        for (int index = 0; index < data.remaining(); index++) {
+            int unsigned = Byte.toUnsignedInt(data.get(index));
             if (unsigned > 0x7f && values.contains(unsigned)) {
                 return true;
             }

@@ -6,6 +6,7 @@ package kala.encdet.internal;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.UnmodifiableView;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,11 +46,11 @@ final class ConfusionResolver {
 
     /// Resolves confusion between a top result and nearby candidates.
     ///
-    /// @param data    original analyzed bytes
+    /// @param data    normalized read-only analyzed bytes
     /// @param results candidates sorted by descending confidence
     /// @return reordered candidates, or the original list when unresolved
     static List<PipelineResult> resolve(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             List<PipelineResult> results
     ) {
         if (results.size() < 2) {
@@ -126,13 +127,13 @@ final class ConfusionResolver {
     /// @param pair distinguishing maps
     /// @return winning encoding, or `null` on a tie or no evidence
     private static @Nullable String categoryWinner(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             PairKey key,
             PairData pair
     ) {
         boolean[] observed = new boolean[256];
-        for (byte value : data) {
-            observed[Byte.toUnsignedInt(value)] = true;
+        for (int index = 0; index < data.limit(); index++) {
+            observed[Byte.toUnsignedInt(data.get(index))] = true;
         }
         int firstVotes = 0;
         int secondVotes = 0;
@@ -164,18 +165,18 @@ final class ConfusionResolver {
     /// @param pair distinguishing maps
     /// @return winning encoding, or `null` on a tie or no evidence
     private static @Nullable String bigramWinner(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             PairKey key,
             PairData pair
     ) {
-        if (data.length < 2) {
+        if (data.limit() < 2) {
             return null;
         }
         int[] frequencies = new int[65_536];
         boolean found = false;
-        for (int index = 0; index < data.length - 1; index++) {
-            int first = Byte.toUnsignedInt(data[index]);
-            int second = Byte.toUnsignedInt(data[index + 1]);
+        for (int index = 0; index < data.limit() - 1; index++) {
+            int first = Byte.toUnsignedInt(data.get(index));
+            int second = Byte.toUnsignedInt(data.get(index + 1));
             if (!pair.distinguishes(first) && !pair.distinguishes(second)) {
                 continue;
             }

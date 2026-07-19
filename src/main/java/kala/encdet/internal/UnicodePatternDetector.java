@@ -5,11 +5,10 @@ package kala.encdet.internal;
 
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.UnmodifiableView;
 
-import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 /// Detects BOM-less UTF-16 and UTF-32 from positional null-byte patterns.
 @NotNullByDefault
@@ -44,11 +43,11 @@ final class UnicodePatternDetector {
 
     /// Detects a BOM-less UTF-32 or UTF-16 pattern.
     ///
-    /// @param data bytes to examine
+    /// @param data normalized read-only bytes to examine
     /// @return deterministic result, or `null`
-    static @Nullable PipelineResult detect(byte @Unmodifiable [] data) {
-        byte[] sample = data.length <= SAMPLE_SIZE ? data : Arrays.copyOf(data, SAMPLE_SIZE);
-        if (sample.length < MIN_UTF16_BYTES) {
+    static @Nullable PipelineResult detect(@UnmodifiableView ByteBuffer data) {
+        @UnmodifiableView ByteBuffer sample = ByteBufferSupport.prefix(data, SAMPLE_SIZE);
+        if (sample.remaining() < MIN_UTF16_BYTES) {
             return null;
         }
         @Nullable PipelineResult utf32 = checkUtf32(sample);
@@ -59,18 +58,20 @@ final class UnicodePatternDetector {
     ///
     /// @param data bounded sample
     /// @return result, or `null`
-    private static @Nullable PipelineResult checkUtf32(byte @Unmodifiable [] data) {
-        int length = data.length - data.length % 4;
+    private static @Nullable PipelineResult checkUtf32(
+            @UnmodifiableView ByteBuffer data
+    ) {
+        int length = data.remaining() - data.remaining() % 4;
         if (length < MIN_UTF32_BYTES) {
             return null;
         }
-        byte[] sample = length == data.length ? data : Arrays.copyOf(data, length);
+        @UnmodifiableView ByteBuffer sample = ByteBufferSupport.prefix(data, length);
         int units = length / 4;
         int firstNulls = 0;
         int secondNulls = 0;
         for (int index = 0; index < length; index += 4) {
-            firstNulls += sample[index] == 0 ? 1 : 0;
-            secondNulls += sample[index + 1] == 0 ? 1 : 0;
+            firstNulls += sample.get(index) == 0 ? 1 : 0;
+            secondNulls += sample.get(index + 1) == 0 ? 1 : 0;
         }
         if (firstNulls == units && (double) secondNulls / units > 0.5) {
             @Nullable String text = decodeStrict(sample, "utf-32-be");
@@ -82,8 +83,8 @@ final class UnicodePatternDetector {
         int lastNulls = 0;
         int thirdNulls = 0;
         for (int index = 0; index < length; index += 4) {
-            thirdNulls += sample[index + 2] == 0 ? 1 : 0;
-            lastNulls += sample[index + 3] == 0 ? 1 : 0;
+            thirdNulls += sample.get(index + 2) == 0 ? 1 : 0;
+            lastNulls += sample.get(index + 3) == 0 ? 1 : 0;
         }
         if (lastNulls == units && (double) thirdNulls / units > 0.5) {
             @Nullable String text = decodeStrict(sample, "utf-32-le");
@@ -98,19 +99,21 @@ final class UnicodePatternDetector {
     ///
     /// @param data bounded sample
     /// @return result, or `null`
-    private static @Nullable PipelineResult checkUtf16(byte @Unmodifiable [] data) {
-        int length = Math.min(data.length, SAMPLE_SIZE);
+    private static @Nullable PipelineResult checkUtf16(
+            @UnmodifiableView ByteBuffer data
+    ) {
+        int length = Math.min(data.remaining(), SAMPLE_SIZE);
         length -= length % 2;
         if (length < MIN_UTF16_BYTES) {
             return null;
         }
-        byte[] sample = length == data.length ? data : Arrays.copyOf(data, length);
+        @UnmodifiableView ByteBuffer sample = ByteBufferSupport.prefix(data, length);
         int units = length / 2;
         int evenNulls = 0;
         int oddNulls = 0;
         for (int index = 0; index < length; index += 2) {
-            evenNulls += sample[index] == 0 ? 1 : 0;
-            oddNulls += sample[index + 1] == 0 ? 1 : 0;
+            evenNulls += sample.get(index) == 0 ? 1 : 0;
+            oddNulls += sample.get(index + 1) == 0 ? 1 : 0;
         }
         double bigEndianFraction = (double) evenNulls / units;
         double littleEndianFraction = (double) oddNulls / units;
@@ -157,14 +160,14 @@ final class UnicodePatternDetector {
     /// @param positionalFraction candidate-position null fraction
     /// @return whether the sample is ASCII with sparse null separators
     private static boolean isNullSeparatorPattern(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             double positionalFraction
     ) {
         if (positionalFraction >= NULL_SEPARATOR_MAX_FRACTION) {
             return false;
         }
-        for (byte value : data) {
-            int unsigned = Byte.toUnsignedInt(value);
+        for (int index = 0; index < data.remaining(); index++) {
+            int unsigned = Byte.toUnsignedInt(data.get(index));
             if (unsigned != 0
                     && unsigned != '\t'
                     && unsigned != '\n'
@@ -182,14 +185,13 @@ final class UnicodePatternDetector {
     /// @param encoding canonical Unicode encoding
     /// @return decoded text, or `null` when malformed
     private static @Nullable String decodeStrict(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             String encoding
     ) {
         if (!ByteValidity.isValid(data, encoding)) {
             return null;
         }
-        byte @Nullable [] utf8 = TextDecoder.toUtf8(data, encoding);
-        return utf8 == null ? null : new String(utf8, StandardCharsets.UTF_8);
+        return TextDecoder.decode(data, encoding);
     }
 
     /// Reports whether decoded text is mostly printable.

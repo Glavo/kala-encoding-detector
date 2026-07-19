@@ -5,10 +5,9 @@ package kala.encdet.internal;
 
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.UnmodifiableView;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -53,17 +52,17 @@ final class MarkupDetector {
 
     /// Detects a valid declaration in the input prefix.
     ///
-    /// @param data bytes to inspect
+    /// @param data normalized read-only bytes to inspect
     /// @return declared result, or `null`
-    static @Nullable PipelineResult detect(byte @Unmodifiable [] data) {
-        if (data.length == 0) {
+    static @Nullable PipelineResult detect(@UnmodifiableView ByteBuffer data) {
+        if (!data.hasRemaining()) {
             return null;
         }
-        String head = new String(
-                data,
+        @UnmodifiableView ByteBuffer prefix = ByteBufferSupport.prefix(data, SCAN_LIMIT);
+        String head = ByteBufferSupport.latin1String(
+                prefix,
                 0,
-                Math.min(data.length, SCAN_LIMIT),
-                StandardCharsets.ISO_8859_1
+                prefix.remaining()
         );
         @Nullable PipelineResult result = matchDeclaration(data, head, XML_ENCODING, "text/xml");
         if (result != null) {
@@ -79,12 +78,12 @@ final class MarkupDetector {
 
     /// Promotes declared Shift_JIS or EUC-KR to a structurally better superset.
     ///
-    /// @param data    complete analyzed bytes
+    /// @param data    normalized read-only analyzed bytes
     /// @param markup  declared result
     /// @param allowed canonical allowed names
     /// @return promoted or original result
     static PipelineResult promoteSuperset(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             PipelineResult markup,
             Set<String> allowed
     ) {
@@ -124,7 +123,7 @@ final class MarkupDetector {
     /// @param mimeType result MIME type
     /// @return result, or `null`
     private static @Nullable PipelineResult matchDeclaration(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             String head,
             Pattern pattern,
             String mimeType
@@ -144,11 +143,13 @@ final class MarkupDetector {
     ///
     /// @param data source bytes
     /// @return result, or `null`
-    private static @Nullable PipelineResult detectPep263(byte @Unmodifiable [] data) {
-        int quickLimit = Math.min(data.length, 200);
+    private static @Nullable PipelineResult detectPep263(
+            @UnmodifiableView ByteBuffer data
+    ) {
+        int quickLimit = Math.min(data.remaining(), 200);
         boolean hasComment = false;
         for (int index = 0; index < quickLimit; index++) {
-            if (data[index] == '#') {
+            if (data.get(index) == '#') {
                 hasComment = true;
                 break;
             }
@@ -158,14 +159,14 @@ final class MarkupDetector {
         }
 
         int newlineCount = 0;
-        int end = data.length;
-        for (int index = 0; index < data.length; index++) {
-            if (data[index] == '\n' && ++newlineCount == 2) {
+        int end = data.remaining();
+        for (int index = 0; index < data.remaining(); index++) {
+            if (data.get(index) == '\n' && ++newlineCount == 2) {
                 end = index;
                 break;
             }
         }
-        String firstTwoLines = new String(data, 0, end, StandardCharsets.ISO_8859_1);
+        String firstTwoLines = ByteBufferSupport.latin1String(data, 0, end);
         Matcher matcher = PEP_263.matcher(firstTwoLines);
         if (!matcher.find()) {
             return null;
@@ -196,8 +197,10 @@ final class MarkupDetector {
     /// @param data     source bytes
     /// @param encoding canonical encoding
     /// @return whether the prefix is valid
-    private static boolean validPrefix(byte @Unmodifiable [] data, String encoding) {
-        byte[] prefix = data.length <= SCAN_LIMIT ? data : Arrays.copyOf(data, SCAN_LIMIT);
-        return ByteValidity.isValid(prefix, encoding);
+    private static boolean validPrefix(
+            @UnmodifiableView ByteBuffer data,
+            String encoding
+    ) {
+        return ByteValidity.isValid(ByteBufferSupport.prefix(data, SCAN_LIMIT), encoding);
     }
 }

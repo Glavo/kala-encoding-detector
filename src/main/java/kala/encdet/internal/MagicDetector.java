@@ -6,7 +6,9 @@ package kala.encdet.internal;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.UnmodifiableView;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
@@ -81,17 +83,17 @@ final class MagicDetector {
 
     /// Returns a binary result when a known signature is present.
     ///
-    /// @param data bytes to inspect
+    /// @param data normalized read-only bytes to inspect
     /// @return definitive binary result, or `null`
-    static @Nullable PipelineResult detect(byte @Unmodifiable [] data) {
-        if (data.length == 0) {
+    static @Nullable PipelineResult detect(@UnmodifiableView ByteBuffer data) {
+        if (!data.hasRemaining()) {
             return null;
         }
 
-        if (data.length >= 12 && matchesAscii(data, 4, "ftyp")) {
+        if (data.remaining() >= 12 && matchesAscii(data, 4, "ftyp")) {
             long boxSize = readUnsignedIntBigEndian(data, 0);
-            if (boxSize >= 8 && boxSize <= data.length) {
-                String brand = new String(data, 8, 4, StandardCharsets.ISO_8859_1);
+            if (boxSize >= 8 && boxSize <= data.remaining()) {
+                String brand = ByteBufferSupport.latin1String(data, 8, 4);
                 if (brand.equals("avif") || brand.equals("avis")) {
                     return result("image/avif");
                 }
@@ -111,7 +113,7 @@ final class MagicDetector {
             }
         }
 
-        if (data.length >= 12 && matchesAscii(data, 0, "RIFF")) {
+        if (data.remaining() >= 12 && matchesAscii(data, 0, "RIFF")) {
             if (matchesAscii(data, 8, "WEBP")) {
                 return result("image/webp");
             }
@@ -123,17 +125,17 @@ final class MagicDetector {
             }
         }
 
-        if (data.length >= 12 && matchesAscii(data, 0, "FORM")) {
+        if (data.remaining() >= 12 && matchesAscii(data, 0, "FORM")) {
             if (matchesAscii(data, 8, "AIFF") || matchesAscii(data, 8, "AIFC")) {
                 return result("audio/aiff");
             }
         }
 
         if (startsWith(data, ZIP_SIGNATURE)) {
-            return result(classifyZip(data));
+            return result(classifyZip(ByteBufferSupport.prefix(data, ZIP_SCAN_LIMIT)));
         }
 
-        if (data.length >= 8 && startsWith(data, hex("cafebabe"))) {
+        if (data.remaining() >= 8 && startsWith(data, hex("cafebabe"))) {
             long architectureCount = readUnsignedIntBigEndian(data, 4);
             return result(architectureCount <= 20
                     ? "application/x-mach-binary"
@@ -146,7 +148,7 @@ final class MagicDetector {
             }
         }
 
-        if (data.length >= TAR_OFFSET + 6
+        if (data.remaining() >= TAR_OFFSET + 6
                 && (matchesAscii(data, TAR_OFFSET, "ustar\u0000")
                 || matchesAscii(data, TAR_OFFSET, "ustar "))) {
             return result("application/x-tar");
@@ -156,10 +158,10 @@ final class MagicDetector {
 
     /// Classifies a ZIP container from local entry headers in its first 4 KiB.
     ///
-    /// @param data complete input prefix
+    /// @param data normalized read-only 4 KiB input prefix
     /// @return subtype MIME type or `application/zip`
-    private static String classifyZip(byte @Unmodifiable [] data) {
-        int scanLength = Math.min(data.length, ZIP_SCAN_LIMIT);
+    private static String classifyZip(@UnmodifiableView ByteBuffer data) {
+        int scanLength = data.remaining();
         int offset = 0;
         while (true) {
             int header = indexOf(data, ZIP_SIGNATURE, offset, scanLength);
@@ -200,11 +202,10 @@ final class MagicDetector {
                 long contentLength = readUnsignedIntLittleEndian(data, header + 22);
                 long contentStart = (long) nameStart + nameLength + extraLength;
                 if (contentStart + contentLength <= scanLength) {
-                    String mime = new String(
+                    String mime = ByteBufferSupport.latin1String(
                             data,
                             (int) contentStart,
-                            (int) contentLength,
-                            StandardCharsets.US_ASCII
+                            (int) contentLength
                     );
                     if (OPENDOCUMENT_MIMES.contains(mime)) {
                         return mime;
@@ -273,14 +274,14 @@ final class MagicDetector {
     /// @param prefix required prefix
     /// @return whether it matches
     private static boolean startsWith(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             byte @Unmodifiable [] prefix
     ) {
-        if (data.length < prefix.length) {
+        if (data.remaining() < prefix.length) {
             return false;
         }
         for (int index = 0; index < prefix.length; index++) {
-            if (data[index] != prefix[index]) {
+            if (data.get(index) != prefix[index]) {
                 return false;
             }
         }
@@ -294,15 +295,15 @@ final class MagicDetector {
     /// @param expected expected byte-preserving text
     /// @return whether it matches
     private static boolean matchesAscii(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             int offset,
             String expected
     ) {
-        if (offset < 0 || data.length - offset < expected.length()) {
+        if (offset < 0 || data.remaining() - offset < expected.length()) {
             return false;
         }
         for (int index = 0; index < expected.length(); index++) {
-            if (Byte.toUnsignedInt(data[offset + index]) != expected.charAt(index)) {
+            if (Byte.toUnsignedInt(data.get(offset + index)) != expected.charAt(index)) {
                 return false;
             }
         }
@@ -317,7 +318,7 @@ final class MagicDetector {
     /// @param expected expected prefix
     /// @return whether it matches
     private static boolean startsWithAscii(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             int offset,
             int length,
             String expected
@@ -333,7 +334,7 @@ final class MagicDetector {
     /// @param expected expected name
     /// @return whether it matches
     private static boolean equalsAscii(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             int offset,
             int length,
             String expected
@@ -349,7 +350,7 @@ final class MagicDetector {
     /// @param expected expected fragment
     /// @return whether it occurs
     private static boolean containsAscii(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             int offset,
             int length,
             String expected
@@ -371,7 +372,7 @@ final class MagicDetector {
     /// @param limit   exclusive source limit
     /// @return first index, or `-1`
     private static int indexOf(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             byte @Unmodifiable [] pattern,
             int start,
             int limit
@@ -380,7 +381,7 @@ final class MagicDetector {
         for (int index = Math.max(0, start); index <= last; index++) {
             boolean match = true;
             for (int patternIndex = 0; patternIndex < pattern.length; patternIndex++) {
-                if (data[index + patternIndex] != pattern[patternIndex]) {
+                if (data.get(index + patternIndex) != pattern[patternIndex]) {
                     match = false;
                     break;
                 }
@@ -397,8 +398,12 @@ final class MagicDetector {
     /// @param data   source bytes
     /// @param offset first byte
     /// @return unsigned value
-    private static int readUnsignedShortLittleEndian(byte @Unmodifiable [] data, int offset) {
-        return Byte.toUnsignedInt(data[offset]) | (Byte.toUnsignedInt(data[offset + 1]) << 8);
+    private static int readUnsignedShortLittleEndian(
+            @UnmodifiableView ByteBuffer data,
+            int offset
+    ) {
+        return Byte.toUnsignedInt(data.get(offset))
+                | (Byte.toUnsignedInt(data.get(offset + 1)) << 8);
     }
 
     /// Reads an unsigned little-endian 32-bit integer.
@@ -406,11 +411,14 @@ final class MagicDetector {
     /// @param data   source bytes
     /// @param offset first byte
     /// @return unsigned value
-    private static long readUnsignedIntLittleEndian(byte @Unmodifiable [] data, int offset) {
-        int value = Byte.toUnsignedInt(data[offset])
-                | (Byte.toUnsignedInt(data[offset + 1]) << 8)
-                | (Byte.toUnsignedInt(data[offset + 2]) << 16)
-                | (Byte.toUnsignedInt(data[offset + 3]) << 24);
+    private static long readUnsignedIntLittleEndian(
+            @UnmodifiableView ByteBuffer data,
+            int offset
+    ) {
+        int value = Byte.toUnsignedInt(data.get(offset))
+                | (Byte.toUnsignedInt(data.get(offset + 1)) << 8)
+                | (Byte.toUnsignedInt(data.get(offset + 2)) << 16)
+                | (Byte.toUnsignedInt(data.get(offset + 3)) << 24);
         return Integer.toUnsignedLong(value);
     }
 
@@ -419,11 +427,14 @@ final class MagicDetector {
     /// @param data   source bytes
     /// @param offset first byte
     /// @return unsigned value
-    private static long readUnsignedIntBigEndian(byte @Unmodifiable [] data, int offset) {
-        int value = (Byte.toUnsignedInt(data[offset]) << 24)
-                | (Byte.toUnsignedInt(data[offset + 1]) << 16)
-                | (Byte.toUnsignedInt(data[offset + 2]) << 8)
-                | Byte.toUnsignedInt(data[offset + 3]);
+    private static long readUnsignedIntBigEndian(
+            @UnmodifiableView ByteBuffer data,
+            int offset
+    ) {
+        int value = (Byte.toUnsignedInt(data.get(offset)) << 24)
+                | (Byte.toUnsignedInt(data.get(offset + 1)) << 16)
+                | (Byte.toUnsignedInt(data.get(offset + 2)) << 8)
+                | Byte.toUnsignedInt(data.get(offset + 3));
         return Integer.toUnsignedLong(value);
     }
 

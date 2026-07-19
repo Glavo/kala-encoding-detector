@@ -6,6 +6,7 @@ package kala.encdet.internal;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.UnmodifiableView;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -60,10 +61,10 @@ final class ByteValidity {
     /// @param candidates registry candidates in detection order
     /// @return immutable surviving candidates
     static @Unmodifiable List<EncodingRegistry.Info> filter(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             List<EncodingRegistry.Info> candidates
     ) {
-        if (data.length == 0) {
+        if (!data.hasRemaining()) {
             return candidates;
         }
         ArrayList<EncodingRegistry.Info> valid = new ArrayList<>(candidates.size());
@@ -80,8 +81,8 @@ final class ByteValidity {
     /// @param data     complete bytes to validate
     /// @param encoding canonical encoding name
     /// @return whether the encoding accepts all bytes and final state
-    static boolean isValid(byte @Unmodifiable [] data, String encoding) {
-        if (data.length == 0) {
+    static boolean isValid(@UnmodifiableView ByteBuffer data, String encoding) {
+        if (!data.hasRemaining()) {
             return true;
         }
         return switch (encoding) {
@@ -114,24 +115,24 @@ final class ByteValidity {
     /// @param table    codec tables
     /// @return whether every byte is consumed by a valid sequence
     private static boolean isValidStatelessMultibyte(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             String encoding,
             MultibyteTable table
     ) {
         int index = 0;
-        while (index < data.length) {
-            int first = Byte.toUnsignedInt(data[index]);
+        while (index < data.remaining()) {
+            int first = Byte.toUnsignedInt(data.get(index));
             if (contains(table.singles(), first)) {
                 index++;
                 continue;
             }
 
             if (encoding.equals("euc_jis_2004") && first == 0x8f) {
-                if (index + 2 >= data.length || table.extra() == null) {
+                if (index + 2 >= data.remaining() || table.extra() == null) {
                     return false;
                 }
-                int pair = (Byte.toUnsignedInt(data[index + 1]) << 8)
-                        | Byte.toUnsignedInt(data[index + 2]);
+                int pair = (Byte.toUnsignedInt(data.get(index + 1)) << 8)
+                        | Byte.toUnsignedInt(data.get(index + 2));
                 if (!contains(table.extra(), pair)) {
                     return false;
                 }
@@ -140,14 +141,14 @@ final class ByteValidity {
             }
 
             if (encoding.equals("gb18030")
-                    && index + 1 < data.length
-                    && between(Byte.toUnsignedInt(data[index + 1]), 0x30, 0x39)) {
-                if (index + 3 >= data.length || table.extra() == null) {
+                    && index + 1 < data.remaining()
+                    && between(Byte.toUnsignedInt(data.get(index + 1)), 0x30, 0x39)) {
+                if (index + 3 >= data.remaining() || table.extra() == null) {
                     return false;
                 }
-                int second = Byte.toUnsignedInt(data[index + 1]);
-                int third = Byte.toUnsignedInt(data[index + 2]);
-                int fourth = Byte.toUnsignedInt(data[index + 3]);
+                int second = Byte.toUnsignedInt(data.get(index + 1));
+                int third = Byte.toUnsignedInt(data.get(index + 2));
+                int fourth = Byte.toUnsignedInt(data.get(index + 3));
                 if (!between(first, 0x81, 0xfe)
                         || !between(third, 0x81, 0xfe)
                         || !between(fourth, 0x30, 0x39)) {
@@ -162,10 +163,10 @@ final class ByteValidity {
                 continue;
             }
 
-            if (index + 1 >= data.length) {
+            if (index + 1 >= data.remaining()) {
                 return false;
             }
-            int pair = (first << 8) | Byte.toUnsignedInt(data[index + 1]);
+            int pair = (first << 8) | Byte.toUnsignedInt(data.get(index + 1));
             if (!contains(table.pairs(), pair)) {
                 return false;
             }
@@ -179,10 +180,10 @@ final class ByteValidity {
     /// @param data   bytes to validate
     /// @param offset first byte after an optional signature
     /// @return whether the suffix is well-formed UTF-8
-    private static boolean isValidUtf8(byte @Unmodifiable [] data, int offset) {
+    private static boolean isValidUtf8(@UnmodifiableView ByteBuffer data, int offset) {
         int index = offset;
-        while (index < data.length) {
-            int first = Byte.toUnsignedInt(data[index]);
+        while (index < data.remaining()) {
+            int first = Byte.toUnsignedInt(data.get(index));
             if (first < 0x80) {
                 index++;
                 continue;
@@ -197,15 +198,15 @@ final class ByteValidity {
             } else {
                 return false;
             }
-            if (index + length > data.length) {
+            if (index + length > data.remaining()) {
                 return false;
             }
             for (int continuation = 1; continuation < length; continuation++) {
-                if (!between(Byte.toUnsignedInt(data[index + continuation]), 0x80, 0xbf)) {
+                if (!between(Byte.toUnsignedInt(data.get(index + continuation)), 0x80, 0xbf)) {
                     return false;
                 }
             }
-            int second = Byte.toUnsignedInt(data[index + 1]);
+            int second = Byte.toUnsignedInt(data.get(index + 1));
             if ((first == 0xe0 && second < 0xa0)
                     || (first == 0xed && second > 0x9f)
                     || (first == 0xf0 && second < 0x90)
@@ -221,7 +222,7 @@ final class ByteValidity {
     ///
     /// @param data bytes to validate
     /// @return whether a BOM and valid payload are present
-    private static boolean isValidUtf16WithBom(byte @Unmodifiable [] data) {
+    private static boolean isValidUtf16WithBom(@UnmodifiableView ByteBuffer data) {
         if (startsWith(data, 0xfe, 0xff)) {
             return isValidUtf16(data, false, 2);
         }
@@ -238,18 +239,20 @@ final class ByteValidity {
     /// @param offset       first payload byte
     /// @return whether the payload is well-formed
     private static boolean isValidUtf16(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             boolean littleEndian,
             int offset
     ) {
-        if (((data.length - offset) & 1) != 0) {
+        if (((data.remaining() - offset) & 1) != 0) {
             return false;
         }
         boolean pendingHigh = false;
-        for (int index = offset; index < data.length; index += 2) {
+        for (int index = offset; index < data.remaining(); index += 2) {
             int unit = littleEndian
-                    ? Byte.toUnsignedInt(data[index]) | (Byte.toUnsignedInt(data[index + 1]) << 8)
-                    : (Byte.toUnsignedInt(data[index]) << 8) | Byte.toUnsignedInt(data[index + 1]);
+                    ? Byte.toUnsignedInt(data.get(index))
+                    | (Byte.toUnsignedInt(data.get(index + 1)) << 8)
+                    : (Byte.toUnsignedInt(data.get(index)) << 8)
+                    | Byte.toUnsignedInt(data.get(index + 1));
             if (between(unit, 0xd800, 0xdbff)) {
                 if (pendingHigh) {
                     return false;
@@ -271,7 +274,7 @@ final class ByteValidity {
     ///
     /// @param data bytes to validate
     /// @return whether a BOM and valid payload are present
-    private static boolean isValidUtf32WithBom(byte @Unmodifiable [] data) {
+    private static boolean isValidUtf32WithBom(@UnmodifiableView ByteBuffer data) {
         if (startsWith(data, 0x00, 0x00, 0xfe, 0xff)) {
             return isValidUtf32(data, false, 4);
         }
@@ -288,28 +291,28 @@ final class ByteValidity {
     /// @param offset       first payload byte
     /// @return whether every unit is a Unicode scalar value
     private static boolean isValidUtf32(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             boolean littleEndian,
             int offset
     ) {
-        if (((data.length - offset) & 3) != 0) {
+        if (((data.remaining() - offset) & 3) != 0) {
             return false;
         }
-        for (int index = offset; index < data.length; index += 4) {
+        for (int index = offset; index < data.remaining(); index += 4) {
             long value;
             if (littleEndian) {
                 value = Integer.toUnsignedLong(
-                        Byte.toUnsignedInt(data[index])
-                                | (Byte.toUnsignedInt(data[index + 1]) << 8)
-                                | (Byte.toUnsignedInt(data[index + 2]) << 16)
-                                | (Byte.toUnsignedInt(data[index + 3]) << 24)
+                        Byte.toUnsignedInt(data.get(index))
+                                | (Byte.toUnsignedInt(data.get(index + 1)) << 8)
+                                | (Byte.toUnsignedInt(data.get(index + 2)) << 16)
+                                | (Byte.toUnsignedInt(data.get(index + 3)) << 24)
                 );
             } else {
                 value = Integer.toUnsignedLong(
-                        (Byte.toUnsignedInt(data[index]) << 24)
-                                | (Byte.toUnsignedInt(data[index + 1]) << 16)
-                                | (Byte.toUnsignedInt(data[index + 2]) << 8)
-                                | Byte.toUnsignedInt(data[index + 3])
+                        (Byte.toUnsignedInt(data.get(index)) << 24)
+                                | (Byte.toUnsignedInt(data.get(index + 1)) << 16)
+                                | (Byte.toUnsignedInt(data.get(index + 2)) << 8)
+                                | Byte.toUnsignedInt(data.get(index + 3))
                 );
             }
             if (value > 0x10ffffL || between(value, 0xd800L, 0xdfffL)) {
@@ -323,10 +326,10 @@ final class ByteValidity {
     ///
     /// @param data bytes to validate
     /// @return whether the full sequence is valid UTF-7
-    private static boolean isValidUtf7(byte @Unmodifiable [] data) {
+    private static boolean isValidUtf7(@UnmodifiableView ByteBuffer data) {
         int index = 0;
-        while (index < data.length) {
-            int value = Byte.toUnsignedInt(data[index]);
+        while (index < data.remaining()) {
+            int value = Byte.toUnsignedInt(data.get(index));
             if (value > 0x7f) {
                 return false;
             }
@@ -334,18 +337,18 @@ final class ByteValidity {
                 index++;
                 continue;
             }
-            if (index + 1 < data.length && data[index + 1] == '-') {
+            if (index + 1 < data.remaining() && data.get(index + 1) == '-') {
                 index += 2;
                 continue;
             }
             int start = ++index;
-            while (index < data.length && base64Value(data[index]) >= 0) {
+            while (index < data.remaining() && base64Value(data.get(index)) >= 0) {
                 index++;
             }
             if (index == start || !isValidUtf7Payload(data, start, index)) {
                 return false;
             }
-            if (index < data.length && data[index] == '-') {
+            if (index < data.remaining() && data.get(index) == '-') {
                 index++;
             }
         }
@@ -359,7 +362,7 @@ final class ByteValidity {
     /// @param end   exclusive Base64 end
     /// @return whether the payload contains valid UTF-16 code units
     private static boolean isValidUtf7Payload(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             int start,
             int end
     ) {
@@ -375,7 +378,7 @@ final class ByteValidity {
         int unitIndex = 0;
         boolean pendingHigh = false;
         for (int index = start; index < end; index++) {
-            accumulator = (accumulator << 6) | base64Value(data[index]);
+            accumulator = (accumulator << 6) | base64Value(data.get(index));
             accumulated += 6;
             while (accumulated >= 16 && unitIndex < unitCount) {
                 accumulated -= 16;
@@ -409,20 +412,20 @@ final class ByteValidity {
     ///
     /// @param data bytes to validate
     /// @return whether the HZ stream ends in a valid state
-    private static boolean isValidHz(byte @Unmodifiable [] data) {
+    private static boolean isValidHz(@UnmodifiableView ByteBuffer data) {
         boolean shifted = false;
         int pending = -1;
         int index = 0;
-        while (index < data.length) {
-            int value = Byte.toUnsignedInt(data[index]);
+        while (index < data.remaining()) {
+            int value = Byte.toUnsignedInt(data.get(index));
             if (value > 0x7f) {
                 return false;
             }
             if (value == '~') {
-                if (pending >= 0 || index + 1 >= data.length) {
+                if (pending >= 0 || index + 1 >= data.remaining()) {
                     return false;
                 }
-                int next = Byte.toUnsignedInt(data[index + 1]);
+                int next = Byte.toUnsignedInt(data.get(index + 1));
                 if (next == '{' && !shifted) {
                     shifted = true;
                 } else if (next == '}' && shifted) {
@@ -432,8 +435,8 @@ final class ByteValidity {
                 } else if (next == '\n') {
                     // HZ line continuation retains the current state.
                 } else if (next == '\r'
-                        && index + 2 < data.length
-                        && data[index + 2] == '\n') {
+                        && index + 2 < data.remaining()
+                        && data.get(index + 2) == '\n') {
                     index++;
                 } else {
                     return false;
@@ -470,9 +473,9 @@ final class ByteValidity {
     ///
     /// @param data bytes to validate
     /// @return whether all bytes are seven-bit
-    private static boolean isValidIso2022(byte @Unmodifiable [] data) {
-        for (byte value : data) {
-            if (value < 0) {
+    private static boolean isValidIso2022(@UnmodifiableView ByteBuffer data) {
+        for (int index = 0; index < data.remaining(); index++) {
+            if (data.get(index) < 0) {
                 return false;
             }
         }
@@ -485,11 +488,11 @@ final class ByteValidity {
     /// @param mask valid-byte mask
     /// @return whether all bytes are valid
     private static boolean allBytesInMask(
-            byte @Unmodifiable [] data,
+            @UnmodifiableView ByteBuffer data,
             byte @Unmodifiable [] mask
     ) {
-        for (byte value : data) {
-            if (!contains(mask, Byte.toUnsignedInt(value))) {
+        for (int index = 0; index < data.remaining(); index++) {
+            if (!contains(mask, Byte.toUnsignedInt(data.get(index)))) {
                 return false;
             }
         }
@@ -530,12 +533,15 @@ final class ByteValidity {
     /// @param data   bytes to inspect
     /// @param prefix unsigned prefix bytes
     /// @return whether the prefix matches
-    private static boolean startsWith(byte @Unmodifiable [] data, int @Unmodifiable ... prefix) {
-        if (data.length < prefix.length) {
+    private static boolean startsWith(
+            @UnmodifiableView ByteBuffer data,
+            int @Unmodifiable ... prefix
+    ) {
+        if (data.remaining() < prefix.length) {
             return false;
         }
         for (int index = 0; index < prefix.length; index++) {
-            if (Byte.toUnsignedInt(data[index]) != prefix[index]) {
+            if (Byte.toUnsignedInt(data.get(index)) != prefix[index]) {
                 return false;
             }
         }

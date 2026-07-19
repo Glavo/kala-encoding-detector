@@ -51,7 +51,10 @@ System.out.println(result.mimeType());
 `detect`, `detectAll`, and `detectAllUnfiltered` accept either a `byte[]` or a
 `ByteBuffer`. Buffer overloads inspect the bytes between `position` and
 `limit`, including direct and read-only buffers, without changing the buffer's
-content, position, limit, or mark.
+content, position, limit, or mark. Both input forms use the same zero-copy
+`ByteBuffer` pipeline: arrays are wrapped, while buffers are sliced over their
+current remaining region. Callers must not modify the underlying bytes while a
+detection call is in progress.
 
 `detectAll` keeps candidates whose confidence is strictly greater than `0.20`.
 If that would remove every candidate, it returns the unfiltered list.
@@ -101,26 +104,6 @@ Filters apply in era, include, then exclude order. They also gate BOM, markup,
 escape, and fallback results. Binary classification is not filtered and is
 reported with a `null` encoding and an appropriate MIME type.
 
-## Streaming API
-
-```java
-import kala.encdet.StreamingEncodingDetector;
-
-StreamingEncodingDetector streaming = detector.newStreamingDetector();
-streaming.feed(firstChunk);
-streaming.feed(secondChunk, 0, secondChunk.length);
-streaming.feed(directByteBuffer);
-DetectionResult result = streaming.finish();
-```
-
-The streaming detector copies and retains at most `maxBytes` bytes. Once the
-limit is reached, later input is ignored. `finish` is idempotent; `feed` after
-`finish` throws `IllegalStateException`; and `reset` starts a new lifecycle
-with the same detector configuration. `result` returns a zero-confidence
-sentinel before finalization. A `ByteBuffer` feed copies its remaining bytes
-without changing its content, position, limit, or mark. Streaming instances
-are not thread-safe.
-
 `EncodingDetector` instances are safe for concurrent use. Registry, validity,
 decode, model, and confusion data are immutable after thread-safe lazy
 initialization; each detection has independent working state.
@@ -152,8 +135,8 @@ The test suite vendors the complete `chardet/test-data` snapshot at commit
 [`fa16e9f`](https://github.com/chardet/test-data/commit/fa16e9ffde8fd55606e2c7be7423a5fa702cb4a1).
 An inventory verifies all 2,531 files by size and SHA-256. A fixed oracle covers
 all 2,517 detection samples and checks the complete candidate sequence,
-encoding, confidence, language, MIME type, and streaming parity. The build and
-tests do not read the reference repository.
+encoding, confidence, language, and MIME type. The build and tests do not read
+the reference repository.
 
 ## License and provenance
 
