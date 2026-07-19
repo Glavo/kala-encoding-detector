@@ -3,7 +3,7 @@
 
 package kala.encdet.internal;
 
-import kala.encdet.DetectionOptions;
+import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingEra;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
@@ -92,12 +92,12 @@ public final class EncodingRegistry {
 
     /// Returns candidates after applying era, include, and exclude filters.
     ///
-    /// @param options normalized detection options
+    /// @param detector immutable detector configuration
     /// @return immutable entries in registry order
-    static @Unmodifiable List<Info> candidates(DetectionOptions options) {
-        Set<EncodingEra> eras = options.encodingEras();
-        @Nullable Set<String> included = options.includeEncodings();
-        @Nullable Set<String> excluded = options.excludeEncodings();
+    static @Unmodifiable List<Info> candidates(EncodingDetector detector) {
+        Set<EncodingEra> eras = detector.encodingEras();
+        @Nullable Set<String> included = detector.includeEncodings();
+        @Nullable Set<String> excluded = detector.excludeEncodings();
         ArrayList<Info> result = new ArrayList<>(ENTRIES.size());
         for (Info entry : ENTRIES) {
             if (!eras.contains(entry.era())) {

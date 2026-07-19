@@ -3,7 +3,6 @@
 
 package kala.encdet.internal.cli;
 
-import kala.encdet.DetectionOptions;
 import kala.encdet.DetectionResult;
 import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingEra;
@@ -118,7 +117,7 @@ public final class Main {
                     continue;
                 }
                 try {
-                    DetectionResult result = EncodingDetector.detect(data, parsed.toOptions());
+                    DetectionResult result = parsed.toDetector().detect(data);
                     printResult(result, file, parsed.minimal, parsed.language, output);
                 } catch (RuntimeException exception) {
                     error.println(
@@ -138,7 +137,7 @@ public final class Main {
             return 1;
         }
         try {
-            DetectionResult result = EncodingDetector.detect(data, parsed.toOptions());
+            DetectionResult result = parsed.toDetector().detect(data);
             printResult(result, "stdin", parsed.minimal, parsed.language, output);
             return 0;
         } catch (RuntimeException exception) {
@@ -307,17 +306,16 @@ public final class Main {
             return result;
         }
 
-        /// Builds normalized public options for one detection call.
+        /// Builds an immutable public detector for one detection call.
         ///
-        /// @return immutable detection options
-        private DetectionOptions toOptions() {
-            return DetectionOptions.builder()
-                    .encodingEras(eras)
-                    .includeEncodings(include)
-                    .excludeEncodings(exclude)
-                    .noMatchEncoding(noMatch)
-                    .emptyInputEncoding(emptyInput)
-                    .build();
+        /// @return configured detector
+        private EncodingDetector toDetector() {
+            return EncodingDetector.DEFAULT
+                    .withEncodingEras(eras)
+                    .withIncludedEncodings(include)
+                    .withExcludedEncodings(exclude)
+                    .withNoMatchEncoding(noMatch)
+                    .withEmptyInputEncoding(emptyInput);
         }
 
         /// Reads a required option argument.

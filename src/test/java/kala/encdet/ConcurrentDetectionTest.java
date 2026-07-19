@@ -20,7 +20,7 @@ import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/// Verifies concurrent use of the immutable static detector state.
+/// Verifies concurrent use of immutable detector instances and shared model state.
 @NotNullByDefault
 final class ConcurrentDetectionTest {
     /// Runs many simultaneous statistical detections and checks deterministic results.
@@ -32,7 +32,8 @@ final class ConcurrentDetectionTest {
                 "Les élèves français étudient la littérature européenne avec enthousiasme. "
                         + "Après les études, ils préfèrent dîner dans un café."
         ).getBytes(StandardCharsets.ISO_8859_1);
-        DetectionResult expected = EncodingDetector.detect(data);
+        EncodingDetector detector = EncodingDetector.DEFAULT;
+        DetectionResult expected = detector.detect(data);
         int workers = 24;
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(workers);
@@ -43,7 +44,7 @@ final class ConcurrentDetectionTest {
                     start.await();
                     DetectionResult result = expected;
                     for (int iteration = 0; iteration < 50; iteration++) {
-                        result = EncodingDetector.detect(data);
+                        result = detector.detect(data);
                     }
                     return result;
                 });
@@ -70,7 +71,7 @@ final class ConcurrentDetectionTest {
                 "Les élèves français étudient la littérature européenne avec enthousiasme. "
                         + "Après les études, ils préfèrent dîner dans un café."
         ).getBytes(StandardCharsets.ISO_8859_1);
-        String expected = EncodingDetector.detect(data).toString();
+        String expected = EncodingDetector.DEFAULT.detect(data).toString();
         URL classes = EncodingDetector.class.getProtectionDomain().getCodeSource().getLocation();
         URL resources = mainResourceRoot("kala/encdet/internal/models.bin");
         try (URLClassLoader loader = new URLClassLoader(
@@ -78,6 +79,7 @@ final class ConcurrentDetectionTest {
                 ClassLoader.getPlatformClassLoader()
         )) {
             Class<?> detectorClass = Class.forName("kala.encdet.EncodingDetector", false, loader);
+            Object defaultDetector = detectorClass.getField("DEFAULT").get(null);
             Method detect = detectorClass.getMethod("detect", byte[].class);
             int workers = 24;
             CountDownLatch start = new CountDownLatch(1);
@@ -87,7 +89,7 @@ final class ConcurrentDetectionTest {
                 for (int index = 0; index < workers; index++) {
                     futures.add(executor.submit(() -> {
                         start.await();
-                        Object result = detect.invoke(null, (Object) data);
+                        Object result = detect.invoke(defaultDetector, (Object) data);
                         return result.toString();
                     }));
                 }

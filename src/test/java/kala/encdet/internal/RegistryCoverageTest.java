@@ -3,7 +3,6 @@
 
 package kala.encdet.internal;
 
-import kala.encdet.DetectionOptions;
 import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingEra;
 import org.jetbrains.annotations.NotNullByDefault;
@@ -23,7 +22,7 @@ final class RegistryCoverageTest {
     /// Verifies all targets, aliases, eras, and languages from the pinned registry.
     @Test
     void registryHasCompletePinnedCoverage() {
-        List<EncodingRegistry.Info> entries = EncodingRegistry.candidates(DetectionOptions.DEFAULT);
+        List<EncodingRegistry.Info> entries = EncodingRegistry.candidates(EncodingDetector.DEFAULT);
         assertEquals(86, entries.size());
         assertEquals(6, EncodingEra.values().length);
 

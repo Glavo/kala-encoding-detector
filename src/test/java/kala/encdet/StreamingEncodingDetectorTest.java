@@ -27,7 +27,7 @@ final class StreamingEncodingDetectorTest {
             detector.feed(data, offset, length);
             offset += length;
         }
-        assertEquals(EncodingDetector.detect(data), detector.finish());
+        assertEquals(EncodingDetector.DEFAULT.detect(data), detector.finish());
     }
 
     /// Verifies feeds are copied and later caller mutations are not observed.
@@ -43,8 +43,8 @@ final class StreamingEncodingDetectorTest {
     /// Verifies the maximum byte count saturates the detector and discards later data.
     @Test
     void maximumBytesBoundsRetainedInput() {
-        DetectionOptions options = DetectionOptions.builder().maxBytes(5).build();
-        StreamingEncodingDetector detector = new StreamingEncodingDetector(options);
+        EncodingDetector configuration = EncodingDetector.DEFAULT.withMaxBytes(5);
+        StreamingEncodingDetector detector = new StreamingEncodingDetector(configuration);
         detector.feed("Hello".getBytes(StandardCharsets.US_ASCII));
         assertTrue(detector.isDone());
         detector.feed(" 世界".getBytes(StandardCharsets.UTF_8));
@@ -71,11 +71,11 @@ final class StreamingEncodingDetectorTest {
         assertThrows(IllegalStateException.class, () -> detector.feed(null, 0, 0));
     }
 
-    /// Verifies reset starts a reusable lifecycle with the same options.
+    /// Verifies reset starts a reusable lifecycle with the same detector configuration.
     @Test
     void resetAllowsReuse() {
-        DetectionOptions options = DetectionOptions.builder().preferSuperset(true).build();
-        StreamingEncodingDetector detector = new StreamingEncodingDetector(options);
+        EncodingDetector configuration = EncodingDetector.DEFAULT.withPreferredSuperset(true);
+        StreamingEncodingDetector detector = configuration.newStreamingDetector();
         detector.feed("Hello".getBytes(StandardCharsets.US_ASCII));
         assertEquals("Windows-1252", detector.finish().encoding());
         detector.reset();
@@ -83,14 +83,14 @@ final class StreamingEncodingDetectorTest {
         assertEquals(new DetectionResult(null, 0.0, null, null), detector.result());
         detector.feed("世界".getBytes(StandardCharsets.UTF_8));
         assertEquals("utf-8", detector.finish().encoding());
-        assertSame(options, detector.options());
+        assertSame(configuration, detector.detector());
     }
 
     /// Verifies range checks are performed even when the detector is saturated.
     @Test
     void validatesFeedRanges() {
         StreamingEncodingDetector detector = new StreamingEncodingDetector(
-                DetectionOptions.builder().maxBytes(1).build()
+                EncodingDetector.DEFAULT.withMaxBytes(1)
         );
         detector.feed(new byte[]{'x'});
         assertThrows(

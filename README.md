@@ -40,7 +40,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 byte[] input = Files.readAllBytes(Path.of("document.txt"));
-DetectionResult result = EncodingDetector.detect(input);
+DetectionResult result = EncodingDetector.DEFAULT.detect(input);
 
 System.out.println(result.encoding());
 System.out.println(result.confidence());
@@ -54,22 +54,25 @@ If that would remove every candidate, it returns the unfiltered list.
 and use stable descending-confidence order.
 
 ```java
-import kala.encdet.DetectionOptions;
+import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingEra;
 import kala.encdet.EncodingNameStyle;
 
 import java.util.Set;
 
-DetectionOptions options = DetectionOptions.builder()
-        .encodingEras(Set.of(EncodingEra.MODERN_WEB))
-        .maxBytes(100_000)
-        .nameStyle(EncodingNameStyle.CANONICAL)
-        .includeEncodings(Set.of("utf-8", "windows-1252"))
-        .preferSuperset(false)
-        .build();
+EncodingDetector detector = EncodingDetector.DEFAULT
+        .withEncodingEras(Set.of(EncodingEra.MODERN_WEB))
+        .withMaxBytes(100_000)
+        .withNameStyle(EncodingNameStyle.CANONICAL)
+        .withIncludedEncodings(Set.of("utf-8", "windows-1252"))
+        .withPreferredSuperset(false);
 
-DetectionResult result = EncodingDetector.detect(input, options);
+DetectionResult result = detector.detect(input);
 ```
+
+`EncodingDetector` is immutable. Every `withXxx` method returns an independent
+detector and leaves its receiver unchanged, so configured instances can be
+reused safely across detection calls and threads.
 
 Encoding names remain strings because Java 17's `Charset` set does not cover
 every detection target. A returned name is therefore not guaranteed to be
@@ -80,7 +83,7 @@ order.
 
 ## Default behavior
 
-`DetectionOptions.DEFAULT` selects all six eras and uses:
+`EncodingDetector.DEFAULT` selects all six eras and uses:
 
 - `maxBytes = 200_000`
 - compatible chardet 5.x/6.x display names
@@ -98,20 +101,20 @@ reported with a `null` encoding and an appropriate MIME type.
 ```java
 import kala.encdet.StreamingEncodingDetector;
 
-StreamingEncodingDetector detector = new StreamingEncodingDetector(options);
-detector.feed(firstChunk);
-detector.feed(secondChunk, 0, secondChunk.length);
-DetectionResult result = detector.finish();
+StreamingEncodingDetector streaming = detector.newStreamingDetector();
+streaming.feed(firstChunk);
+streaming.feed(secondChunk, 0, secondChunk.length);
+DetectionResult result = streaming.finish();
 ```
 
 The streaming detector copies and retains at most `maxBytes` bytes. Once the
 limit is reached, later input is ignored. `finish` is idempotent; `feed` after
 `finish` throws `IllegalStateException`; and `reset` starts a new lifecycle
-with the same options. `result` returns a zero-confidence sentinel before
-finalization. Streaming instances are not thread-safe.
+with the same detector configuration. `result` returns a zero-confidence
+sentinel before finalization. Streaming instances are not thread-safe.
 
-Static `EncodingDetector` operations are safe for concurrent use. Registry,
-validity, decode, model, and confusion data are immutable after thread-safe lazy
+`EncodingDetector` instances are safe for concurrent use. Registry, validity,
+decode, model, and confusion data are immutable after thread-safe lazy
 initialization; each detection has independent working state.
 
 ## Command line

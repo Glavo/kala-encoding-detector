@@ -79,7 +79,7 @@ final class CorpusGoldenTest {
                     continue;
                 }
                 List<ExpectedResult> expected = parseResults(fields[2]);
-                List<DetectionResult> actual = EncodingDetector.detectAllUnfiltered(data);
+                List<DetectionResult> actual = EncodingDetector.DEFAULT.detectAllUnfiltered(data);
                 compareResults(path, expected, actual, mismatches);
                 compareStreaming(path, data, actual.get(0), mismatches);
                 samples++;

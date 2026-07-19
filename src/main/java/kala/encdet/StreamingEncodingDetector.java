@@ -10,7 +10,7 @@ import java.util.Objects;
 
 /// Incrementally buffers bytes and runs encoding detection when finished.
 ///
-/// At most `options().maxBytes()` bytes are retained. Reaching that limit
+/// At most `detector().maxBytes()` bytes are retained. Reaching that limit
 /// makes [#isDone()] return `true` and causes later feeds to be ignored, but
 /// detection is not computed until [#finish()] is called. Calling `feed`
 /// after `finish` throws [IllegalStateException]. Instances are not
@@ -20,8 +20,8 @@ public final class StreamingEncodingDetector {
     /// Result exposed before detection has been finished.
     private static final DetectionResult NONE_RESULT = new DetectionResult(null, 0.0, null, null);
 
-    /// Immutable options used for every lifecycle of this detector.
-    private final DetectionOptions options;
+    /// Immutable detector configuration used for every lifecycle.
+    private final EncodingDetector detector;
 
     /// Accumulates a bounded copy of input bytes.
     private final ByteArrayOutputStream buffer;
@@ -35,25 +35,25 @@ public final class StreamingEncodingDetector {
     /// Cached result after finalization.
     private DetectionResult result = NONE_RESULT;
 
-    /// Creates a detector using [DetectionOptions#DEFAULT].
+    /// Creates a streaming detector using [EncodingDetector#DEFAULT].
     public StreamingEncodingDetector() {
-        this(DetectionOptions.DEFAULT);
+        this(EncodingDetector.DEFAULT);
     }
 
-    /// Creates a detector using the supplied immutable options.
+    /// Creates a streaming detector using the supplied immutable detector.
     ///
-    /// @param options detection options retained by this instance
-    /// @throws NullPointerException if `options` is `null`
-    public StreamingEncodingDetector(DetectionOptions options) {
-        this.options = Objects.requireNonNull(options, "options");
-        this.buffer = new ByteArrayOutputStream(Math.min(options.maxBytes(), 8192));
+    /// @param detector detector configuration retained by this instance
+    /// @throws NullPointerException if `detector` is `null`
+    public StreamingEncodingDetector(EncodingDetector detector) {
+        this.detector = Objects.requireNonNull(detector, "detector");
+        this.buffer = new ByteArrayOutputStream(Math.min(detector.maxBytes(), 8192));
     }
 
-    /// Returns the options retained by this detector.
+    /// Returns the detector configuration retained by this instance.
     ///
-    /// @return immutable detection options
-    public DetectionOptions options() {
-        return options;
+    /// @return immutable detector configuration
+    public EncodingDetector detector() {
+        return detector;
     }
 
     /// Copies a complete byte array into the bounded input buffer.
@@ -89,10 +89,10 @@ public final class StreamingEncodingDetector {
             return;
         }
 
-        int remaining = options.maxBytes() - buffer.size();
+        int remaining = detector.maxBytes() - buffer.size();
         int accepted = Math.min(remaining, length);
         buffer.write(input, offset, accepted);
-        saturated = buffer.size() >= options.maxBytes();
+        saturated = buffer.size() >= detector.maxBytes();
     }
 
     /// Verifies that the current lifecycle still accepts feeds.
@@ -111,14 +111,14 @@ public final class StreamingEncodingDetector {
     /// @return the finalized detection result
     public DetectionResult finish() {
         if (!finished) {
-            result = EncodingDetector.detect(buffer.toByteArray(), options);
+            result = detector.detect(buffer.toByteArray());
             finished = true;
             saturated = true;
         }
         return result;
     }
 
-    /// Resets buffered data and result state for reuse with the same options.
+    /// Resets buffered data and result state for reuse with the same detector.
     public void reset() {
         buffer.reset();
         saturated = false;

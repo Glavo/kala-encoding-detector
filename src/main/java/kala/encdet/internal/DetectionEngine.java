@@ -3,8 +3,8 @@
 
 package kala.encdet.internal;
 
-import kala.encdet.DetectionOptions;
 import kala.encdet.DetectionResult;
+import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingNameStyle;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
@@ -128,21 +128,21 @@ public final class DetectionEngine {
 
     /// Runs detection and converts internal canonical candidates to public results.
     ///
-    /// @param input   caller-owned bytes, which are never modified or retained
-    /// @param options normalized immutable options
+    /// @param input    caller-owned bytes, which are never modified or retained
+    /// @param detector immutable detector configuration
     /// @return immutable public candidates in stable ranking order
     public static @Unmodifiable List<DetectionResult> detect(
             byte @Unmodifiable [] input,
-            DetectionOptions options
+            EncodingDetector detector
     ) {
-        List<PipelineResult> results = runCore(input, options);
+        List<PipelineResult> results = runCore(input, detector);
         results = fillLanguages(input, results);
         ArrayList<DetectionResult> publicResults = new ArrayList<>(results.size());
         for (PipelineResult result : results) {
             String mimeType = result.mimeType() != null
                     ? result.mimeType()
                     : result.encoding() == null ? "application/octet-stream" : "text/plain";
-            @Nullable String encoding = transformName(result.encoding(), options);
+            @Nullable String encoding = transformName(result.encoding(), detector);
             double confidence = Math.max(0.0, Math.min(result.confidence(), 1.0));
             publicResults.add(new DetectionResult(
                     encoding,
@@ -160,16 +160,16 @@ public final class DetectionEngine {
     /// Runs all detection stages through post-processing in reference order.
     ///
     /// @param original complete caller input
-    /// @param options  normalized options
+    /// @param detector immutable detector configuration
     /// @return internal canonical candidates
     private static List<PipelineResult> runCore(
             byte @Unmodifiable [] original,
-            DetectionOptions options
+            EncodingDetector detector
     ) {
-        byte[] data = original.length <= options.maxBytes()
+        byte[] data = original.length <= detector.maxBytes()
                 ? original
-                : Arrays.copyOf(original, options.maxBytes());
-        List<EncodingRegistry.Info> candidates = EncodingRegistry.candidates(options);
+                : Arrays.copyOf(original, detector.maxBytes());
+        List<EncodingRegistry.Info> candidates = EncodingRegistry.candidates(detector);
         LinkedHashSet<String> mutableAllowed = new LinkedHashSet<>(candidates.size());
         for (EncodingRegistry.Info candidate : candidates) {
             mutableAllowed.add(candidate.name());
@@ -177,7 +177,7 @@ public final class DetectionEngine {
         Set<String> allowed = Collections.unmodifiableSet(mutableAllowed);
 
         if (data.length == 0) {
-            return fallback(options.emptyInputEncoding(), allowed, "emptyInputEncoding");
+            return fallback(detector.emptyInputEncoding(), allowed, "emptyInputEncoding");
         }
 
         @Nullable PipelineResult result = detectBom(data);
@@ -219,13 +219,13 @@ public final class DetectionEngine {
 
         List<EncodingRegistry.Info> validCandidates = ByteValidity.filter(data, candidates);
         if (validCandidates.isEmpty()) {
-            return fallback(options.noMatchEncoding(), allowed, "noMatchEncoding");
+            return fallback(detector.noMatchEncoding(), allowed, "noMatchEncoding");
         }
 
         PipelineContext context = new PipelineContext();
         validCandidates = gateCjkCandidates(data, validCandidates, context);
         if (validCandidates.isEmpty()) {
-            return fallback(options.noMatchEncoding(), allowed, "noMatchEncoding");
+            return fallback(detector.noMatchEncoding(), allowed, "noMatchEncoding");
         }
 
         ArrayList<ScoredEncoding> structuralScores = new ArrayList<>();
@@ -265,7 +265,7 @@ public final class DetectionEngine {
                 : Arrays.copyOf(data, STAT_SCORE_MAX_BYTES);
         List<PipelineResult> scored = scoreCandidates(statisticalData, validCandidates);
         if (scored.isEmpty()) {
-            return fallback(options.noMatchEncoding(), allowed, "noMatchEncoding");
+            return fallback(detector.noMatchEncoding(), allowed, "noMatchEncoding");
         }
         return PostProcessor.process(data, scored);
     }
@@ -616,19 +616,19 @@ public final class DetectionEngine {
     /// Applies preferred-superset and compatibility-name transformations.
     ///
     /// @param canonical canonical encoding, or `null`
-    /// @param options   detection options
+    /// @param detector  detector configuration
     /// @return transformed name, or `null`
     private static @Nullable String transformName(
             @Nullable String canonical,
-            DetectionOptions options
+            EncodingDetector detector
     ) {
         if (canonical == null) {
             return null;
         }
-        String transformed = options.preferSuperset()
+        String transformed = detector.preferSuperset()
                 ? PREFERRED_SUPERSETS.getOrDefault(canonical, canonical)
                 : canonical;
-        return options.nameStyle() == EncodingNameStyle.CHARDET_COMPATIBLE
+        return detector.nameStyle() == EncodingNameStyle.CHARDET_COMPATIBLE
                 ? COMPATIBLE_NAMES.getOrDefault(transformed, transformed)
                 : transformed;
     }
