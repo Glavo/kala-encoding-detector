@@ -16,6 +16,11 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
+    options.release = 17
+}
+
 tasks.test {
     useJUnitPlatform()
 }
