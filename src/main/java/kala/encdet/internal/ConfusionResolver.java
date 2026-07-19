@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -57,7 +58,7 @@ final class ConfusionResolver {
             return results;
         }
         PipelineResult top = results.get(0);
-        @Nullable String topEncoding = top.encoding();
+        @Nullable Encoding topEncoding = top.encoding();
         if (topEncoding == null) {
             return results;
         }
@@ -65,7 +66,7 @@ final class ConfusionResolver {
         Map<PairKey, PairData> maps = Holder.DATA;
         for (int index = 1; index < results.size(); index++) {
             PipelineResult candidate = results.get(index);
-            @Nullable String candidateEncoding = candidate.encoding();
+            @Nullable Encoding candidateEncoding = candidate.encoding();
             if (candidateEncoding == null) {
                 continue;
             }
@@ -76,10 +77,10 @@ final class ConfusionResolver {
             if (match == null) {
                 continue;
             }
-            @Nullable String categoryWinner = categoryWinner(data, match.key(), match.data());
-            @Nullable String bigramWinner = bigramWinner(data, match.key(), match.data());
-            @Nullable String winner = bigramWinner == null ? categoryWinner : bigramWinner;
-            if (winner != null && winner.equals(candidateEncoding)) {
+            @Nullable Encoding categoryWinner = categoryWinner(data, match.key(), match.data());
+            @Nullable Encoding bigramWinner = bigramWinner(data, match.key(), match.data());
+            @Nullable Encoding winner = bigramWinner == null ? categoryWinner : bigramWinner;
+            if (winner == candidateEncoding) {
                 PipelineResult promoted = new PipelineResult(
                         candidateEncoding,
                         top.confidence(),
@@ -107,8 +108,8 @@ final class ConfusionResolver {
     /// @return stored pair and data, or `null`
     private static @Nullable PairMatch findPair(
             Map<PairKey, PairData> maps,
-            String first,
-            String second
+            Encoding first,
+            Encoding second
     ) {
         PairKey direct = new PairKey(first, second);
         @Nullable PairData directData = maps.get(direct);
@@ -126,7 +127,7 @@ final class ConfusionResolver {
     /// @param key  stored pair orientation
     /// @param pair distinguishing maps
     /// @return winning encoding, or `null` on a tie or no evidence
-    private static @Nullable String categoryWinner(
+    private static @Nullable Encoding categoryWinner(
             @UnmodifiableView ByteBuffer data,
             PairKey key,
             PairData pair
@@ -164,7 +165,7 @@ final class ConfusionResolver {
     /// @param key  stored pair orientation
     /// @param pair distinguishing maps
     /// @return winning encoding, or `null` on a tie or no evidence
-    private static @Nullable String bigramWinner(
+    private static @Nullable Encoding bigramWinner(
             @UnmodifiableView ByteBuffer data,
             PairKey key,
             PairData pair
@@ -241,8 +242,8 @@ final class ConfusionResolver {
         int count = Short.toUnsignedInt(buffer.getShort());
         LinkedHashMap<PairKey, PairData> result = new LinkedHashMap<>(count);
         for (int pairIndex = 0; pairIndex < count; pairIndex++) {
-            String first = readName(buffer);
-            String second = readName(buffer);
+            Encoding first = readEncoding(buffer);
+            Encoding second = readEncoding(buffer);
             requireRemaining(buffer, 1, "missing difference count");
             int differences = Byte.toUnsignedInt(buffer.get());
             byte[] masks = new byte[32];
@@ -257,12 +258,7 @@ final class ConfusionResolver {
                 firstPreferences[value] = (byte) categoryPreference(firstCategory);
                 secondPreferences[value] = (byte) categoryPreference(secondCategory);
             }
-            @Nullable String canonicalFirst = EncodingRegistry.lookup(first);
-            @Nullable String canonicalSecond = EncodingRegistry.lookup(second);
-            PairKey key = new PairKey(
-                    canonicalFirst == null ? first : canonicalFirst,
-                    canonicalSecond == null ? second : canonicalSecond
-            );
+            PairKey key = new PairKey(first, second);
             if (result.putIfAbsent(
                     key,
                     new PairData(masks, firstPreferences, secondPreferences)
@@ -295,6 +291,20 @@ final class ConfusionResolver {
         } catch (CharacterCodingException exception) {
             throw new IllegalArgumentException("encoding name is not valid UTF-8", exception);
         }
+    }
+
+    /// Reads and resolves one length-prefixed encoding name.
+    ///
+    /// @param buffer source buffer
+    /// @return resolved encoding identity
+    /// @throws IllegalArgumentException if the encoded name is malformed or unknown
+    private static Encoding readEncoding(ByteBuffer buffer) {
+        String name = readName(buffer);
+        @Nullable Encoding encoding = EncodingRegistry.lookup(name);
+        if (encoding == null) {
+            throw new IllegalArgumentException("unknown encoding " + name + " in confusion data");
+        }
+        return encoding;
     }
 
     /// Maps a serialized Unicode category code to its vote preference.
@@ -332,7 +342,7 @@ final class ConfusionResolver {
     /// @param first  first canonical encoding
     /// @param second second canonical encoding
     @NotNullByDefault
-    private record PairKey(String first, String second) {
+    private record PairKey(Encoding first, Encoding second) {
         /// Creates a pair key.
         private PairKey {
         }

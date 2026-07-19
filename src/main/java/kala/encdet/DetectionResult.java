@@ -8,17 +8,17 @@ import org.jetbrains.annotations.Nullable;
 
 /// Describes one character-encoding detection candidate.
 ///
-/// @param encoding   the detected encoding name, or `null` when the input is
+/// @param encoding   the detected encoding, or `null` when the input is
 ///                 classified as binary or no permitted fallback exists
 /// @param confidence the confidence in the range `[0.0, 1.0]`
 /// @param language   the ISO 639 language code, or `null` when undetermined
 /// @param mimeType   the detected or inferred MIME type, or `null` only for a
 ///                 result created directly by an application
-/// @apiNote Encoding names are registry identifiers and are not guaranteed to
-/// be accepted by `java.nio.charset.Charset.forName(String)`.
+/// @apiNote An [Encoding] value does not imply that the corresponding encoding
+/// is available through `java.nio.charset.Charset`.
 @NotNullByDefault
 public record DetectionResult(
-        @Nullable String encoding,
+        @Nullable Encoding encoding,
         double confidence,
         @Nullable String language,
         @Nullable String mimeType

@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
@@ -74,9 +75,9 @@ final class UnicodePatternDetector {
             secondNulls += sample.get(index + 1) == 0 ? 1 : 0;
         }
         if (firstNulls == units && (double) secondNulls / units > 0.5) {
-            @Nullable String text = decodeStrict(sample, "utf-32-be");
+            @Nullable String text = decodeStrict(sample, Encoding.UTF_32_BE);
             if (text != null && looksLikeText(text)) {
-                return result("utf-32-be");
+                return result(Encoding.UTF_32_BE);
             }
         }
 
@@ -87,9 +88,9 @@ final class UnicodePatternDetector {
             lastNulls += sample.get(index + 3) == 0 ? 1 : 0;
         }
         if (lastNulls == units && (double) thirdNulls / units > 0.5) {
-            @Nullable String text = decodeStrict(sample, "utf-32-le");
+            @Nullable String text = decodeStrict(sample, Encoding.UTF_32_LE);
             if (text != null && looksLikeText(text)) {
-                return result("utf-32-le");
+                return result(Encoding.UTF_32_LE);
             }
         }
         return null;
@@ -121,22 +122,22 @@ final class UnicodePatternDetector {
         ArrayList<EndianCandidate> candidates = new ArrayList<>(2);
         if (littleEndianFraction >= UTF16_MIN_NULL_FRACTION
                 && !isNullSeparatorPattern(sample, littleEndianFraction)) {
-            candidates.add(new EndianCandidate("utf-16-le", littleEndianFraction));
+            candidates.add(new EndianCandidate(Encoding.UTF_16_LE, littleEndianFraction));
         }
         if (bigEndianFraction >= UTF16_MIN_NULL_FRACTION
                 && !isNullSeparatorPattern(sample, bigEndianFraction)) {
-            candidates.add(new EndianCandidate("utf-16-be", bigEndianFraction));
+            candidates.add(new EndianCandidate(Encoding.UTF_16_BE, bigEndianFraction));
         }
         if (candidates.isEmpty()) {
             return null;
         }
         if (candidates.size() == 1) {
-            String encoding = candidates.get(0).encoding();
+            Encoding encoding = candidates.get(0).encoding();
             @Nullable String text = decodeStrict(sample, encoding);
             return text != null && looksLikeText(text) ? result(encoding) : null;
         }
 
-        @Nullable String bestEncoding = null;
+        @Nullable Encoding bestEncoding = null;
         double bestQuality = -1.0;
         for (EndianCandidate candidate : candidates) {
             @Nullable String text = decodeStrict(sample, candidate.encoding());
@@ -182,11 +183,11 @@ final class UnicodePatternDetector {
     /// Strictly decodes an endian-specific Unicode sample.
     ///
     /// @param data     sample bytes
-    /// @param encoding canonical Unicode encoding
+    /// @param encoding Unicode encoding identity
     /// @return decoded text, or `null` when malformed
     private static @Nullable String decodeStrict(
             @UnmodifiableView ByteBuffer data,
-            String encoding
+            Encoding encoding
     ) {
         if (!ByteValidity.isValid(data, encoding)) {
             return null;
@@ -313,18 +314,18 @@ final class UnicodePatternDetector {
 
     /// Creates a deterministic Unicode-pattern result.
     ///
-    /// @param encoding endian-specific canonical encoding
+    /// @param encoding endian-specific encoding identity
     /// @return result
-    private static PipelineResult result(String encoding) {
+    private static PipelineResult result(Encoding encoding) {
         return new PipelineResult(encoding, CONFIDENCE, null, null);
     }
 
     /// Holds a UTF-16 endianness candidate and its positional evidence.
     ///
-    /// @param encoding     endian-specific canonical name
+    /// @param encoding     endian-specific encoding identity
     /// @param nullFraction expected-position null fraction
     @NotNullByDefault
-    private record EndianCandidate(String encoding, double nullFraction) {
+    private record EndianCandidate(Encoding encoding, double nullFraction) {
         /// Creates an endianness candidate.
         private EndianCandidate {
         }

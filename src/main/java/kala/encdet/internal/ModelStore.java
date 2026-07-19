@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -18,7 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.DataFormatException;
@@ -51,17 +52,17 @@ final class ModelStore {
 
     /// Reports whether language variants exist for an encoding.
     ///
-    /// @param encoding canonical encoding name
+    /// @param encoding encoding identity
     /// @return whether a statistical model is available
-    static boolean hasVariants(String encoding) {
+    static boolean hasVariants(Encoding encoding) {
         return ModelsHolder.MODELS.index().containsKey(encoding);
     }
 
     /// Infers a language for an encoding having exactly one registered language.
     ///
-    /// @param encoding canonical encoding name
+    /// @param encoding encoding identity
     /// @return the sole language, or `null`
-    static @Nullable String inferSingleLanguage(String encoding) {
+    static @Nullable String inferSingleLanguage(Encoding encoding) {
         @Nullable EncodingRegistry.Info info = EncodingRegistry.get(encoding);
         if (info == null || info.languages().size() != 1) {
             return null;
@@ -95,10 +96,10 @@ final class ModelStore {
 
     /// Scores one encoding's language variants against a profile.
     ///
-    /// @param encoding canonical encoding name
+    /// @param encoding encoding identity
     /// @param profile  reusable input profile
     /// @return best score and corresponding language
-    static Score scoreBestLanguage(String encoding, Profile profile) {
+    static Score scoreBestLanguage(Encoding encoding, Profile profile) {
         @Nullable List<Model> variants = ModelsHolder.MODELS.index().get(encoding);
         if (variants == null || profile.inputNorm() == 0.0) {
             return Score.NONE;
@@ -194,7 +195,19 @@ final class ModelStore {
             } catch (CharacterCodingException exception) {
                 throw new IllegalArgumentException("model name is not valid UTF-8", exception);
             }
-            headers.add(new ModelHeader(name, header.getDouble()));
+            int separator = name.indexOf('/');
+            if (separator <= 0 || separator == name.length() - 1) {
+                throw new IllegalArgumentException("invalid model key " + name);
+            }
+            String language = name.substring(0, separator);
+            String encodingName = name.substring(separator + 1);
+            @Nullable Encoding encoding = EncodingRegistry.lookup(encodingName);
+            if (encoding == null) {
+                throw new IllegalArgumentException(
+                        "unknown encoding " + encodingName + " in model key " + name
+                );
+            }
+            headers.add(new ModelHeader(language, encoding, header.getDouble()));
         }
 
         int expectedSize;
@@ -205,26 +218,26 @@ final class ModelStore {
         }
         byte[] dense = inflate(raw, header.position(), expectedSize);
 
-        LinkedHashMap<String, List<Model>> mutableIndex = new LinkedHashMap<>();
+        EnumMap<Encoding, List<Model>> mutableIndex = new EnumMap<>(Encoding.class);
         for (int index = 0; index < headers.size(); index++) {
             ModelHeader modelHeader = headers.get(index);
-            int separator = modelHeader.name().indexOf('/');
-            if (separator <= 0 || separator == modelHeader.name().length() - 1) {
-                throw new IllegalArgumentException("invalid model key " + modelHeader.name());
-            }
-            String language = modelHeader.name().substring(0, separator);
-            String modelEncoding = modelHeader.name().substring(separator + 1);
-            @Nullable String canonical = EncodingRegistry.lookup(modelEncoding);
-            String indexedEncoding = canonical == null ? modelEncoding : canonical;
-            Model model = new Model(language, dense, index * MODEL_SIZE, modelHeader.norm());
-            mutableIndex.computeIfAbsent(indexedEncoding, ignored -> new ArrayList<>()).add(model);
+            Model model = new Model(
+                    modelHeader.language(),
+                    dense,
+                    index * MODEL_SIZE,
+                    modelHeader.norm()
+            );
+            mutableIndex.computeIfAbsent(
+                    modelHeader.encoding(),
+                    ignored -> new ArrayList<>()
+            ).add(model);
         }
 
-        LinkedHashMap<String, List<Model>> index = new LinkedHashMap<>(mutableIndex.size());
-        for (Map.Entry<String, List<Model>> entry : mutableIndex.entrySet()) {
-            index.put(entry.getKey(), List.copyOf(entry.getValue()));
+        EnumMap<Encoding, List<Model>> modelIndex = new EnumMap<>(Encoding.class);
+        for (Map.Entry<Encoding, List<Model>> entry : mutableIndex.entrySet()) {
+            modelIndex.put(entry.getKey(), List.copyOf(entry.getValue()));
         }
-        return new Models(Collections.unmodifiableMap(index), dense);
+        return new Models(Collections.unmodifiableMap(modelIndex), dense);
     }
 
     /// Inflates a zlib stream to an exact expected length.
@@ -336,10 +349,11 @@ final class ModelStore {
 
     /// Holds one parsed model header before dense data is indexed.
     ///
-    /// @param name `language/encoding` model key
-    /// @param norm precomputed L2 model norm
+    /// @param language model language
+    /// @param encoding encoding identity
+    /// @param norm     precomputed L2 model norm
     @NotNullByDefault
-    private record ModelHeader(String name, double norm) {
+    private record ModelHeader(String language, Encoding encoding, double norm) {
         /// Creates a parsed model header.
         private ModelHeader {
         }
@@ -377,11 +391,14 @@ final class ModelStore {
     /// @param dense shared immutable dense data retained by all model views
     @NotNullByDefault
     private record Models(
-            @Unmodifiable Map<String, @Unmodifiable List<Model>> index,
+            @Unmodifiable Map<Encoding, @Unmodifiable List<Model>> index,
             byte @Unmodifiable [] dense
     ) {
         /// Empty models used when the resource is absent or empty.
-        private static final Models EMPTY = new Models(Map.of(), new byte[0]);
+        private static final Models EMPTY = new Models(
+                Collections.unmodifiableMap(new EnumMap<>(Encoding.class)),
+                new byte[0]
+        );
 
         /// Creates immutable model storage.
         private Models {

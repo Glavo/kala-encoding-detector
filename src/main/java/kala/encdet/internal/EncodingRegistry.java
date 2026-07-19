@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.Encoding;
 import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingEra;
 import org.jetbrains.annotations.NotNullByDefault;
@@ -16,6 +17,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -35,22 +38,22 @@ public final class EncodingRegistry {
     /// Canonical registry entries in detection order.
     private static final @Unmodifiable List<Info> ENTRIES;
 
-    /// Canonical entries indexed by canonical name.
-    private static final @Unmodifiable Map<String, Info> BY_NAME;
+    /// Canonical entries indexed by encoding identity.
+    private static final @Unmodifiable Map<Encoding, Info> BY_ENCODING;
 
     /// Exact case-folded canonical names and aliases.
-    private static final @Unmodifiable Map<String, String> EXACT_ALIASES;
+    private static final @Unmodifiable Map<String, Encoding> EXACT_ALIASES;
 
     /// Python-codec-normalized canonical names and aliases.
-    private static final @Unmodifiable Map<String, String> NORMALIZED_ALIASES;
+    private static final @Unmodifiable Map<String, Encoding> NORMALIZED_ALIASES;
 
-    /// Canonical names in registry order.
-    private static final @Unmodifiable Set<String> SUPPORTED_ENCODINGS;
+    /// Supported encodings in registry order.
+    private static final @Unmodifiable Set<Encoding> SUPPORTED_ENCODINGS;
 
     static {
         RegistryData data = readRegistry();
         ENTRIES = data.entries();
-        BY_NAME = data.byName();
+        BY_ENCODING = data.byEncoding();
         EXACT_ALIASES = data.exactAliases();
         NORMALIZED_ALIASES = data.normalizedAliases();
         SUPPORTED_ENCODINGS = data.supportedEncodings();
@@ -60,34 +63,34 @@ public final class EncodingRegistry {
     private EncodingRegistry() {
     }
 
-    /// Returns the canonical name for a name or alias.
+    /// Returns the encoding for a canonical name or alias.
     ///
     /// @param name the name to resolve
-    /// @return the canonical name, or `null` if unknown
-    public static @Nullable String lookup(String name) {
+    /// @return the encoding, or `null` if unknown
+    public static @Nullable Encoding lookup(String name) {
         if (name.indexOf('\0') >= 0) {
             return null;
         }
-        String exact = EXACT_ALIASES.get(name.toLowerCase(Locale.ROOT));
+        @Nullable Encoding exact = EXACT_ALIASES.get(name.toLowerCase(Locale.ROOT));
         if (exact != null) {
             return exact;
         }
         return NORMALIZED_ALIASES.get(normalizeCodecName(name));
     }
 
-    /// Returns the immutable canonical-name set in registry order.
+    /// Returns the immutable encoding set in registry order.
     ///
-    /// @return canonical names
-    public static @Unmodifiable Set<String> supportedEncodings() {
+    /// @return supported encodings
+    public static @Unmodifiable Set<Encoding> supportedEncodings() {
         return SUPPORTED_ENCODINGS;
     }
 
-    /// Returns the canonical registry entry for a known name.
+    /// Returns the registry entry for an encoding.
     ///
-    /// @param canonicalName a canonical name
+    /// @param encoding encoding identity
     /// @return the matching entry, or `null` if unknown
-    static @Nullable Info get(String canonicalName) {
-        return BY_NAME.get(canonicalName);
+    static @Nullable Info get(Encoding encoding) {
+        return BY_ENCODING.get(encoding);
     }
 
     /// Returns candidates after applying era, include, and exclude filters.
@@ -96,17 +99,17 @@ public final class EncodingRegistry {
     /// @return immutable entries in registry order
     static @Unmodifiable List<Info> candidates(EncodingDetector detector) {
         Set<EncodingEra> eras = detector.encodingEras();
-        @Nullable Set<String> included = detector.includeEncodings();
-        @Nullable Set<String> excluded = detector.excludeEncodings();
+        @Nullable Set<Encoding> included = detector.includeEncodings();
+        @Nullable Set<Encoding> excluded = detector.excludeEncodings();
         ArrayList<Info> result = new ArrayList<>(ENTRIES.size());
         for (Info entry : ENTRIES) {
             if (!eras.contains(entry.era())) {
                 continue;
             }
-            if (included != null && !included.contains(entry.name())) {
+            if (included != null && !included.contains(entry.encoding())) {
                 continue;
             }
-            if (excluded != null && excluded.contains(entry.name())) {
+            if (excluded != null && excluded.contains(entry.encoding())) {
                 continue;
             }
             result.add(entry);
@@ -124,9 +127,21 @@ public final class EncodingRegistry {
         }
 
         ArrayList<Info> entries = new ArrayList<>(EXPECTED_ENTRY_COUNT);
-        LinkedHashMap<String, Info> byName = new LinkedHashMap<>();
-        LinkedHashMap<String, String> exactAliases = new LinkedHashMap<>();
-        LinkedHashMap<String, String> normalizedAliases = new LinkedHashMap<>();
+        EnumMap<Encoding, Info> byEncoding = new EnumMap<>(Encoding.class);
+        LinkedHashMap<String, Encoding> exactAliases = new LinkedHashMap<>();
+        LinkedHashMap<String, Encoding> normalizedAliases = new LinkedHashMap<>();
+        HashMap<String, Encoding> unregisteredEnums = new HashMap<>();
+        for (Encoding encoding : Encoding.values()) {
+            @Nullable Encoding previous = unregisteredEnums.put(
+                    encoding.canonicalName(),
+                    encoding
+            );
+            if (previous != null) {
+                throw new IllegalStateException(
+                        "Duplicate Encoding canonical name: " + encoding.canonicalName()
+                );
+            }
+        }
         try (input; BufferedReader reader = new BufferedReader(
                 new InputStreamReader(input, StandardCharsets.UTF_8)
         )) {
@@ -142,6 +157,10 @@ public final class EncodingRegistry {
                     throw malformed(lineNumber, "expected five tab-separated fields");
                 }
                 String name = fields[0];
+                @Nullable Encoding encoding = unregisteredEnums.remove(name);
+                if (encoding == null) {
+                    throw malformed(lineNumber, "unknown or duplicate canonical name " + name);
+                }
                 EncodingEra era;
                 try {
                     era = EncodingEra.valueOf(fields[1]);
@@ -158,14 +177,14 @@ public final class EncodingRegistry {
                 }
                 List<String> languages = splitList(fields[3], ",");
                 List<String> aliases = splitList(fields[4], "\u001f");
-                Info info = new Info(name, aliases, era, multibyte, languages);
-                if (byName.putIfAbsent(name, info) != null) {
-                    throw malformed(lineNumber, "duplicate canonical name " + name);
+                Info info = new Info(encoding, aliases, era, multibyte, languages);
+                if (byEncoding.putIfAbsent(encoding, info) != null) {
+                    throw malformed(lineNumber, "duplicate encoding " + name);
                 }
                 entries.add(info);
-                addAlias(exactAliases, normalizedAliases, name, name);
+                addAlias(exactAliases, normalizedAliases, name, encoding);
                 for (String alias : aliases) {
-                    addAlias(exactAliases, normalizedAliases, alias, name);
+                    addAlias(exactAliases, normalizedAliases, alias, encoding);
                 }
             }
         } catch (IOException exception) {
@@ -178,10 +197,19 @@ public final class EncodingRegistry {
                             + " entries but found " + entries.size()
             );
         }
-        LinkedHashSet<String> supported = new LinkedHashSet<>(byName.keySet());
+        if (!unregisteredEnums.isEmpty()) {
+            throw new IllegalStateException(
+                    "Encoding enum values missing from registry resource: "
+                            + unregisteredEnums.keySet()
+            );
+        }
+        LinkedHashSet<Encoding> supported = new LinkedHashSet<>(entries.size());
+        for (Info entry : entries) {
+            supported.add(entry.encoding());
+        }
         return new RegistryData(
                 List.copyOf(entries),
-                Collections.unmodifiableMap(byName),
+                Collections.unmodifiableMap(byEncoding),
                 Collections.unmodifiableMap(exactAliases),
                 Collections.unmodifiableMap(normalizedAliases),
                 Collections.unmodifiableSet(supported)
@@ -208,17 +236,17 @@ public final class EncodingRegistry {
     /// @param exactAliases      exact alias map
     /// @param normalizedAliases normalized alias map
     /// @param alias             alias to add
-    /// @param canonicalName     canonical target name
+    /// @param encoding          encoding identity
     private static void addAlias(
-            Map<String, String> exactAliases,
-            Map<String, String> normalizedAliases,
+            Map<String, Encoding> exactAliases,
+            Map<String, Encoding> normalizedAliases,
             String alias,
-            String canonicalName
+            Encoding encoding
     ) {
-        exactAliases.putIfAbsent(alias.toLowerCase(Locale.ROOT), canonicalName);
+        exactAliases.putIfAbsent(alias.toLowerCase(Locale.ROOT), encoding);
         String normalized = normalizeCodecName(alias);
         if (!normalized.isEmpty()) {
-            normalizedAliases.putIfAbsent(normalized, canonicalName);
+            normalizedAliases.putIfAbsent(normalized, encoding);
         }
     }
 
@@ -283,14 +311,14 @@ public final class EncodingRegistry {
 
     /// Stores metadata for one canonical encoding.
     ///
-    /// @param name      canonical registry name
+    /// @param encoding encoding identity
     /// @param aliases   immutable aliases
     /// @param era       assigned encoding era
     /// @param multibyte whether CJK structural gating applies
     /// @param languages immutable possible ISO 639 language codes
     @NotNullByDefault
     record Info(
-            String name,
+            Encoding encoding,
             @Unmodifiable List<String> aliases,
             EncodingEra era,
             boolean multibyte,
@@ -306,17 +334,17 @@ public final class EncodingRegistry {
     /// Holds all immutable indexes built from the registry resource.
     ///
     /// @param entries            ordered canonical entries
-    /// @param byName             entries indexed by canonical name
+    /// @param byEncoding         entries indexed by encoding identity
     /// @param exactAliases       exact case-folded aliases
     /// @param normalizedAliases  codec-normalized aliases
-    /// @param supportedEncodings ordered canonical names
+    /// @param supportedEncodings ordered encoding identities
     @NotNullByDefault
     private record RegistryData(
             @Unmodifiable List<Info> entries,
-            @Unmodifiable Map<String, Info> byName,
-            @Unmodifiable Map<String, String> exactAliases,
-            @Unmodifiable Map<String, String> normalizedAliases,
-            @Unmodifiable Set<String> supportedEncodings
+            @Unmodifiable Map<Encoding, Info> byEncoding,
+            @Unmodifiable Map<String, Encoding> exactAliases,
+            @Unmodifiable Map<String, Encoding> normalizedAliases,
+            @Unmodifiable Set<Encoding> supportedEncodings
     ) {
         /// Creates immutable registry indexes.
         private RegistryData {

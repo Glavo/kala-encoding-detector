@@ -4,8 +4,8 @@
 package kala.encdet.internal;
 
 import kala.encdet.DetectionResult;
+import kala.encdet.Encoding;
 import kala.encdet.EncodingDetector;
-import kala.encdet.EncodingNameStyle;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -15,8 +15,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -69,65 +69,26 @@ public final class DetectionEngine {
             "application/octet-stream"
     );
 
-    /// Optional preferred-superset remapping applied before name styling.
-    private static final @Unmodifiable Map<String, String> PREFERRED_SUPERSETS = Map.ofEntries(
-            Map.entry("ascii", "cp1252"),
-            Map.entry("euc_kr", "cp949"),
-            Map.entry("iso8859-1", "cp1252"),
-            Map.entry("iso8859-2", "cp1250"),
-            Map.entry("iso8859-5", "cp1251"),
-            Map.entry("iso8859-6", "cp1256"),
-            Map.entry("iso8859-7", "cp1253"),
-            Map.entry("iso8859-8", "cp1255"),
-            Map.entry("iso8859-9", "cp1254"),
-            Map.entry("iso8859-11", "cp874"),
-            Map.entry("iso8859-13", "cp1257"),
-            Map.entry("tis-620", "cp874")
-    );
-
-    /// Chardet 5.x and 6.x compatible display-name mapping.
-    private static final @Unmodifiable Map<String, String> COMPATIBLE_NAMES = Map.ofEntries(
-            Map.entry("big5hkscs", "Big5"),
-            Map.entry("cp855", "IBM855"),
-            Map.entry("cp866", "IBM866"),
-            Map.entry("cp949", "CP949"),
-            Map.entry("euc_jis_2004", "EUC-JP"),
-            Map.entry("euc_kr", "EUC-KR"),
-            Map.entry("gb18030", "GB18030"),
-            Map.entry("hz", "HZ-GB-2312"),
-            Map.entry("iso2022_jp_2", "ISO-2022-JP"),
-            Map.entry("iso2022_kr", "ISO-2022-KR"),
-            Map.entry("iso8859-1", "ISO-8859-1"),
-            Map.entry("iso8859-5", "ISO-8859-5"),
-            Map.entry("iso8859-7", "ISO-8859-7"),
-            Map.entry("iso8859-8", "ISO-8859-8"),
-            Map.entry("iso8859-9", "ISO-8859-9"),
-            Map.entry("johab", "Johab"),
-            Map.entry("koi8-r", "KOI8-R"),
-            Map.entry("mac-cyrillic", "MacCyrillic"),
-            Map.entry("mac-roman", "MacRoman"),
-            Map.entry("shift_jis_2004", "SHIFT_JIS"),
-            Map.entry("tis-620", "TIS-620"),
-            Map.entry("utf-16", "UTF-16"),
-            Map.entry("utf-32", "UTF-32"),
-            Map.entry("utf-8-sig", "UTF-8-SIG"),
-            Map.entry("cp1251", "Windows-1251"),
-            Map.entry("cp1252", "Windows-1252"),
-            Map.entry("cp1253", "Windows-1253"),
-            Map.entry("cp1254", "Windows-1254"),
-            Map.entry("cp1255", "Windows-1255"),
-            Map.entry("kz1048", "KZ1048"),
-            Map.entry("mac-greek", "MacGreek"),
-            Map.entry("mac-iceland", "MacIceland"),
-            Map.entry("mac-latin2", "MacLatin2"),
-            Map.entry("mac-turkish", "MacTurkish")
+    /// Optional preferred-superset remapping applied to public enum identities.
+    private static final @Unmodifiable Map<Encoding, Encoding> PREFERRED_SUPERSETS = Map.ofEntries(
+            Map.entry(Encoding.ASCII, Encoding.CP1252),
+            Map.entry(Encoding.EUC_KR, Encoding.CP949),
+            Map.entry(Encoding.ISO_8859_1, Encoding.CP1252),
+            Map.entry(Encoding.ISO_8859_2, Encoding.CP1250),
+            Map.entry(Encoding.ISO_8859_5, Encoding.CP1251),
+            Map.entry(Encoding.ISO_8859_6, Encoding.CP1256),
+            Map.entry(Encoding.ISO_8859_7, Encoding.CP1253),
+            Map.entry(Encoding.ISO_8859_8, Encoding.CP1255),
+            Map.entry(Encoding.ISO_8859_9, Encoding.CP1254),
+            Map.entry(Encoding.ISO_8859_13, Encoding.CP1257),
+            Map.entry(Encoding.TIS_620, Encoding.CP874)
     );
 
     /// Prevents instantiation of this static engine.
     private DetectionEngine() {
     }
 
-    /// Runs detection and converts internal canonical candidates to public results.
+    /// Runs detection and converts internal candidates to public results.
     ///
     /// @param input    caller-owned bytes, which are never modified or retained
     /// @param detector immutable detector configuration
@@ -144,7 +105,7 @@ public final class DetectionEngine {
             String mimeType = result.mimeType() != null
                     ? result.mimeType()
                     : result.encoding() == null ? "application/octet-stream" : "text/plain";
-            @Nullable String encoding = transformName(result.encoding(), detector);
+            @Nullable Encoding encoding = transformEncoding(result.encoding(), detector);
             double confidence = Math.max(0.0, Math.min(result.confidence(), 1.0));
             publicResults.add(new DetectionResult(
                     encoding,
@@ -163,17 +124,17 @@ public final class DetectionEngine {
     ///
     /// @param data     caller input already bounded by the configured maximum
     /// @param detector immutable detector configuration
-    /// @return internal canonical candidates
+    /// @return internal candidates
     private static List<PipelineResult> runCore(
             @UnmodifiableView ByteBuffer data,
             EncodingDetector detector
     ) {
         List<EncodingRegistry.Info> candidates = EncodingRegistry.candidates(detector);
-        LinkedHashSet<String> mutableAllowed = new LinkedHashSet<>(candidates.size());
+        EnumSet<Encoding> mutableAllowed = EnumSet.noneOf(Encoding.class);
         for (EncodingRegistry.Info candidate : candidates) {
-            mutableAllowed.add(candidate.name());
+            mutableAllowed.add(candidate.encoding());
         }
-        Set<String> allowed = Collections.unmodifiableSet(mutableAllowed);
+        Set<Encoding> allowed = Collections.unmodifiableSet(mutableAllowed);
 
         if (data.remaining() == 0) {
             return fallback(detector.emptyInputEncoding(), allowed, "emptyInputEncoding");
@@ -232,17 +193,17 @@ public final class DetectionEngine {
             if (!candidate.multibyte()) {
                 continue;
             }
-            @Nullable Double score = context.multibyteScores.get(candidate.name());
+            @Nullable Double score = context.multibyteScores.get(candidate.encoding());
             if (score == null) {
                 @Nullable StructuralAnalysis.Analysis analysis = StructuralAnalysis.get(
                         data,
-                        candidate.name(),
+                        candidate.encoding(),
                         context.analysisCache
                 );
                 score = analysis == null ? 0.0 : analysis.pairRatio();
             }
             if (score > 0.0) {
-                structuralScores.add(new ScoredEncoding(candidate.name(), score));
+                structuralScores.add(new ScoredEncoding(candidate.encoding(), score));
             }
         }
         structuralScores.sort(Comparator.comparingDouble(ScoredEncoding::score).reversed());
@@ -273,30 +234,30 @@ public final class DetectionEngine {
     /// Tests whether a non-null text result's encoding is allowed.
     ///
     /// @param result  candidate result, or `null`
-    /// @param allowed canonical allowed names
+    /// @param allowed allowed encodings
     /// @return whether the result exists and is allowed
     private static boolean isAllowed(
             @Nullable PipelineResult result,
-            Set<String> allowed
+            Set<Encoding> allowed
     ) {
         return result != null && result.encoding() != null && allowed.contains(result.encoding());
     }
 
     /// Returns a fallback or the no-detection sentinel if it was filtered out.
     ///
-    /// @param encoding   canonical fallback encoding
-    /// @param allowed    canonical allowed names
+    /// @param encoding   fallback encoding
+    /// @param allowed    allowed encodings
     /// @param optionName option name used in a warning
     /// @return singleton internal result list
     private static List<PipelineResult> fallback(
-            String encoding,
-            Set<String> allowed,
+            Encoding encoding,
+            Set<Encoding> allowed,
             String optionName
     ) {
         if (!allowed.contains(encoding)) {
             LOGGER.log(
                     System.Logger.Level.WARNING,
-                    optionName + " '" + encoding
+                    optionName + " '" + encoding.canonicalName()
                             + "' is excluded by includeEncodings/excludeEncodings; returning no encoding"
             );
             return List.of(NONE_RESULT);
@@ -311,19 +272,19 @@ public final class DetectionEngine {
     private static @Nullable PipelineResult detectBom(@UnmodifiableView ByteBuffer data) {
         if (startsWith(data, 0x00, 0x00, 0xfe, 0xff)) {
             if ((data.remaining() - 4) % 4 == 0) {
-                return new PipelineResult("utf-32", 1.0, null, null);
+                return new PipelineResult(Encoding.UTF_32, 1.0, null, null);
             }
         }
         if (startsWith(data, 0xff, 0xfe, 0x00, 0x00)) {
             if ((data.remaining() - 4) % 4 == 0) {
-                return new PipelineResult("utf-32", 1.0, null, null);
+                return new PipelineResult(Encoding.UTF_32, 1.0, null, null);
             }
         }
         if (startsWith(data, 0xef, 0xbb, 0xbf)) {
-            return new PipelineResult("utf-8-sig", 1.0, null, null);
+            return new PipelineResult(Encoding.UTF_8_SIG, 1.0, null, null);
         }
         if (startsWith(data, 0xfe, 0xff) || startsWith(data, 0xff, 0xfe)) {
-            return new PipelineResult("utf-16", 1.0, null, null);
+            return new PipelineResult(Encoding.UTF_16, 1.0, null, null);
         }
         return null;
     }
@@ -352,10 +313,10 @@ public final class DetectionEngine {
             nulls++;
         }
         if (nulls == 0) {
-            return new PipelineResult("ascii", 1.0, null, null);
+            return new PipelineResult(Encoding.ASCII, 1.0, null, null);
         }
         return (double) nulls / data.remaining() <= 0.05
-                ? new PipelineResult("ascii", 0.99, null, null)
+                ? new PipelineResult(Encoding.ASCII, 0.99, null, null)
                 : null;
     }
 
@@ -412,7 +373,7 @@ public final class DetectionEngine {
                 0.99,
                 0.80 + 0.19 * Math.min(ratio * 6.0, 1.0)
         );
-        return new PipelineResult("utf-8", confidence, null, null);
+        return new PipelineResult(Encoding.UTF_8, confidence, null, null);
     }
 
     /// Classifies input having more than one percent binary control bytes.
@@ -449,11 +410,11 @@ public final class DetectionEngine {
             if (candidate.multibyte()) {
                 @Nullable StructuralAnalysis.Analysis analysis = StructuralAnalysis.get(
                         data,
-                        candidate.name(),
+                        candidate.encoding(),
                         context.analysisCache
                 );
                 double ratio = analysis == null ? 0.0 : analysis.pairRatio();
-                context.multibyteScores.put(candidate.name(), ratio);
+                context.multibyteScores.put(candidate.encoding(), ratio);
                 if (ratio < CJK_MIN_MULTIBYTE_RATIO) {
                     continue;
                 }
@@ -466,7 +427,7 @@ public final class DetectionEngine {
                 double coverage = analysis == null
                         ? 0.0
                         : (double) analysis.multibyteBytes() / context.nonAsciiCount;
-                context.multibyteCoverage.put(candidate.name(), coverage);
+                context.multibyteCoverage.put(candidate.encoding(), coverage);
                 if (coverage < CJK_MIN_BYTE_COVERAGE) {
                     continue;
                 }
@@ -495,10 +456,10 @@ public final class DetectionEngine {
             List<EncodingRegistry.Info> validCandidates,
             PipelineContext context
     ) {
-        HashMap<String, EncodingRegistry.Info> multibyte = new HashMap<>();
+        EnumMap<Encoding, EncodingRegistry.Info> multibyte = new EnumMap<>(Encoding.class);
         for (EncodingRegistry.Info candidate : validCandidates) {
             if (candidate.multibyte()) {
-                multibyte.put(candidate.name(), candidate);
+                multibyte.put(candidate.encoding(), candidate);
             }
         }
         ArrayList<EncodingRegistry.Info> ordered = new ArrayList<>(validCandidates.size());
@@ -551,10 +512,10 @@ public final class DetectionEngine {
         ModelStore.Profile profile = ModelStore.profile(data);
         ArrayList<PipelineResult> results = new ArrayList<>(candidates.size());
         for (EncodingRegistry.Info candidate : candidates) {
-            ModelStore.Score score = ModelStore.scoreBestLanguage(candidate.name(), profile);
+            ModelStore.Score score = ModelStore.scoreBestLanguage(candidate.encoding(), profile);
             if (score.score() > 0.0) {
                 results.add(new PipelineResult(
-                        candidate.name(),
+                        candidate.encoding(),
                         score.score(),
                         score.language(),
                         null
@@ -586,7 +547,7 @@ public final class DetectionEngine {
                 filled.add(result);
                 continue;
             }
-            String encoding = result.encoding();
+            Encoding encoding = result.encoding();
             @Nullable String language = ModelStore.inferSingleLanguage(encoding);
             if (language == null && data.remaining() > 0 && ModelStore.hasVariants(encoding)) {
                 if (profile == null) {
@@ -594,13 +555,13 @@ public final class DetectionEngine {
                 }
                 language = ModelStore.scoreBestLanguage(encoding, profile).language();
             }
-            if (language == null && data.remaining() > 0 && ModelStore.hasVariants("utf-8")) {
+            if (language == null && data.remaining() > 0 && ModelStore.hasVariants(Encoding.UTF_8)) {
                 @Nullable @UnmodifiableView ByteBuffer utf8Data = TextDecoder.toUtf8(data, encoding);
                 if (utf8Data != null && utf8Data.remaining() > 0) {
-                    if (utf8Profile == null || !encoding.equals("utf-8")) {
+                    if (utf8Profile == null || encoding != Encoding.UTF_8) {
                         utf8Profile = ModelStore.profile(utf8Data);
                     }
-                    language = ModelStore.scoreBestLanguage("utf-8", utf8Profile).language();
+                    language = ModelStore.scoreBestLanguage(Encoding.UTF_8, utf8Profile).language();
                 }
             }
             filled.add(language == null
@@ -615,24 +576,21 @@ public final class DetectionEngine {
         return filled;
     }
 
-    /// Applies preferred-superset and compatibility-name transformations.
+    /// Applies preferred-superset transformation.
     ///
-    /// @param canonical canonical encoding, or `null`
+    /// @param encoding encoding, or `null`
     /// @param detector  detector configuration
-    /// @return transformed name, or `null`
-    private static @Nullable String transformName(
-            @Nullable String canonical,
+    /// @return transformed encoding, or `null`
+    private static @Nullable Encoding transformEncoding(
+            @Nullable Encoding encoding,
             EncodingDetector detector
     ) {
-        if (canonical == null) {
+        if (encoding == null) {
             return null;
         }
-        String transformed = detector.preferSuperset()
-                ? PREFERRED_SUPERSETS.getOrDefault(canonical, canonical)
-                : canonical;
-        return detector.nameStyle() == EncodingNameStyle.CHARDET_COMPATIBLE
-                ? COMPATIBLE_NAMES.getOrDefault(transformed, transformed)
-                : transformed;
+        return detector.preferSuperset()
+                ? PREFERRED_SUPERSETS.getOrDefault(encoding, encoding)
+                : encoding;
     }
 
     /// Counts bytes having their high bit set.
@@ -690,13 +648,14 @@ public final class DetectionEngine {
     @NotNullByDefault
     private static final class PipelineContext {
         /// Cached analyzer triples by canonical encoding.
-        private final Map<String, StructuralAnalysis.Analysis> analysisCache = new HashMap<>();
+        private final Map<Encoding, StructuralAnalysis.Analysis> analysisCache =
+                new EnumMap<>(Encoding.class);
 
         /// Cached structural pair ratios.
-        private final Map<String, Double> multibyteScores = new HashMap<>();
+        private final Map<Encoding, Double> multibyteScores = new EnumMap<>(Encoding.class);
 
         /// Cached non-ASCII byte coverage ratios.
-        private final Map<String, Double> multibyteCoverage = new HashMap<>();
+        private final Map<Encoding, Double> multibyteCoverage = new EnumMap<>(Encoding.class);
 
         /// Lazily counted non-ASCII bytes.
         private @Nullable Integer nonAsciiCount;
@@ -711,7 +670,7 @@ public final class DetectionEngine {
     /// @param encoding canonical encoding
     /// @param score    structural pair ratio
     @NotNullByDefault
-    private record ScoredEncoding(String encoding, double score) {
+    private record ScoredEncoding(Encoding encoding, double score) {
         /// Creates a structural score entry.
         private ScoredEncoding {
         }

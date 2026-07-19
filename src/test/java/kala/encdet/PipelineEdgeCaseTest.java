@@ -22,11 +22,11 @@ final class PipelineEdgeCaseTest {
     @Test
     void handlesOverlappingBomPrefixes() {
         assertEquals(
-                "UTF-32",
+                Encoding.UTF_32,
                 EncodingDetector.DEFAULT.detect(new byte[]{(byte) 0xff, (byte) 0xfe, 0, 0}).encoding()
         );
         assertEquals(
-                "UTF-16",
+                Encoding.UTF_16,
                 EncodingDetector.DEFAULT.detect(new byte[]{(byte) 0xff, (byte) 0xfe, 0, 0, 'x'}).encoding()
         );
         assertNull(
@@ -41,8 +41,8 @@ final class PipelineEdgeCaseTest {
         byte[] utf16be = "This is a sufficiently long UTF-16 sample.".getBytes(StandardCharsets.UTF_16BE);
         byte[] utf32le = encodeUtf32("UTF-32 little endian sample", ByteOrder.LITTLE_ENDIAN);
         byte[] utf32be = encodeUtf32("UTF-32 big endian sample", ByteOrder.BIG_ENDIAN);
-        assertEquals("utf-16-le", EncodingDetector.DEFAULT.detect(utf16le).encoding());
-        assertEquals("utf-16-be", EncodingDetector.DEFAULT.detect(utf16be).encoding());
+        assertEquals(Encoding.UTF_16_LE, EncodingDetector.DEFAULT.detect(utf16le).encoding());
+        assertEquals(Encoding.UTF_16_BE, EncodingDetector.DEFAULT.detect(utf16be).encoding());
         assertEquals(
                 EncodingDetector.DEFAULT.detect(utf16le),
                 EncodingDetector.DEFAULT.detect(directView(utf16le))
@@ -51,8 +51,8 @@ final class PipelineEdgeCaseTest {
                 EncodingDetector.DEFAULT.detect(utf16be),
                 EncodingDetector.DEFAULT.detect(readOnlyView(utf16be))
         );
-        assertEquals("utf-32-le", EncodingDetector.DEFAULT.detect(utf32le).encoding());
-        assertEquals("utf-32-be", EncodingDetector.DEFAULT.detect(utf32be).encoding());
+        assertEquals(Encoding.UTF_32_LE, EncodingDetector.DEFAULT.detect(utf32le).encoding());
+        assertEquals(Encoding.UTF_32_BE, EncodingDetector.DEFAULT.detect(utf32be).encoding());
         assertEquals(
                 EncodingDetector.DEFAULT.detect(utf32le),
                 EncodingDetector.DEFAULT.detect(directView(utf32le))
@@ -69,7 +69,7 @@ final class PipelineEdgeCaseTest {
         byte[] sparse = "alpha beta gamma delta".getBytes(StandardCharsets.US_ASCII);
         sparse[10] = 0;
         DetectionResult ascii = EncodingDetector.DEFAULT.detect(sparse);
-        assertEquals("ascii", ascii.encoding());
+        assertEquals(Encoding.ASCII, ascii.encoding());
         assertEquals(0.99, ascii.confidence());
 
         DetectionResult binary = EncodingDetector.DEFAULT.detect(new byte[100]);
@@ -83,9 +83,9 @@ final class PipelineEdgeCaseTest {
     void toleratesTrailingTruncatedUtf8() {
         byte[] complete = "éx€".getBytes(StandardCharsets.UTF_8);
         byte[] truncated = java.util.Arrays.copyOf(complete, complete.length - 1);
-        assertEquals("utf-8", EncodingDetector.DEFAULT.detect(truncated).encoding());
+        assertEquals(Encoding.UTF_8, EncodingDetector.DEFAULT.detect(truncated).encoding());
         assertNotEquals(
-                "utf-8",
+                Encoding.UTF_8,
                 EncodingDetector.DEFAULT.detect(new byte[]{(byte) 0xe2}).encoding()
         );
     }
@@ -94,26 +94,26 @@ final class PipelineEdgeCaseTest {
     @Test
     void detectsEscapeEncodingsWithoutUtf7FalsePositives() {
         assertEquals(
-                "HZ-GB-2312",
+                Encoding.HZ,
                 EncodingDetector.DEFAULT.detect("Hello ~{CEDE~} World".getBytes(StandardCharsets.US_ASCII))
                         .encoding()
         );
         assertEquals(
-                "ISO-2022-KR",
+                Encoding.ISO_2022_KR,
                 EncodingDetector.DEFAULT.detect(new byte[]{0x1b, '$', ')', 'C', 0x0e, '!', '!', 0x0f})
                         .encoding()
         );
         assertEquals(
-                "utf-7",
+                Encoding.UTF_7,
                 EncodingDetector.DEFAULT.detect("Hello +ThZ1TA-".getBytes(StandardCharsets.US_ASCII)).encoding()
         );
         assertEquals(
-                "ascii",
+                Encoding.ASCII,
                 EncodingDetector.DEFAULT.detect("C++20 and +100 are ASCII".getBytes(StandardCharsets.US_ASCII))
                         .encoding()
         );
         assertEquals(
-                "ascii",
+                Encoding.ASCII,
                 EncodingDetector.DEFAULT.detect(
                         "+4bafdea31b1a83b6eff5dac6cedcff073cb984f6"
                                 .getBytes(StandardCharsets.US_ASCII)
@@ -124,38 +124,37 @@ final class PipelineEdgeCaseTest {
     /// Verifies XML, HTML, and PEP 263 declarations precede text prechecks.
     @Test
     void honorsValidDeclarationsAndIgnoresInvalidOnes() {
-        EncodingDetector canonical = EncodingDetector.DEFAULT
-                .withNameStyle(EncodingNameStyle.CANONICAL);
+        EncodingDetector detector = EncodingDetector.DEFAULT;
         byte[] xmlData = "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?><root/>"
                 .getBytes(StandardCharsets.US_ASCII);
-        DetectionResult xml = canonical.detect(directView(xmlData));
-        assertEquals(canonical.detect(xmlData), xml);
-        assertEquals("iso8859-1", xml.encoding());
+        DetectionResult xml = detector.detect(directView(xmlData));
+        assertEquals(detector.detect(xmlData), xml);
+        assertEquals(Encoding.ISO_8859_1, xml.encoding());
         assertEquals("text/xml", xml.mimeType());
         assertEquals(0.95, xml.confidence());
 
         byte[] htmlData = "<meta charset=\"utf-8\"><p>Hello</p>"
                 .getBytes(StandardCharsets.US_ASCII);
-        DetectionResult html = canonical.detect(readOnlyView(htmlData));
-        assertEquals(canonical.detect(htmlData), html);
-        assertEquals("utf-8", html.encoding());
+        DetectionResult html = detector.detect(readOnlyView(htmlData));
+        assertEquals(detector.detect(htmlData), html);
+        assertEquals(Encoding.UTF_8, html.encoding());
         assertEquals("text/html", html.mimeType());
 
         byte[] pepData = "#!/usr/bin/env python\n# -*- coding: iso-8859-1 -*-\nx='é'\n"
                 .getBytes(StandardCharsets.ISO_8859_1);
-        DetectionResult pep = canonical.detect(directView(pepData));
-        assertEquals(canonical.detect(pepData), pep);
-        assertEquals("iso8859-1", pep.encoding());
+        DetectionResult pep = detector.detect(directView(pepData));
+        assertEquals(detector.detect(pepData), pep);
+        assertEquals(Encoding.ISO_8859_1, pep.encoding());
         assertEquals("text/x-python", pep.mimeType());
 
         assertEquals(
-                "ascii",
+                Encoding.ASCII,
                 EncodingDetector.DEFAULT.detect(
                         "<meta charset=\"\0utf-8\">".getBytes(StandardCharsets.ISO_8859_1)
                 ).encoding()
         );
         assertEquals(
-                "ascii",
+                Encoding.ASCII,
                 EncodingDetector.DEFAULT.detect(
                         "# first\n# second\n# coding: iso-8859-1\n"
                                 .getBytes(StandardCharsets.US_ASCII)

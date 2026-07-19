@@ -3,12 +3,13 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -80,26 +81,26 @@ final class MarkupDetector {
     ///
     /// @param data    normalized read-only analyzed bytes
     /// @param markup  declared result
-    /// @param allowed canonical allowed names
+    /// @param allowed allowed encoding identities
     /// @return promoted or original result
     static PipelineResult promoteSuperset(
             @UnmodifiableView ByteBuffer data,
             PipelineResult markup,
-            Set<String> allowed
+            Set<Encoding> allowed
     ) {
-        @Nullable String encoding = markup.encoding();
+        @Nullable Encoding encoding = markup.encoding();
         if (encoding == null) {
             return markup;
         }
-        @Nullable String superset = switch (encoding) {
-            case "shift_jis_2004" -> "cp932";
-            case "euc_kr" -> "cp949";
+        @Nullable Encoding superset = switch (encoding) {
+            case SHIFT_JIS_2004 -> Encoding.CP932;
+            case EUC_KR -> Encoding.CP949;
             default -> null;
         };
         if (superset == null || !allowed.contains(superset) || !ByteValidity.isValid(data, superset)) {
             return markup;
         }
-        Map<String, StructuralAnalysis.Analysis> cache = new HashMap<>();
+        Map<Encoding, StructuralAnalysis.Analysis> cache = new EnumMap<>(Encoding.class);
         @Nullable StructuralAnalysis.Analysis baseAnalysis = StructuralAnalysis.get(data, encoding, cache);
         @Nullable StructuralAnalysis.Analysis supersetAnalysis = StructuralAnalysis.get(data, superset, cache);
         double baseScore = baseAnalysis == null ? 0.0 : baseAnalysis.pairRatio();
@@ -132,7 +133,7 @@ final class MarkupDetector {
         if (!matcher.find()) {
             return null;
         }
-        @Nullable String encoding = resolveAsciiName(matcher.group(1));
+        @Nullable Encoding encoding = resolveAsciiName(matcher.group(1));
         if (encoding == null || !validPrefix(data, encoding)) {
             return null;
         }
@@ -171,7 +172,7 @@ final class MarkupDetector {
         if (!matcher.find()) {
             return null;
         }
-        @Nullable String encoding = resolveAsciiName(matcher.group(1));
+        @Nullable Encoding encoding = resolveAsciiName(matcher.group(1));
         if (encoding == null || !validPrefix(data, encoding)) {
             return null;
         }
@@ -181,8 +182,8 @@ final class MarkupDetector {
     /// Resolves an ASCII declaration name.
     ///
     /// @param raw captured byte-preserving name
-    /// @return canonical encoding, or `null`
-    private static @Nullable String resolveAsciiName(String raw) {
+    /// @return encoding identity, or `null`
+    private static @Nullable Encoding resolveAsciiName(String raw) {
         String stripped = raw.strip();
         for (int index = 0; index < stripped.length(); index++) {
             if (stripped.charAt(index) > 0x7f) {
@@ -195,11 +196,11 @@ final class MarkupDetector {
     /// Strictly validates at most the first 4 KiB under an encoding.
     ///
     /// @param data     source bytes
-    /// @param encoding canonical encoding
+    /// @param encoding encoding identity
     /// @return whether the prefix is valid
     private static boolean validPrefix(
             @UnmodifiableView ByteBuffer data,
-            String encoding
+            Encoding encoding
     ) {
         return ByteValidity.isValid(ByteBufferSupport.prefix(data, SCAN_LIMIT), encoding);
     }

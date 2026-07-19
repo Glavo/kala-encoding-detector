@@ -3,9 +3,9 @@
 
 package kala.encdet;
 
+import kala.encdet.internal.ByteBufferSupport;
 import kala.encdet.internal.DetectionEngine;
 import kala.encdet.internal.EncodingRegistry;
-import kala.encdet.internal.ByteBufferSupport;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -15,7 +15,6 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -26,12 +25,25 @@ import java.util.Set;
 /// immutable after lazy initialization, and every detection invocation uses a
 /// separate context. Configuration methods return independent detector
 /// instances and never modify their receiver.
+///
+/// Candidate eligibility is evaluated in era, inclusion, then exclusion
+/// order. Exclusion therefore wins when the same encoding occurs in both
+/// filters. The resulting eligibility set also gates BOM, markup, escape, and
+/// fallback results; binary classifications have no encoding and are not
+/// filtered. If a configured fallback is ineligible, the detector returns a
+/// no-encoding result instead.
+///
+/// Preferred-superset remapping, when enabled, occurs after candidate
+/// filtering. A reported superset may therefore be absent from the inclusion
+/// filter or present in the exclusion filter.
 @NotNullByDefault
 public final class EncodingDetector {
-    /// Confidence threshold used by [#detectAll(byte[])].
+    /// Confidence threshold used by [#detectAll(byte[])] and
+    /// [#detectAll(ByteBuffer)].
     public static final double MINIMUM_THRESHOLD = 0.20;
 
-    /// Default detector matching the reference implementation.
+    /// Default detector matching the configuration described by
+    /// [#EncodingDetector()].
     public static final EncodingDetector DEFAULT = new EncodingDetector();
 
     /// Eligible encoding eras in enum declaration order.
@@ -40,37 +52,37 @@ public final class EncodingDetector {
     /// Maximum number of leading input bytes examined.
     private final int maxBytes;
 
-    /// Whether subset encodings are renamed to preferred supersets.
+    /// Whether subset encodings are remapped to preferred supersets.
     private final boolean preferSuperset;
 
-    /// Naming convention applied to public results.
-    private final EncodingNameStyle nameStyle;
-
-    /// Optional canonical encoding inclusion filter.
+    /// Optional encoding inclusion filter.
     private final @Nullable
-    @Unmodifiable Set<String> includeEncodings;
+    @Unmodifiable Set<Encoding> includeEncodings;
 
-    /// Optional canonical encoding exclusion filter.
+    /// Optional encoding exclusion filter.
     private final @Nullable
-    @Unmodifiable Set<String> excludeEncodings;
+    @Unmodifiable Set<Encoding> excludeEncodings;
 
-    /// Canonical low-confidence fallback used when no candidate survives.
-    private final String noMatchEncoding;
+    /// Low-confidence fallback used when no candidate survives.
+    private final Encoding noMatchEncoding;
 
-    /// Canonical low-confidence fallback used for empty input.
-    private final String emptyInputEncoding;
+    /// Low-confidence fallback used for empty input.
+    private final Encoding emptyInputEncoding;
 
     /// Creates a detector with the default configuration.
+    ///
+    /// The default enables every encoding era, examines at most 200,000 bytes,
+    /// disables preferred-superset remapping and both filters, uses [Encoding#CP1252]
+    /// when no candidate survives, and uses [Encoding#UTF_8] for empty input.
     public EncodingDetector() {
         this(
                 EnumSet.allOf(EncodingEra.class),
                 200_000,
                 false,
-                EncodingNameStyle.CHARDET_COMPATIBLE,
                 null,
                 null,
-                "cp1252",
-                "utf-8"
+                Encoding.CP1252,
+                Encoding.UTF_8
         );
     }
 
@@ -78,28 +90,25 @@ public final class EncodingDetector {
     ///
     /// @param encodingEras       eligible encoding eras
     /// @param maxBytes           maximum leading input bytes examined
-    /// @param preferSuperset     whether to rename subset encodings
-    /// @param nameStyle          public result-name style
+    /// @param preferSuperset     whether to remap subset encodings
     /// @param includeEncodings   optional inclusion filter
     /// @param excludeEncodings   optional exclusion filter
     /// @param noMatchEncoding    no-match fallback
     /// @param emptyInputEncoding empty-input fallback
     /// @throws NullPointerException     if a required value, collection element,
-    /// or encoding name is `null`
+    /// or encoding is `null`
     /// @throws IllegalArgumentException if an era set or supplied encoding
-    /// filter is empty, `maxBytes` is not positive, or an encoding is unknown
+    /// filter is empty or `maxBytes` is not positive
     private EncodingDetector(
             Set<EncodingEra> encodingEras,
             int maxBytes,
             boolean preferSuperset,
-            EncodingNameStyle nameStyle,
-            @Nullable Set<String> includeEncodings,
-            @Nullable Set<String> excludeEncodings,
-            String noMatchEncoding,
-            String emptyInputEncoding
+            @Nullable Set<Encoding> includeEncodings,
+            @Nullable Set<Encoding> excludeEncodings,
+            Encoding noMatchEncoding,
+            Encoding emptyInputEncoding
     ) {
         Objects.requireNonNull(encodingEras, "encodingEras");
-        Objects.requireNonNull(nameStyle, "nameStyle");
         if (encodingEras.isEmpty()) {
             throw new IllegalArgumentException("encodingEras must not be empty");
         }
@@ -110,11 +119,10 @@ public final class EncodingDetector {
         this.encodingEras = immutableEras(encodingEras);
         this.maxBytes = maxBytes;
         this.preferSuperset = preferSuperset;
-        this.nameStyle = nameStyle;
-        this.includeEncodings = normalizeEncodings(includeEncodings, "includeEncodings");
-        this.excludeEncodings = normalizeEncodings(excludeEncodings, "excludeEncodings");
-        this.noMatchEncoding = normalizeEncoding(noMatchEncoding, "noMatchEncoding");
-        this.emptyInputEncoding = normalizeEncoding(emptyInputEncoding, "emptyInputEncoding");
+        this.includeEncodings = immutableEncodings(includeEncodings, "includeEncodings");
+        this.excludeEncodings = immutableEncodings(excludeEncodings, "excludeEncodings");
+        this.noMatchEncoding = Objects.requireNonNull(noMatchEncoding, "noMatchEncoding");
+        this.emptyInputEncoding = Objects.requireNonNull(emptyInputEncoding, "emptyInputEncoding");
     }
 
     /// Returns the eligible encoding eras.
@@ -131,45 +139,38 @@ public final class EncodingDetector {
         return maxBytes;
     }
 
-    /// Reports whether subset encodings are renamed to preferred supersets.
+    /// Reports whether subset encodings are remapped to preferred supersets.
     ///
     /// @return whether preferred-superset remapping is enabled
     public boolean preferSuperset() {
         return preferSuperset;
     }
 
-    /// Returns the public result-name style.
+    /// Returns the encoding inclusion filter.
     ///
-    /// @return configured name style
-    public EncodingNameStyle nameStyle() {
-        return nameStyle;
-    }
-
-    /// Returns the canonical encoding inclusion filter.
-    ///
-    /// @return immutable canonical names, or `null` when unrestricted
-    public @Nullable @Unmodifiable Set<String> includeEncodings() {
+    /// @return immutable encodings in enum declaration order, or `null` when unrestricted
+    public @Nullable @Unmodifiable Set<Encoding> includeEncodings() {
         return includeEncodings;
     }
 
-    /// Returns the canonical encoding exclusion filter.
+    /// Returns the encoding exclusion filter.
     ///
-    /// @return immutable canonical names, or `null` when disabled
-    public @Nullable @Unmodifiable Set<String> excludeEncodings() {
+    /// @return immutable encodings in enum declaration order, or `null` when disabled
+    public @Nullable @Unmodifiable Set<Encoding> excludeEncodings() {
         return excludeEncodings;
     }
 
-    /// Returns the canonical no-match fallback.
+    /// Returns the no-match fallback.
     ///
-    /// @return canonical encoding name
-    public String noMatchEncoding() {
+    /// @return fallback encoding
+    public Encoding noMatchEncoding() {
         return noMatchEncoding;
     }
 
-    /// Returns the canonical empty-input fallback.
+    /// Returns the empty-input fallback.
     ///
-    /// @return canonical encoding name
-    public String emptyInputEncoding() {
+    /// @return fallback encoding
+    public Encoding emptyInputEncoding() {
         return emptyInputEncoding;
     }
 
@@ -184,7 +185,6 @@ public final class EncodingDetector {
                 Objects.requireNonNull(value, "value"),
                 maxBytes,
                 preferSuperset,
-                nameStyle,
                 includeEncodings,
                 excludeEncodings,
                 noMatchEncoding,
@@ -211,7 +211,6 @@ public final class EncodingDetector {
                 encodingEras,
                 value,
                 preferSuperset,
-                nameStyle,
                 includeEncodings,
                 excludeEncodings,
                 noMatchEncoding,
@@ -228,25 +227,6 @@ public final class EncodingDetector {
                 encodingEras,
                 maxBytes,
                 value,
-                nameStyle,
-                includeEncodings,
-                excludeEncodings,
-                noMatchEncoding,
-                emptyInputEncoding
-        );
-    }
-
-    /// Returns a detector using the supplied result-name style.
-    ///
-    /// @param value requested style
-    /// @return an independently configured detector
-    /// @throws NullPointerException if `value` is `null`
-    public EncodingDetector withNameStyle(EncodingNameStyle value) {
-        return copy(
-                encodingEras,
-                maxBytes,
-                preferSuperset,
-                Objects.requireNonNull(value, "value"),
                 includeEncodings,
                 excludeEncodings,
                 noMatchEncoding,
@@ -256,16 +236,15 @@ public final class EncodingDetector {
 
     /// Returns a detector using an optional encoding inclusion filter.
     ///
-    /// @param value names to include, or `null` to disable the filter
+    /// @param value encodings to include, or `null` to disable the filter
     /// @return an independently configured detector
     /// @throws NullPointerException     if an element is `null`
-    /// @throws IllegalArgumentException if the set is empty or a name is unknown
-    public EncodingDetector withIncludedEncodings(@Nullable Set<String> value) {
+    /// @throws IllegalArgumentException if the set is empty
+    public EncodingDetector withIncludedEncodings(@Nullable Set<Encoding> value) {
         return copy(
                 encodingEras,
                 maxBytes,
                 preferSuperset,
-                nameStyle,
                 value,
                 excludeEncodings,
                 noMatchEncoding,
@@ -275,16 +254,15 @@ public final class EncodingDetector {
 
     /// Returns a detector using an optional encoding exclusion filter.
     ///
-    /// @param value names to exclude, or `null` to disable the filter
+    /// @param value encodings to exclude, or `null` to disable the filter
     /// @return an independently configured detector
     /// @throws NullPointerException     if an element is `null`
-    /// @throws IllegalArgumentException if the set is empty or a name is unknown
-    public EncodingDetector withExcludedEncodings(@Nullable Set<String> value) {
+    /// @throws IllegalArgumentException if the set is empty
+    public EncodingDetector withExcludedEncodings(@Nullable Set<Encoding> value) {
         return copy(
                 encodingEras,
                 maxBytes,
                 preferSuperset,
-                nameStyle,
                 includeEncodings,
                 value,
                 noMatchEncoding,
@@ -294,16 +272,14 @@ public final class EncodingDetector {
 
     /// Returns a detector using the supplied no-match fallback.
     ///
-    /// @param value an encoding name or alias
+    /// @param value fallback encoding
     /// @return an independently configured detector
     /// @throws NullPointerException     if `value` is `null`
-    /// @throws IllegalArgumentException if `value` is unknown
-    public EncodingDetector withNoMatchEncoding(String value) {
+    public EncodingDetector withNoMatchEncoding(Encoding value) {
         return copy(
                 encodingEras,
                 maxBytes,
                 preferSuperset,
-                nameStyle,
                 includeEncodings,
                 excludeEncodings,
                 Objects.requireNonNull(value, "value"),
@@ -313,16 +289,14 @@ public final class EncodingDetector {
 
     /// Returns a detector using the supplied empty-input fallback.
     ///
-    /// @param value an encoding name or alias
+    /// @param value fallback encoding
     /// @return an independently configured detector
     /// @throws NullPointerException     if `value` is `null`
-    /// @throws IllegalArgumentException if `value` is unknown
-    public EncodingDetector withEmptyInputEncoding(String value) {
+    public EncodingDetector withEmptyInputEncoding(Encoding value) {
         return copy(
                 encodingEras,
                 maxBytes,
                 preferSuperset,
-                nameStyle,
                 includeEncodings,
                 excludeEncodings,
                 noMatchEncoding,
@@ -448,23 +422,23 @@ public final class EncodingDetector {
                 .toList();
     }
 
-    /// Resolves a canonical encoding name from a canonical name or alias.
+    /// Resolves an encoding from a canonical name or alias.
     ///
     /// Resolution is case-insensitive and does not consult installed Java
     /// charset providers.
     ///
     /// @param name name to resolve
-    /// @return canonical registry name, or `null` if unknown
+    /// @return resolved encoding, or `null` if unknown
     /// @throws NullPointerException if `name` is `null`
-    public static @Nullable String lookupEncoding(String name) {
+    public static @Nullable Encoding lookupEncoding(String name) {
         Objects.requireNonNull(name, "name");
         return EncodingRegistry.lookup(name);
     }
 
-    /// Returns all canonical encoding names in registry order.
+    /// Returns all supported encodings in registry order.
     ///
     /// @return an immutable ordered set
-    public static @Unmodifiable Set<String> supportedEncodings() {
+    public static @Unmodifiable Set<Encoding> supportedEncodings() {
         return EncodingRegistry.supportedEncodings();
     }
 
@@ -473,7 +447,6 @@ public final class EncodingDetector {
     /// @param eras              eligible encoding eras
     /// @param maximumBytes      maximum leading bytes
     /// @param preferredSuperset preferred-superset setting
-    /// @param style             public name style
     /// @param included          optional inclusion filter
     /// @param excluded          optional exclusion filter
     /// @param noMatch           no-match fallback
@@ -483,17 +456,15 @@ public final class EncodingDetector {
             Set<EncodingEra> eras,
             int maximumBytes,
             boolean preferredSuperset,
-            EncodingNameStyle style,
-            @Nullable Set<String> included,
-            @Nullable Set<String> excluded,
-            String noMatch,
-            String emptyInput
+            @Nullable Set<Encoding> included,
+            @Nullable Set<Encoding> excluded,
+            Encoding noMatch,
+            Encoding emptyInput
     ) {
         return new EncodingDetector(
                 eras,
                 maximumBytes,
                 preferredSuperset,
-                style,
                 included,
                 excluded,
                 noMatch,
@@ -510,41 +481,27 @@ public final class EncodingDetector {
         return Collections.unmodifiableSet(copy);
     }
 
-    /// Resolves one encoding name through the detector registry.
+    /// Copies an optional encoding filter.
     ///
-    /// @param name          supplied name
+    /// @param encodings     supplied encodings, or `null`
     /// @param parameterName parameter used in an error message
-    /// @return canonical registry name
-    private static String normalizeEncoding(String name, String parameterName) {
-        Objects.requireNonNull(name, parameterName);
-        @Nullable String canonical = lookupEncoding(name);
-        if (canonical == null) {
-            throw new IllegalArgumentException("Unknown encoding '" + name + "' in " + parameterName);
-        }
-        return canonical;
-    }
-
-    /// Resolves and copies an optional encoding-name filter.
-    ///
-    /// @param names         supplied names, or `null`
-    /// @param parameterName parameter used in an error message
-    /// @return immutable canonical-name set, or `null`
-    private static @Nullable @Unmodifiable Set<String> normalizeEncodings(
-            @Nullable Set<String> names,
+    /// @return immutable encoding set, or `null`
+    private static @Nullable @Unmodifiable Set<Encoding> immutableEncodings(
+            @Nullable Set<Encoding> encodings,
             String parameterName
     ) {
-        if (names == null) {
+        if (encodings == null) {
             return null;
         }
-        if (names.isEmpty()) {
+        if (encodings.isEmpty()) {
             throw new IllegalArgumentException(
                     parameterName + " must not be empty; pass null to disable filtering"
             );
         }
-        LinkedHashSet<String> normalized = new LinkedHashSet<>(names.size());
-        for (String name : names) {
-            normalized.add(normalizeEncoding(name, parameterName));
+        EnumSet<Encoding> copy = EnumSet.noneOf(Encoding.class);
+        for (Encoding encoding : encodings) {
+            copy.add(Objects.requireNonNull(encoding, parameterName));
         }
-        return Collections.unmodifiableSet(normalized);
+        return Collections.unmodifiableSet(copy);
     }
 }

@@ -3,13 +3,13 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jetbrains.annotations.UnmodifiableView;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 
 /// Detects ISO-2022, HZ-GB-2312, and UTF-7 escape structures.
 @NotNullByDefault
@@ -42,22 +42,22 @@ final class EscapeDetector {
             if (containsAscii(data, "\u001b$(O")
                     || containsAscii(data, "\u001b$(P")
                     || containsAscii(data, "\u001b$(Q")) {
-                return result("iso2022_jp_2004", "ja");
+                return result(Encoding.ISO_2022_JP_2004, "ja");
             }
             if (containsAscii(data, "\u001b(I")) {
-                return result("iso2022_jp_ext", "ja");
+                return result(Encoding.ISO_2022_JP_EXT, "ja");
             }
             if (containsAscii(data, "\u001b$B")
                     || containsAscii(data, "\u001b$@")
                     || containsAscii(data, "\u001b(J")
                     || containsAscii(data, "\u001b$(D")) {
                 if (containsByte(data, 0x0e) && containsByte(data, 0x0f)) {
-                    return result("iso2022_jp_ext", "ja");
+                    return result(Encoding.ISO_2022_JP_EXT, "ja");
                 }
-                return result("iso2022_jp_2", "ja");
+                return result(Encoding.ISO_2022_JP_2, "ja");
             }
             if (containsAscii(data, "\u001b$)C")) {
-                return result("iso2022_kr", "ko");
+                return result(Encoding.ISO_2022_KR, "ko");
             }
         }
 
@@ -65,22 +65,22 @@ final class EscapeDetector {
                 && containsAscii(data, "~{")
                 && containsAscii(data, "~}")
                 && hasValidHzRegion(data)) {
-            return result("hz", "zh");
+            return result(Encoding.HZ, "zh");
         }
 
         if (hasPlus && isSevenBit(data) && hasValidUtf7Sequence(data)) {
-            return result("utf-7", null);
+            return result(Encoding.UTF_7, null);
         }
         return null;
     }
 
     /// Creates a deterministic escape result.
     ///
-    /// @param encoding canonical encoding
+    /// @param encoding detected encoding
     /// @param language fixed language, or `null`
     /// @return result
     private static PipelineResult result(
-            String encoding,
+            Encoding encoding,
             @Nullable String language
     ) {
         return new PipelineResult(encoding, CONFIDENCE, language, null);
@@ -91,15 +91,13 @@ final class EscapeDetector {
     /// @param data bytes to scan
     /// @return whether a structurally valid region exists
     private static boolean hasValidHzRegion(@UnmodifiableView ByteBuffer data) {
-        byte[] opening = asciiBytes("~{");
-        byte[] closing = asciiBytes("~}");
         int start = 0;
         while (true) {
-            int begin = indexOf(data, opening, start);
+            int begin = indexOf(data, "~{", start);
             if (begin < 0) {
                 return false;
             }
-            int end = indexOf(data, closing, begin + 2);
+            int end = indexOf(data, "~}", begin + 2);
             if (end < 0) {
                 return false;
             }
@@ -195,44 +193,32 @@ final class EscapeDetector {
             }
         }
 
-        int byteCount = totalBits / 8;
-        byte[] raw = new byte[byteCount];
         int bitBuffer = 0;
         int bitCount = 0;
-        int output = 0;
+        boolean previousHigh = false;
         for (int index = start; index < end; index++) {
             bitBuffer = (bitBuffer << 6) | base64Value(data.get(index));
             bitCount += 6;
-            if (bitCount >= 8) {
-                bitCount -= 8;
-                if (output < raw.length) {
-                    raw[output++] = (byte) ((bitBuffer >>> bitCount) & 0xff);
+            if (bitCount >= 16) {
+                bitCount -= 16;
+                int unit = (bitBuffer >>> bitCount) & 0xffff;
+                if (unit >= 0xd800 && unit <= 0xdbff) {
+                    if (previousHigh) {
+                        return false;
+                    }
+                    previousHigh = true;
+                } else if (unit >= 0xdc00 && unit <= 0xdfff) {
+                    if (!previousHigh) {
+                        return false;
+                    }
+                    previousHigh = false;
+                } else if (previousHigh) {
+                    return false;
                 }
                 if (bitCount == 0) {
                     bitBuffer = 0;
                 } else {
                     bitBuffer &= (1 << bitCount) - 1;
-                }
-            }
-        }
-
-        boolean previousHigh = false;
-        for (int index = 0; index < byteCount - 1; index += 2) {
-            int unit = (Byte.toUnsignedInt(raw[index]) << 8)
-                    | Byte.toUnsignedInt(raw[index + 1]);
-            if (unit >= 0xd800 && unit <= 0xdbff) {
-                if (previousHigh) {
-                    return false;
-                }
-                previousHigh = true;
-            } else if (unit >= 0xdc00 && unit <= 0xdfff) {
-                if (!previousHigh) {
-                    return false;
-                }
-                previousHigh = false;
-            } else {
-                if (previousHigh) {
-                    return false;
                 }
             }
         }
@@ -312,25 +298,26 @@ final class EscapeDetector {
     /// @param expected expected text
     /// @return whether it occurs
     private static boolean containsAscii(@UnmodifiableView ByteBuffer data, String expected) {
-        return indexOf(data, asciiBytes(expected), 0) >= 0;
+        return indexOf(data, expected, 0) >= 0;
     }
 
-    /// Finds a byte pattern.
+    /// Finds a byte-preserving ASCII pattern.
     ///
     /// @param data    source bytes
-    /// @param pattern pattern bytes
+    /// @param pattern pattern text
     /// @param start   first candidate index
     /// @return matching index, or `-1`
     private static int indexOf(
             @UnmodifiableView ByteBuffer data,
-            byte @Unmodifiable [] pattern,
+            String pattern,
             int start
     ) {
-        int last = data.remaining() - pattern.length;
+        int last = data.remaining() - pattern.length();
         for (int index = Math.max(0, start); index <= last; index++) {
             boolean match = true;
-            for (int patternIndex = 0; patternIndex < pattern.length; patternIndex++) {
-                if (data.get(index + patternIndex) != pattern[patternIndex]) {
+            for (int patternIndex = 0; patternIndex < pattern.length(); patternIndex++) {
+                if (Byte.toUnsignedInt(data.get(index + patternIndex))
+                        != pattern.charAt(patternIndex)) {
                     match = false;
                     break;
                 }
@@ -340,14 +327,6 @@ final class EscapeDetector {
             }
         }
         return -1;
-    }
-
-    /// Encodes byte-preserving ASCII constants.
-    ///
-    /// @param value source text
-    /// @return encoded bytes
-    private static byte @Unmodifiable [] asciiBytes(String value) {
-        return value.getBytes(StandardCharsets.ISO_8859_1);
     }
 
     /// Returns a UTF-7 Base64 sextet value.

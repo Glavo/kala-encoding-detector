@@ -4,8 +4,10 @@
 package kala.encdet.internal.cli;
 
 import kala.encdet.DetectionResult;
+import kala.encdet.Encoding;
 import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingEra;
+import kala.encdet.internal.EncodingRegistry;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -160,11 +162,11 @@ public final class Main {
             boolean includeLanguage,
             PrintStream output
     ) {
-        String encoding = result.encoding() == null ? "None" : result.encoding();
+        String encodingText = result.encoding() == null ? "None" : result.encoding().displayName();
         if (minimal) {
             output.println(includeLanguage
-                    ? encoding + " " + languageCode(result)
-                    : encoding);
+                    ? encodingText + " " + languageCode(result)
+                    : encodingText);
             return;
         }
         if (includeLanguage) {
@@ -174,11 +176,11 @@ public final class Main {
                     ? rawName
                     : rawName.substring(0, 1).toUpperCase(Locale.ROOT) + rawName.substring(1);
             output.println(
-                    label + ": " + encoding + " " + code + " (" + name
+                    label + ": " + encodingText + " " + code + " (" + name
                             + ") with confidence " + result.confidence()
             );
         } else {
-            output.println(label + ": " + encoding + " with confidence " + result.confidence());
+            output.println(label + ": " + encodingText + " with confidence " + result.confidence());
         }
     }
 
@@ -228,16 +230,16 @@ public final class Main {
         private Set<EncodingEra> eras = EnumSet.allOf(EncodingEra.class);
 
         /// Optional raw include filter.
-        private @Nullable Set<String> include;
+        private @Nullable Set<String> includeNames;
 
         /// Optional raw exclude filter.
-        private @Nullable Set<String> exclude;
+        private @Nullable Set<String> excludeNames;
 
         /// Raw no-match fallback.
-        private String noMatch = "cp1252";
+        private String noMatchName = "cp1252";
 
         /// Raw empty-input fallback.
-        private String emptyInput = "utf-8";
+        private String emptyInputName = "utf-8";
 
         /// Positional file names.
         private final List<String> files = new ArrayList<>();
@@ -286,18 +288,18 @@ public final class Main {
                         String argument = attached != null
                                 ? attached
                                 : nextValue(values, ++index, option);
-                        result.include = parseEncodingList(argument);
+                        result.includeNames = parseEncodingList(argument);
                     }
                     case "-x", "--exclude-encodings" -> {
                         String argument = attached != null
                                 ? attached
                                 : nextValue(values, ++index, option);
-                        result.exclude = parseEncodingList(argument);
+                        result.excludeNames = parseEncodingList(argument);
                     }
-                    case "--no-match-encoding" -> result.noMatch = attached != null
+                    case "--no-match-encoding" -> result.noMatchName = attached != null
                             ? attached
                             : nextValue(values, ++index, option);
-                    case "--empty-input-encoding" -> result.emptyInput = attached != null
+                    case "--empty-input-encoding" -> result.emptyInputName = attached != null
                             ? attached
                             : nextValue(values, ++index, option);
                     default -> throw new CliException("unrecognized argument: " + option);
@@ -312,10 +314,10 @@ public final class Main {
         private EncodingDetector toDetector() {
             return EncodingDetector.DEFAULT
                     .withEncodingEras(eras)
-                    .withIncludedEncodings(include)
-                    .withExcludedEncodings(exclude)
-                    .withNoMatchEncoding(noMatch)
-                    .withEmptyInputEncoding(emptyInput);
+                    .withIncludedEncodings(resolveEncodingSet(includeNames, "includeEncodings"))
+                    .withExcludedEncodings(resolveEncodingSet(excludeNames, "excludeEncodings"))
+                    .withNoMatchEncoding(resolveEncoding(noMatchName, "noMatchEncoding"))
+                    .withEmptyInputEncoding(resolveEncoding(emptyInputName, "emptyInputEncoding"));
         }
 
         /// Reads a required option argument.
@@ -357,13 +359,49 @@ public final class Main {
         /// Splits a comma-separated encoding filter and strips surrounding space.
         ///
         /// @param value comma-separated names
-        /// @return insertion-ordered names
+        /// @return insertion-ordered raw names
         private static Set<String> parseEncodingList(String value) {
             LinkedHashSet<String> result = new LinkedHashSet<>();
             for (String name : value.split(",", -1)) {
                 result.add(name.strip());
             }
             return result;
+        }
+
+        /// Resolves an optional set of canonical encoding names or aliases.
+        ///
+        /// @param values        names to resolve, or `null`
+        /// @param parameterName public configuration parameter name
+        /// @return resolved encoding identities, or `null`
+        /// @throws IllegalArgumentException when a name is unknown
+        private static @Nullable Set<Encoding> resolveEncodingSet(
+                @Nullable Set<String> values,
+                String parameterName
+        ) {
+            if (values == null) {
+                return null;
+            }
+            LinkedHashSet<Encoding> result = new LinkedHashSet<>(values.size());
+            for (String value : values) {
+                result.add(resolveEncoding(value, parameterName));
+            }
+            return result;
+        }
+
+        /// Resolves one canonical encoding name or alias.
+        ///
+        /// @param value         name to resolve
+        /// @param parameterName public configuration parameter name
+        /// @return resolved encoding identity
+        /// @throws IllegalArgumentException when the name is unknown
+        private static Encoding resolveEncoding(String value, String parameterName) {
+            @Nullable Encoding encoding = EncodingRegistry.lookup(value);
+            if (encoding == null) {
+                throw new IllegalArgumentException(
+                        "Unknown encoding '" + value + "' in " + parameterName
+                );
+            }
+            return encoding;
         }
     }
 

@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -14,7 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.EnumMap;
 import java.util.Map;
 
 /// Decodes model-language inputs without relying on installed charset providers.
@@ -45,14 +46,14 @@ final class TextDecoder {
     /// matching the reference language-scoring shortcut.
     ///
     /// @param data     normalized read-only bytes to decode
-    /// @param encoding canonical source encoding
+    /// @param encoding source encoding
     /// @return the unchanged input view for UTF-8, a normalized read-only
     /// derived UTF-8 view for other implemented encodings, or `null`
     static @Nullable @UnmodifiableView ByteBuffer toUtf8(
             @UnmodifiableView ByteBuffer data,
-            String encoding
+            Encoding encoding
     ) {
-        if (encoding.equals("utf-8")) {
+        if (encoding == Encoding.UTF_8) {
             return data;
         }
         @Nullable String text = decode(data, encoding);
@@ -67,23 +68,23 @@ final class TextDecoder {
     /// to an empty string when their required byte-order mark is absent.
     ///
     /// @param data     normalized read-only bytes to decode
-    /// @param encoding canonical source encoding
+    /// @param encoding source encoding
     /// @return decoded text, or `null` when no decoder is implemented
-    static @Nullable String decode(@UnmodifiableView ByteBuffer data, String encoding) {
+    static @Nullable String decode(@UnmodifiableView ByteBuffer data, Encoding encoding) {
         int @Nullable [] table = TablesHolder.TABLES.get(encoding);
         if (table != null) {
             return decodeSingleByte(data, table);
         }
         return switch (encoding) {
-            case "utf-8" -> decodeUtf8(data, 0);
-            case "utf-8-sig" -> decodeUtf8(data, startsWith(data, 0xef, 0xbb, 0xbf) ? 3 : 0);
-            case "utf-16" -> decodeUtf16WithBom(data);
-            case "utf-16-be" -> decodeUtf16(data, false, 0);
-            case "utf-16-le" -> decodeUtf16(data, true, 0);
-            case "utf-32" -> decodeUtf32WithBom(data);
-            case "utf-32-be" -> decodeUtf32(data, false, 0);
-            case "utf-32-le" -> decodeUtf32(data, true, 0);
-            case "utf-7" -> decodeUtf7(data);
+            case UTF_8 -> decodeUtf8(data, 0);
+            case UTF_8_SIG -> decodeUtf8(data, startsWith(data, 0xef, 0xbb, 0xbf) ? 3 : 0);
+            case UTF_16 -> decodeUtf16WithBom(data);
+            case UTF_16_BE -> decodeUtf16(data, false, 0);
+            case UTF_16_LE -> decodeUtf16(data, true, 0);
+            case UTF_32 -> decodeUtf32WithBom(data);
+            case UTF_32_BE -> decodeUtf32(data, false, 0);
+            case UTF_32_LE -> decodeUtf32(data, true, 0);
+            case UTF_7 -> decodeUtf7(data);
             default -> null;
         };
     }
@@ -426,8 +427,8 @@ final class TextDecoder {
 
     /// Loads generated single-byte decode tables.
     ///
-    /// @return immutable canonical-name map
-    private static @Unmodifiable Map<String, int @Unmodifiable []> loadTables() {
+    /// @return immutable encoding map
+    private static @Unmodifiable Map<Encoding, int @Unmodifiable []> loadTables() {
         @Nullable InputStream input = TextDecoder.class.getResourceAsStream(RESOURCE);
         if (input == null) {
             throw new IllegalStateException("Missing single-byte decode resource: " + RESOURCE);
@@ -447,7 +448,7 @@ final class TextDecoder {
         if (count != TABLE_COUNT) {
             throw corrupt("expected " + TABLE_COUNT + " tables but found " + count);
         }
-        LinkedHashMap<String, int @Unmodifiable []> result = new LinkedHashMap<>();
+        EnumMap<Encoding, int @Unmodifiable []> result = new EnumMap<>(Encoding.class);
         for (int tableIndex = 0; tableIndex < count; tableIndex++) {
             requireRemaining(buffer, 1);
             int nameLength = Byte.toUnsignedInt(buffer.get());
@@ -455,6 +456,10 @@ final class TextDecoder {
             byte[] nameBytes = new byte[nameLength];
             buffer.get(nameBytes);
             String name = new String(nameBytes, StandardCharsets.US_ASCII);
+            @Nullable Encoding encoding = EncodingRegistry.lookup(name);
+            if (encoding == null) {
+                throw corrupt("unknown encoding " + name);
+            }
             int[] table = new int[TABLE_SIZE];
             for (int index = 0; index < TABLE_SIZE; index++) {
                 int codePoint = buffer.getInt();
@@ -463,8 +468,8 @@ final class TextDecoder {
                 }
                 table[index] = codePoint;
             }
-            if (result.putIfAbsent(name, table) != null) {
-                throw corrupt("duplicate table " + name);
+            if (result.putIfAbsent(encoding, table) != null) {
+                throw corrupt("duplicate table " + encoding.canonicalName());
             }
         }
         if (buffer.hasRemaining()) {
@@ -495,7 +500,7 @@ final class TextDecoder {
     @NotNullByDefault
     private static final class TablesHolder {
         /// Canonical single-byte decode tables.
-        private static final @Unmodifiable Map<String, int @Unmodifiable []> TABLES = loadTables();
+        private static final @Unmodifiable Map<Encoding, int @Unmodifiable []> TABLES = loadTables();
 
         /// Prevents holder instantiation.
         private TablesHolder() {

@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.Encoding;
 import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingEra;
 import org.jetbrains.annotations.NotNullByDefault;
@@ -26,18 +27,19 @@ final class RegistryCoverageTest {
         assertEquals(86, entries.size());
         assertEquals(6, EncodingEra.values().length);
 
-        LinkedHashSet<String> canonicalNames = new LinkedHashSet<>();
+        LinkedHashSet<Encoding> encodings = new LinkedHashSet<>();
         HashSet<String> aliases = new HashSet<>();
         HashSet<String> languages = new HashSet<>();
         for (EncodingRegistry.Info entry : entries) {
-            assertTrue(canonicalNames.add(entry.name()), entry.name());
-            assertEquals(entry.name(), EncodingDetector.lookupEncoding(entry.name()));
-            aliases.add(entry.name().toLowerCase(Locale.ROOT));
+            Encoding encoding = entry.encoding();
+            assertTrue(encodings.add(encoding), encoding.canonicalName());
+            assertEquals(encoding, EncodingDetector.lookupEncoding(encoding.canonicalName()));
+            aliases.add(encoding.canonicalName().toLowerCase(Locale.ROOT));
             languages.addAll(entry.languages());
             for (String alias : entry.aliases()) {
-                assertEquals(entry.name(), EncodingDetector.lookupEncoding(alias), alias);
+                assertEquals(encoding, EncodingDetector.lookupEncoding(alias), alias);
                 assertEquals(
-                        entry.name(),
+                        encoding,
                         EncodingDetector.lookupEncoding(alias.toUpperCase(Locale.ROOT)),
                         alias
                 );
@@ -45,7 +47,11 @@ final class RegistryCoverageTest {
             }
         }
 
-        assertEquals(EncodingDetector.supportedEncodings(), canonicalNames);
+        assertEquals(EncodingDetector.supportedEncodings(), encodings);
+        assertEquals(
+                List.of(Encoding.values()),
+                entries.stream().map(EncodingRegistry.Info::encoding).toList()
+        );
         assertEquals(604, aliases.size());
         assertEquals(49, languages.size());
     }
@@ -53,10 +59,10 @@ final class RegistryCoverageTest {
     /// Verifies representative IANA, WHATWG, and Python punctuation variants.
     @Test
     void normalizedStandardsAliasesResolveWithoutCharsetProviders() {
-        assertEquals("ascii", EncodingDetector.lookupEncoding("ANSI X3.4 1986"));
-        assertEquals("iso8859-1", EncodingDetector.lookupEncoding("ISO 8859 1:1987"));
-        assertEquals("cp932", EncodingDetector.lookupEncoding("windows 31j"));
-        assertEquals("gb18030", EncodingDetector.lookupEncoding("gb 2312-80"));
-        assertEquals("mac-cyrillic", EncodingDetector.lookupEncoding("x mac cyrillic"));
+        assertEquals(Encoding.ASCII, EncodingDetector.lookupEncoding("ANSI X3.4 1986"));
+        assertEquals(Encoding.ISO_8859_1, EncodingDetector.lookupEncoding("ISO 8859 1:1987"));
+        assertEquals(Encoding.CP932, EncodingDetector.lookupEncoding("windows 31j"));
+        assertEquals(Encoding.GB18030, EncodingDetector.lookupEncoding("gb 2312-80"));
+        assertEquals(Encoding.MAC_CYRILLIC, EncodingDetector.lookupEncoding("x mac cyrillic"));
     }
 }

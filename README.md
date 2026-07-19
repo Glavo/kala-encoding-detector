@@ -42,7 +42,9 @@ import java.nio.file.Path;
 byte[] input = Files.readAllBytes(Path.of("document.txt"));
 DetectionResult result = EncodingDetector.DEFAULT.detect(input);
 
-System.out.println(result.encoding());
+System.out.println(
+        result.encoding() == null ? null : result.encoding().canonicalName()
+);
 System.out.println(result.confidence());
 System.out.println(result.language());
 System.out.println(result.mimeType());
@@ -62,17 +64,18 @@ If that would remove every candidate, it returns the unfiltered list.
 and use stable descending-confidence order.
 
 ```java
+import kala.encdet.DetectionResult;
+import kala.encdet.Encoding;
 import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingEra;
-import kala.encdet.EncodingNameStyle;
 
 import java.util.Set;
 
 EncodingDetector detector = EncodingDetector.DEFAULT
         .withEncodingEras(Set.of(EncodingEra.MODERN_WEB))
         .withMaxBytes(100_000)
-        .withNameStyle(EncodingNameStyle.CANONICAL)
-        .withIncludedEncodings(Set.of("utf-8", "windows-1252"))
+        .withIncludedEncodings(Set.of(Encoding.UTF_8, Encoding.CP1252))
+        .withNoMatchEncoding(Encoding.CP1252)
         .withPreferredSuperset(false);
 
 DetectionResult result = detector.detect(input);
@@ -82,23 +85,25 @@ DetectionResult result = detector.detect(input);
 detector and leaves its receiver unchanged, so configured instances can be
 reused safely across detection calls and threads.
 
-Encoding names remain strings because Java 17's `Charset` set does not cover
-every detection target. A returned name is therefore not guaranteed to be
-accepted by `Charset.forName`. `EncodingDetector.lookupEncoding` resolves
-canonical, IANA, WHATWG, and codec aliases without consulting a JDK charset
-provider; `supportedEncodings` returns the 86 canonical targets in registry
-order.
+The `Encoding` enum represents all 86 detection targets throughout the public
+API. Its `canonicalName()` and `displayName()` methods provide text only at
+interchange and presentation boundaries. Those names are not guaranteed to be
+accepted by `Charset.forName`, because Java 17's charset providers do not cover
+every target. A target is not always an exact decoder identity: lookup may fold
+related aliases such as `cp037` into `Encoding.CP1140`.
+`EncodingDetector.lookupEncoding` resolves canonical, IANA, WHATWG, and codec
+aliases to enum values without consulting a JDK charset provider;
+`supportedEncodings` returns the enum values in registry order.
 
 ## Default behavior
 
 `EncodingDetector.DEFAULT` selects all six eras and uses:
 
 - `maxBytes = 200_000`
-- compatible chardet 5.x/6.x display names
 - no preferred-superset remapping
 - no include or exclude filter
-- `cp1252` when no candidate survives
-- `utf-8` for empty input
+- `Encoding.CP1252` when no candidate survives
+- `Encoding.UTF_8` for empty input
 
 Filters apply in era, include, then exclude order. They also gate BOM, markup,
 escape, and fallback results. Binary classification is not filtered and is
@@ -113,7 +118,8 @@ initialization; each detection has independent working state.
 With file arguments, one result is printed for every readable file. Without a
 file argument, the command reads standard input. If some files fail and at
 least one succeeds, the exit status remains zero; it is one when every file
-fails. Argument syntax errors use status two.
+fails. Unknown encoding names are detection failures and use status one for
+standard input. Argument syntax errors use status two.
 
 ```text
 kala-encdet document.txt
@@ -128,6 +134,9 @@ type document.txt | kala-encdet
 ```
 
 Use `kala-encdet --help` for the complete option summary.
+
+The CLI accepts textual aliases and renders each detected enum value through
+`Encoding.displayName()` for chardet-compatible output.
 
 ## Verification data
 

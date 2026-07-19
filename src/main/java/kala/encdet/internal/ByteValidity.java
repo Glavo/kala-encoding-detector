@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -17,7 +18,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
@@ -69,7 +70,7 @@ final class ByteValidity {
         }
         ArrayList<EncodingRegistry.Info> valid = new ArrayList<>(candidates.size());
         for (EncodingRegistry.Info candidate : candidates) {
-            if (isValid(data, candidate.name())) {
+            if (isValid(data, candidate.encoding())) {
                 valid.add(candidate);
             }
         }
@@ -79,24 +80,25 @@ final class ByteValidity {
     /// Tests strict validity for one canonical encoding.
     ///
     /// @param data     complete bytes to validate
-    /// @param encoding canonical encoding name
+    /// @param encoding encoding to test
     /// @return whether the encoding accepts all bytes and final state
-    static boolean isValid(@UnmodifiableView ByteBuffer data, String encoding) {
+    static boolean isValid(@UnmodifiableView ByteBuffer data, Encoding encoding) {
         if (!data.hasRemaining()) {
             return true;
         }
         return switch (encoding) {
-            case "utf-8" -> isValidUtf8(data, 0);
-            case "utf-8-sig" -> isValidUtf8(data, startsWith(data, 0xef, 0xbb, 0xbf) ? 3 : 0);
-            case "utf-16" -> isValidUtf16WithBom(data);
-            case "utf-16-be" -> isValidUtf16(data, false, 0);
-            case "utf-16-le" -> isValidUtf16(data, true, 0);
-            case "utf-32" -> isValidUtf32WithBom(data);
-            case "utf-32-be" -> isValidUtf32(data, false, 0);
-            case "utf-32-le" -> isValidUtf32(data, true, 0);
-            case "utf-7" -> isValidUtf7(data);
-            case "hz" -> isValidHz(data);
-            case "iso2022_jp_2", "iso2022_jp_2004", "iso2022_jp_ext", "iso2022_kr" -> isValidIso2022(data);
+            case UTF_8 -> isValidUtf8(data, 0);
+            case UTF_8_SIG -> isValidUtf8(data, startsWith(data, 0xef, 0xbb, 0xbf) ? 3 : 0);
+            case UTF_16 -> isValidUtf16WithBom(data);
+            case UTF_16_BE -> isValidUtf16(data, false, 0);
+            case UTF_16_LE -> isValidUtf16(data, true, 0);
+            case UTF_32 -> isValidUtf32WithBom(data);
+            case UTF_32_BE -> isValidUtf32(data, false, 0);
+            case UTF_32_LE -> isValidUtf32(data, true, 0);
+            case UTF_7 -> isValidUtf7(data);
+            case HZ -> isValidHz(data);
+            case ISO_2022_JP_2, ISO_2022_JP_2004, ISO_2022_JP_EXT, ISO_2022_KR ->
+                    isValidIso2022(data);
             default -> {
                 byte @Nullable [] singleMask = TablesHolder.SINGLE_MASKS.get(encoding);
                 if (singleMask != null) {
@@ -111,12 +113,12 @@ final class ByteValidity {
     /// Validates a table-driven stateless multibyte codec.
     ///
     /// @param data     bytes to validate
-    /// @param encoding canonical encoding name
+    /// @param encoding encoding being validated
     /// @param table    codec tables
     /// @return whether every byte is consumed by a valid sequence
     private static boolean isValidStatelessMultibyte(
             @UnmodifiableView ByteBuffer data,
-            String encoding,
+            Encoding encoding,
             MultibyteTable table
     ) {
         int index = 0;
@@ -127,7 +129,7 @@ final class ByteValidity {
                 continue;
             }
 
-            if (encoding.equals("euc_jis_2004") && first == 0x8f) {
+            if (encoding == Encoding.EUC_JIS_2004 && first == 0x8f) {
                 if (index + 2 >= data.remaining() || table.extra() == null) {
                     return false;
                 }
@@ -140,7 +142,7 @@ final class ByteValidity {
                 continue;
             }
 
-            if (encoding.equals("gb18030")
+            if (encoding == Encoding.GB18030
                     && index + 1 < data.remaining()
                     && between(Byte.toUnsignedInt(data.get(index + 1)), 0x30, 0x39)) {
                 if (index + 3 >= data.remaining() || table.extra() == null) {
@@ -571,13 +573,13 @@ final class ByteValidity {
 
     /// Loads generated single-byte masks.
     ///
-    /// @return immutable canonical-name map
-    private static @Unmodifiable Map<String, byte @Unmodifiable []> loadSingleMasks() {
+    /// @return immutable encoding map
+    private static @Unmodifiable Map<Encoding, byte @Unmodifiable []> loadSingleMasks() {
         @Nullable InputStream input = ByteValidity.class.getResourceAsStream(SINGLE_RESOURCE);
         if (input == null) {
             throw new IllegalStateException("Missing byte-validity resource: " + SINGLE_RESOURCE);
         }
-        LinkedHashMap<String, byte @Unmodifiable []> result = new LinkedHashMap<>();
+        EnumMap<Encoding, byte @Unmodifiable []> result = new EnumMap<>(Encoding.class);
         try (input; BufferedReader reader = new BufferedReader(
                 new InputStreamReader(input, StandardCharsets.US_ASCII)
         )) {
@@ -594,6 +596,13 @@ final class ByteValidity {
                             "Malformed byte-validity resource at line " + lineNumber
                     );
                 }
+                @Nullable Encoding encoding = EncodingRegistry.lookup(fields[0]);
+                if (encoding == null) {
+                    throw new IllegalStateException(
+                            "Malformed byte-validity resource at line " + lineNumber
+                                    + ": unknown encoding '" + fields[0] + "'"
+                    );
+                }
                 byte[] mask;
                 try {
                     mask = java.util.HexFormat.of().parseHex(fields[1]);
@@ -603,8 +612,10 @@ final class ByteValidity {
                             exception
                     );
                 }
-                if (result.putIfAbsent(fields[0], mask) != null) {
-                    throw new IllegalStateException("Duplicate byte-validity table for " + fields[0]);
+                if (result.putIfAbsent(encoding, mask) != null) {
+                    throw new IllegalStateException(
+                            "Duplicate byte-validity table for " + encoding.canonicalName()
+                    );
                 }
             }
         } catch (IOException exception) {
@@ -620,8 +631,8 @@ final class ByteValidity {
 
     /// Loads exact stateless multibyte sequence maps.
     ///
-    /// @return immutable canonical-name map
-    private static @Unmodifiable Map<String, MultibyteTable> loadMultibyteTables() {
+    /// @return immutable encoding map
+    private static @Unmodifiable Map<Encoding, MultibyteTable> loadMultibyteTables() {
         byte[] raw = requireResource(MULTIBYTE_RESOURCE);
         ByteBuffer buffer = ByteBuffer.wrap(raw).order(ByteOrder.BIG_ENDIAN);
         requireRemaining(buffer, Integer.BYTES + Short.BYTES, "truncated header");
@@ -632,7 +643,7 @@ final class ByteValidity {
         if (count != MULTIBYTE_TABLE_COUNT) {
             throw corruptMultibyte("expected " + MULTIBYTE_TABLE_COUNT + " tables but found " + count);
         }
-        LinkedHashMap<String, MultibyteTable> result = new LinkedHashMap<>();
+        EnumMap<Encoding, MultibyteTable> result = new EnumMap<>(Encoding.class);
         for (int tableIndex = 0; tableIndex < count; tableIndex++) {
             requireRemaining(buffer, 1, "truncated name length");
             int nameLength = Byte.toUnsignedInt(buffer.get());
@@ -640,6 +651,10 @@ final class ByteValidity {
             byte[] encodedName = new byte[nameLength];
             buffer.get(encodedName);
             String name = new String(encodedName, StandardCharsets.US_ASCII);
+            @Nullable Encoding encoding = EncodingRegistry.lookup(name);
+            if (encoding == null) {
+                throw corruptMultibyte("unknown encoding '" + name + "'");
+            }
             byte[] singles = new byte[SINGLE_MASK_SIZE];
             byte[] pairs = new byte[PAIR_MASK_SIZE];
             buffer.get(singles);
@@ -664,8 +679,8 @@ final class ByteValidity {
                 throw corruptMultibyte("unknown table kind " + kind);
             }
             MultibyteTable table = new MultibyteTable(singles, pairs, extra);
-            if (result.putIfAbsent(name, table) != null) {
-                throw corruptMultibyte("duplicate table " + name);
+            if (result.putIfAbsent(encoding, table) != null) {
+                throw corruptMultibyte("duplicate table " + encoding.canonicalName());
             }
         }
         if (buffer.hasRemaining()) {
@@ -727,11 +742,11 @@ final class ByteValidity {
     @NotNullByDefault
     private static final class TablesHolder {
         /// Canonical single-byte validity masks.
-        private static final @Unmodifiable Map<String, byte @Unmodifiable []> SINGLE_MASKS =
+        private static final @Unmodifiable Map<Encoding, byte @Unmodifiable []> SINGLE_MASKS =
                 loadSingleMasks();
 
         /// Canonical stateless multibyte validity tables.
-        private static final @Unmodifiable Map<String, MultibyteTable> MULTIBYTE_TABLES =
+        private static final @Unmodifiable Map<Encoding, MultibyteTable> MULTIBYTE_TABLES =
                 loadMultibyteTables();
 
         /// Valid HZ GB2312 shifted pairs.

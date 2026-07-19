@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -10,6 +11,9 @@ import org.jetbrains.annotations.UnmodifiableView;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,32 +22,16 @@ import java.util.Set;
 @NotNullByDefault
 final class PostProcessor {
     /// Common Western Latin promotion targets.
-    private static final @Unmodifiable Set<String> COMMON_LATIN_ENCODINGS = Set.of(
-            "iso8859-1", "iso8859-15", "cp1252"
-    );
+    private static final @Unmodifiable Set<Encoding> COMMON_LATIN_ENCODINGS =
+            Collections.unmodifiableSet(EnumSet.of(
+                    Encoding.ISO_8859_1,
+                    Encoding.ISO_8859_15,
+                    Encoding.CP1252
+            ));
 
     /// Distinguishing bytes for niche Latin candidates.
-    private static final @Unmodifiable Map<String, @Unmodifiable Set<Integer>> DEMOTION_CANDIDATES =
-            Map.of(
-                    "iso8859-10", Set.of(
-                            0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa8, 0xa9, 0xaa, 0xab, 0xac,
-                            0xae, 0xaf, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb8, 0xb9, 0xba,
-                            0xbb, 0xbc, 0xbd, 0xbe, 0xbf, 0xc0, 0xc7, 0xc8, 0xca, 0xcc, 0xd1,
-                            0xd2, 0xd7, 0xd9, 0xe0, 0xe7, 0xe8, 0xea, 0xec, 0xf1, 0xf2, 0xf7,
-                            0xf9, 0xff
-                    ),
-                    "iso8859-14", Set.of(
-                            0xa1, 0xa2, 0xa4, 0xa5, 0xa6, 0xa8, 0xaa, 0xab, 0xac, 0xaf, 0xb0,
-                            0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb7, 0xb8, 0xb9, 0xba, 0xbb, 0xbc,
-                            0xbd, 0xbe, 0xbf, 0xd0, 0xd7, 0xde, 0xf0, 0xf7, 0xfe
-                    ),
-                    "cp1254", Set.of(0xd0, 0xdd, 0xde, 0xf0, 0xfd, 0xfe),
-                    "hp-roman8", Set.of(
-                            0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca,
-                            0xcb, 0xcc, 0xcd, 0xce, 0xcf, 0xd1, 0xd4, 0xd5, 0xd6, 0xd9, 0xdd,
-                            0xde
-                    )
-            );
+    private static final @Unmodifiable Map<Encoding, @Unmodifiable Set<Integer>> DEMOTION_CANDIDATES =
+            createDemotionCandidates();
 
     /// Tajik-specific KOI8-T bytes.
     private static final @Unmodifiable Set<Integer> KOI8_T_DISTINGUISHING = Set.of(
@@ -52,6 +40,32 @@ final class PostProcessor {
 
     /// Prevents instantiation of this static stage.
     private PostProcessor() {
+    }
+
+    /// Creates the immutable byte-evidence table for niche Latin encodings.
+    ///
+    /// @return the byte-evidence table
+    private static @Unmodifiable Map<Encoding, @Unmodifiable Set<Integer>> createDemotionCandidates() {
+        EnumMap<Encoding, @Unmodifiable Set<Integer>> candidates = new EnumMap<>(Encoding.class);
+        candidates.put(Encoding.ISO_8859_10, Set.of(
+                0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa8, 0xa9, 0xaa, 0xab, 0xac,
+                0xae, 0xaf, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb8, 0xb9, 0xba,
+                0xbb, 0xbc, 0xbd, 0xbe, 0xbf, 0xc0, 0xc7, 0xc8, 0xca, 0xcc, 0xd1,
+                0xd2, 0xd7, 0xd9, 0xe0, 0xe7, 0xe8, 0xea, 0xec, 0xf1, 0xf2, 0xf7,
+                0xf9, 0xff
+        ));
+        candidates.put(Encoding.ISO_8859_14, Set.of(
+                0xa1, 0xa2, 0xa4, 0xa5, 0xa6, 0xa8, 0xaa, 0xab, 0xac, 0xaf, 0xb0,
+                0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb7, 0xb8, 0xb9, 0xba, 0xbb, 0xbc,
+                0xbd, 0xbe, 0xbf, 0xd0, 0xd7, 0xde, 0xf0, 0xf7, 0xfe
+        ));
+        candidates.put(Encoding.CP1254, Set.of(0xd0, 0xdd, 0xde, 0xf0, 0xfd, 0xfe));
+        candidates.put(Encoding.HP_ROMAN8, Set.of(
+                0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca,
+                0xcb, 0xcc, 0xcd, 0xce, 0xcf, 0xd1, 0xd4, 0xd5, 0xd6, 0xd9, 0xdd,
+                0xde
+        ));
+        return Collections.unmodifiableMap(candidates);
     }
 
     /// Applies confusion resolution, niche-Latin demotion, and KOI8-T promotion.
@@ -80,7 +94,7 @@ final class PostProcessor {
         if (results.size() <= 1) {
             return results;
         }
-        @Nullable String demotedEncoding = results.get(0).encoding();
+        @Nullable Encoding demotedEncoding = results.get(0).encoding();
         if (demotedEncoding == null) {
             return results;
         }
@@ -89,7 +103,7 @@ final class PostProcessor {
         }
         int promotedIndex = -1;
         for (int index = 1; index < results.size(); index++) {
-            @Nullable String encoding = results.get(index).encoding();
+            @Nullable Encoding encoding = results.get(index).encoding();
             if (encoding != null && COMMON_LATIN_ENCODINGS.contains(encoding)) {
                 promotedIndex = index;
                 break;
@@ -110,12 +124,12 @@ final class PostProcessor {
         reordered.add(promoted);
         for (int index = 0; index < results.size(); index++) {
             PipelineResult result = results.get(index);
-            if (index != promotedIndex && !demotedEncoding.equals(result.encoding())) {
+            if (index != promotedIndex && result.encoding() != demotedEncoding) {
                 reordered.add(result);
             }
         }
         for (PipelineResult result : results) {
-            if (demotedEncoding.equals(result.encoding())) {
+            if (result.encoding() == demotedEncoding) {
                 reordered.add(result);
             }
         }
@@ -128,7 +142,7 @@ final class PostProcessor {
     /// @param data     analyzed bytes
     /// @return whether the candidate should be demoted
     private static boolean shouldDemote(
-            String encoding,
+            Encoding encoding,
             @UnmodifiableView ByteBuffer data
     ) {
         @Nullable @Unmodifiable Set<Integer> distinguishing =
@@ -154,12 +168,12 @@ final class PostProcessor {
             @UnmodifiableView ByteBuffer data,
             List<PipelineResult> results
     ) {
-        if (results.isEmpty() || !"koi8-r".equals(results.get(0).encoding())) {
+        if (results.isEmpty() || results.get(0).encoding() != Encoding.KOI8_R) {
             return results;
         }
         int koi8TIndex = -1;
         for (int index = 0; index < results.size(); index++) {
-            if ("koi8-t".equals(results.get(index).encoding())) {
+            if (results.get(index).encoding() == Encoding.KOI8_T) {
                 koi8TIndex = index;
                 break;
             }

@@ -114,6 +114,18 @@ final class MainTest {
         assertTrue(result.error().contains("stdin: detection failed: Unknown encoding 'not-real'"));
     }
 
+    /// Verifies aliases resolve to enum identities and use compatible display names.
+    @Test
+    void resolvesEncodingAliasesAndPrintsDisplayNames() {
+        RunResult result = invoke(
+                new String[]{"--minimal", "--include-encodings", "windows-1252"},
+                "Héllo café".getBytes(StandardCharsets.ISO_8859_1)
+        );
+        assertEquals(0, result.status());
+        assertEquals("Windows-1252" + System.lineSeparator(), result.output());
+        assertEquals("", result.error());
+    }
+
     /// Verifies version and help requests do not consume standard input.
     @Test
     void printsVersionAndHelp() {

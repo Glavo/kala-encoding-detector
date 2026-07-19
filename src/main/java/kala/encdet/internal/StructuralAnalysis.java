@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -21,27 +22,27 @@ final class StructuralAnalysis {
     /// Returns cached or newly computed metrics for a canonical encoding.
     ///
     /// @param data     bytes to analyze
-    /// @param encoding canonical encoding name
+    /// @param encoding encoding to analyze
     /// @param cache    per-detection cache
     /// @return metrics, or `null` when no analyzer exists
     static @Nullable Analysis get(
             @UnmodifiableView ByteBuffer data,
-            String encoding,
-            Map<String, Analysis> cache
+            Encoding encoding,
+            Map<Encoding, Analysis> cache
     ) {
         @Nullable Analysis cached = cache.get(encoding);
         if (cached != null) {
             return cached;
         }
         @Nullable Analysis result = switch (encoding) {
-            case "shift_jis_2004" -> analyzeShiftJis(data, 0xef);
-            case "cp932" -> analyzeShiftJis(data, 0xfc);
-            case "euc_jis_2004" -> analyzeEucJp(data);
-            case "euc_kr" -> analyzeEucKr(data);
-            case "cp949" -> analyzeCp949(data);
-            case "gb18030" -> analyzeGb18030(data);
-            case "big5hkscs" -> analyzeBig5Hkscs(data);
-            case "johab" -> analyzeJohab(data);
+            case SHIFT_JIS_2004 -> analyzeShiftJis(data, 0xef);
+            case CP932 -> analyzeShiftJis(data, 0xfc);
+            case EUC_JIS_2004 -> analyzeEucJp(data);
+            case EUC_KR -> analyzeEucKr(data);
+            case CP949 -> analyzeCp949(data);
+            case GB18030 -> analyzeGb18030(data);
+            case BIG5_HKSCS -> analyzeBig5Hkscs(data);
+            case JOHAB -> analyzeJohab(data);
             default -> null;
         };
         if (result != null) {

@@ -143,13 +143,28 @@ final class CorpusGoldenTest {
                 throw new IllegalArgumentException("Malformed encoded result: " + encodedResult);
             }
             results.add(new ExpectedResult(
-                    nullable(fields[0]),
+                    parseEncoding(fields[0]),
                     Double.parseDouble(fields[1]),
                     nullable(fields[2]),
                     nullable(fields[3])
             ));
         }
         return List.copyOf(results);
+    }
+
+    /// Converts an oracle encoding name to its enum identity.
+    ///
+    /// @param value serialized encoding or null sentinel
+    /// @return resolved encoding, or `null`
+    private static @Nullable Encoding parseEncoding(String value) {
+        if (value.equals("~")) {
+            return null;
+        }
+        @Nullable Encoding encoding = EncodingDetector.lookupEncoding(value);
+        if (encoding == null) {
+            throw new IllegalArgumentException("Unknown oracle encoding: " + value);
+        }
+        return encoding;
     }
 
     /// Converts the compact null sentinel.
@@ -160,19 +175,19 @@ final class CorpusGoldenTest {
         return value.equals("~") ? null : value;
     }
 
-    /// Returns expected encoding names for mismatch diagnostics.
+    /// Returns expected encodings for mismatch diagnostics.
     ///
     /// @param results expected candidates
-    /// @return encoding-name list
-    private static List<@Nullable String> encodingNamesExpected(List<ExpectedResult> results) {
+    /// @return encoding list
+    private static List<@Nullable Encoding> encodingNamesExpected(List<ExpectedResult> results) {
         return results.stream().map(ExpectedResult::encoding).toList();
     }
 
-    /// Returns actual encoding names for mismatch diagnostics.
+    /// Returns actual encodings for mismatch diagnostics.
     ///
     /// @param results actual candidates
-    /// @return encoding-name list
-    private static List<@Nullable String> encodingNamesActual(List<DetectionResult> results) {
+    /// @return encoding list
+    private static List<@Nullable Encoding> encodingNamesActual(List<DetectionResult> results) {
         return results.stream().map(DetectionResult::encoding).toList();
     }
 
@@ -237,7 +252,7 @@ final class CorpusGoldenTest {
     /// @param mimeType   expected MIME type, or `null`
     @NotNullByDefault
     private record ExpectedResult(
-            @Nullable String encoding,
+            @Nullable Encoding encoding,
             double confidence,
             @Nullable String language,
             @Nullable String mimeType

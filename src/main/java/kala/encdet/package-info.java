@@ -3,9 +3,10 @@
 
 /// Provides pure-Java character-encoding detection APIs.
 ///
-/// Detection results use encoding-name strings because several supported
-/// encodings are not required to be available from Java's charset providers.
-/// A returned name therefore is not guaranteed to be accepted by
+/// Detection results use [kala.encdet.Encoding] target identities rather than
+/// exact decoder identities. Textual aliases may be folded into a related
+/// detection target, and the target's names are intended for interchange and
+/// presentation. They are not guaranteed to be accepted by
 /// `java.nio.charset.Charset.forName(String)`.
 @org.jetbrains.annotations.NotNullByDefault
 
