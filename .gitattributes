@@ -62,3 +62,8 @@ Jenkinsfile   text eol=lf
 # Compiled / intermediate build artefacts
 *.bin         binary
 *.probe       binary
+
+# The upstream encoding corpus must retain its exact original bytes even when
+# a file extension would otherwise select LF normalization.
+src/test/resources/chardet-test-data/*/* binary
+src/test/resources/chardet-test-data/scripts/* text eol=lf

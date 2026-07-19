@@ -1,0 +1,3955 @@
+[
+  {
+    "path": "cp437-danish/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp437-danish/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp437-danish/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp437-portuguese/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp437-portuguese/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp437-portuguese/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-sig-arabic/culturax_OSCAR-2109_98639.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-arabic/culturax_OSCAR-2109_98639.txt"
+  },
+  {
+    "path": "utf-8-sig-arabic/culturax_mC4_98635.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-arabic/culturax_mC4_98635.txt"
+  },
+  {
+    "path": "utf-8-sig-arabic/culturax_mC4_98638.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-arabic/culturax_mC4_98638.txt"
+  },
+  {
+    "path": "utf-8-sig-belarusian/culturax_mC4_77015.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-belarusian/culturax_mC4_77015.txt"
+  },
+  {
+    "path": "utf-8-sig-belarusian/culturax_mC4_77016.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-belarusian/culturax_mC4_77016.txt"
+  },
+  {
+    "path": "utf-8-sig-belarusian/culturax_mC4_77017.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-belarusian/culturax_mC4_77017.txt"
+  },
+  {
+    "path": "utf-8-sig-breton/culturax_OSCAR-2019_43762.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-breton/culturax_OSCAR-2019_43762.txt"
+  },
+  {
+    "path": "utf-8-sig-breton/culturax_OSCAR-2019_43764.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-breton/culturax_OSCAR-2019_43764.txt"
+  },
+  {
+    "path": "utf-8-sig-bulgarian/culturax_OSCAR-2019_84188.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-bulgarian/culturax_OSCAR-2019_84188.txt"
+  },
+  {
+    "path": "utf-8-sig-bulgarian/culturax_OSCAR-2301_84186.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-bulgarian/culturax_OSCAR-2301_84186.txt"
+  },
+  {
+    "path": "utf-8-sig-bulgarian/culturax_mC4_84187.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-bulgarian/culturax_mC4_84187.txt"
+  },
+  {
+    "path": "utf-8-sig-chinese/_ude_5.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-chinese/_ude_5.txt"
+  },
+  {
+    "path": "utf-8-sig-chinese/culturax_mC4_5.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-chinese/culturax_mC4_5.txt"
+  },
+  {
+    "path": "utf-8-sig-chinese/culturax_mC4_3.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-chinese/culturax_mC4_3.txt"
+  },
+  {
+    "path": "utf-8-sig-czech/culturax_OSCAR-2019_98821.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-czech/culturax_OSCAR-2019_98821.txt"
+  },
+  {
+    "path": "utf-8-sig-czech/culturax_mC4_98820.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-czech/culturax_mC4_98820.txt"
+  },
+  {
+    "path": "utf-8-sig-czech/culturax_mC4_98822.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-czech/culturax_mC4_98822.txt"
+  },
+  {
+    "path": "utf-8-sig-danish/culturax_mC4_83466.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-danish/culturax_mC4_83466.txt"
+  },
+  {
+    "path": "utf-8-sig-danish/culturax_mC4_83467.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-danish/culturax_mC4_83467.txt"
+  },
+  {
+    "path": "utf-8-sig-danish/culturax_mC4_83468.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-danish/culturax_mC4_83468.txt"
+  },
+  {
+    "path": "utf-8-sig-dutch/culturax_OSCAR-2301_107677.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-dutch/culturax_OSCAR-2301_107677.txt"
+  },
+  {
+    "path": "utf-8-sig-dutch/culturax_mC4_107675.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-dutch/culturax_mC4_107675.txt"
+  },
+  {
+    "path": "utf-8-sig-dutch/culturax_mC4_107676.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-dutch/culturax_mC4_107676.txt"
+  },
+  {
+    "path": "utf-8-sig-esperanto/culturax_mC4_40441.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-esperanto/culturax_mC4_40441.txt"
+  },
+  {
+    "path": "utf-8-sig-esperanto/culturax_mC4_40442.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-esperanto/culturax_mC4_40442.txt"
+  },
+  {
+    "path": "utf-8-sig-esperanto/culturax_mC4_40443.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-esperanto/culturax_mC4_40443.txt"
+  },
+  {
+    "path": "utf-8-sig-estonian/culturax_mC4_66818.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-estonian/culturax_mC4_66818.txt"
+  },
+  {
+    "path": "utf-8-sig-estonian/culturax_mC4_66819.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-estonian/culturax_mC4_66819.txt"
+  },
+  {
+    "path": "utf-8-sig-estonian/culturax_mC4_66820.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-estonian/culturax_mC4_66820.txt"
+  },
+  {
+    "path": "utf-8-sig-farsi/culturax_mC4_104835.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-farsi/culturax_mC4_104835.txt"
+  },
+  {
+    "path": "utf-8-sig-farsi/culturax_mC4_104836.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-farsi/culturax_mC4_104836.txt"
+  },
+  {
+    "path": "utf-8-sig-farsi/culturax_mC4_104837.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-farsi/culturax_mC4_104837.txt"
+  },
+  {
+    "path": "utf-8-sig-finnish/culturax_mC4_80361.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-finnish/culturax_mC4_80361.txt"
+  },
+  {
+    "path": "utf-8-sig-finnish/culturax_mC4_80362.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-finnish/culturax_mC4_80362.txt"
+  },
+  {
+    "path": "utf-8-sig-finnish/culturax_mC4_80363.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-finnish/culturax_mC4_80363.txt"
+  },
+  {
+    "path": "utf-8-sig-french/culturax_OSCAR-2201_88371.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-french/culturax_OSCAR-2201_88371.txt"
+  },
+  {
+    "path": "utf-8-sig-french/culturax_OSCAR-2301_88370.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-french/culturax_OSCAR-2301_88370.txt"
+  },
+  {
+    "path": "utf-8-sig-french/culturax_mC4_88369.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-french/culturax_mC4_88369.txt"
+  },
+  {
+    "path": "utf-8-sig-german/culturax_OSCAR-2301_83754.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-german/culturax_OSCAR-2301_83754.txt"
+  },
+  {
+    "path": "utf-8-sig-german/culturax_mC4_83755.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-german/culturax_mC4_83755.txt"
+  },
+  {
+    "path": "utf-8-sig-german/culturax_mC4_83756.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-german/culturax_mC4_83756.txt"
+  },
+  {
+    "path": "utf-8-sig-greek/_ude_greek.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-greek/_ude_greek.txt"
+  },
+  {
+    "path": "utf-8-sig-greek/culturax_mC4_103810.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-greek/culturax_mC4_103810.txt"
+  },
+  {
+    "path": "utf-8-sig-greek/culturax_OSCAR-2201_103812.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-greek/culturax_OSCAR-2201_103812.txt"
+  },
+  {
+    "path": "utf-8-sig-hebrew/_ude_he3.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-hebrew/_ude_he3.txt"
+  },
+  {
+    "path": "utf-8-sig-hebrew/culturax_OSCAR-2301_58266.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-hebrew/culturax_OSCAR-2301_58266.txt"
+  },
+  {
+    "path": "utf-8-sig-hebrew/culturax_OSCAR-2301_58267.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-hebrew/culturax_OSCAR-2301_58267.txt"
+  },
+  {
+    "path": "utf-8-sig-hungarian/culturax_OSCAR-2109_82419.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-hungarian/culturax_OSCAR-2109_82419.txt"
+  },
+  {
+    "path": "utf-8-sig-hungarian/culturax_OSCAR-2301_82420.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-hungarian/culturax_OSCAR-2301_82420.txt"
+  },
+  {
+    "path": "utf-8-sig-hungarian/culturax_mC4_82418.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-hungarian/culturax_mC4_82418.txt"
+  },
+  {
+    "path": "utf-8-sig-icelandic/culturax_mC4_77487.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-icelandic/culturax_mC4_77487.txt"
+  },
+  {
+    "path": "utf-8-sig-icelandic/culturax_mC4_77488.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-icelandic/culturax_mC4_77488.txt"
+  },
+  {
+    "path": "utf-8-sig-icelandic/culturax_mC4_77489.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-icelandic/culturax_mC4_77489.txt"
+  },
+  {
+    "path": "utf-8-sig-indonesian/culturax_mC4_114889.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-indonesian/culturax_mC4_114889.txt"
+  },
+  {
+    "path": "utf-8-sig-indonesian/culturax_mC4_114890.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-indonesian/culturax_mC4_114890.txt"
+  },
+  {
+    "path": "utf-8-sig-indonesian/culturax_mC4_114892.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-indonesian/culturax_mC4_114892.txt"
+  },
+  {
+    "path": "utf-8-sig-irish/culturax_mC4_63468.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-irish/culturax_mC4_63468.txt"
+  },
+  {
+    "path": "utf-8-sig-irish/culturax_mC4_63469.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-irish/culturax_mC4_63469.txt"
+  },
+  {
+    "path": "utf-8-sig-irish/culturax_mC4_63470.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-irish/culturax_mC4_63470.txt"
+  },
+  {
+    "path": "utf-8-sig-italian/culturax_mC4_92388.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-italian/culturax_mC4_92388.txt"
+  },
+  {
+    "path": "utf-8-sig-italian/culturax_mC4_92390.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-italian/culturax_mC4_92390.txt"
+  },
+  {
+    "path": "utf-8-sig-italian/culturax_mC4_92391.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-italian/culturax_mC4_92391.txt"
+  },
+  {
+    "path": "utf-8-sig-japanese/_mozilla_bug426271_text-utf-8.html",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-japanese/_mozilla_bug426271_text-utf-8.html"
+  },
+  {
+    "path": "utf-8-sig-japanese/culturax_mC4_4.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-japanese/culturax_mC4_4.txt"
+  },
+  {
+    "path": "utf-8-sig-japanese/culturax_mC4_5.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-japanese/culturax_mC4_5.txt"
+  },
+  {
+    "path": "utf-8-sig-kazakh/culturax_mC4_73160.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-kazakh/culturax_mC4_73160.txt"
+  },
+  {
+    "path": "utf-8-sig-kazakh/culturax_mC4_73161.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-kazakh/culturax_mC4_73161.txt"
+  },
+  {
+    "path": "utf-8-sig-kazakh/culturax_mC4_73162.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-kazakh/culturax_mC4_73162.txt"
+  },
+  {
+    "path": "utf-8-sig-korean/_ude_1.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-korean/_ude_1.txt"
+  },
+  {
+    "path": "utf-8-sig-korean/_ude_2.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-korean/_ude_2.txt"
+  },
+  {
+    "path": "utf-8-sig-korean/culturax_mC4_1.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-korean/culturax_mC4_1.txt"
+  },
+  {
+    "path": "utf-8-sig-latvian/culturax_mC4_71628.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-latvian/culturax_mC4_71628.txt"
+  },
+  {
+    "path": "utf-8-sig-latvian/culturax_mC4_71629.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-latvian/culturax_mC4_71629.txt"
+  },
+  {
+    "path": "utf-8-sig-latvian/culturax_mC4_71630.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-latvian/culturax_mC4_71630.txt"
+  },
+  {
+    "path": "utf-8-sig-lithuanian/culturax_mC4_73445.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-lithuanian/culturax_mC4_73445.txt"
+  },
+  {
+    "path": "utf-8-sig-lithuanian/culturax_mC4_73446.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-lithuanian/culturax_mC4_73446.txt"
+  },
+  {
+    "path": "utf-8-sig-lithuanian/culturax_mC4_73447.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-lithuanian/culturax_mC4_73447.txt"
+  },
+  {
+    "path": "utf-8-sig-macedonian/culturax_mC4_102724.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-macedonian/culturax_mC4_102724.txt"
+  },
+  {
+    "path": "utf-8-sig-macedonian/culturax_mC4_102726.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-macedonian/culturax_mC4_102726.txt"
+  },
+  {
+    "path": "utf-8-sig-macedonian/culturax_mC4_102727.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-macedonian/culturax_mC4_102727.txt"
+  },
+  {
+    "path": "utf-8-sig-maltese/culturax_mC4_51488.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-maltese/culturax_mC4_51488.txt"
+  },
+  {
+    "path": "utf-8-sig-maltese/culturax_mC4_51489.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-maltese/culturax_mC4_51489.txt"
+  },
+  {
+    "path": "utf-8-sig-maltese/culturax_mC4_51490.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-maltese/culturax_mC4_51490.txt"
+  },
+  {
+    "path": "utf-8-sig-norwegian/culturax_mC4_66762.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-norwegian/culturax_mC4_66762.txt"
+  },
+  {
+    "path": "utf-8-sig-norwegian/culturax_mC4_66763.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-norwegian/culturax_mC4_66763.txt"
+  },
+  {
+    "path": "utf-8-sig-norwegian/culturax_mC4_66764.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-norwegian/culturax_mC4_66764.txt"
+  },
+  {
+    "path": "utf-8-sig-polish/culturax_OSCAR-2019_97062.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-polish/culturax_OSCAR-2019_97062.txt"
+  },
+  {
+    "path": "utf-8-sig-polish/culturax_mC4_97060.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-polish/culturax_mC4_97060.txt"
+  },
+  {
+    "path": "utf-8-sig-polish/culturax_mC4_97061.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-polish/culturax_mC4_97061.txt"
+  },
+  {
+    "path": "utf-8-sig-portuguese/culturax_OSCAR-2109_101819.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-portuguese/culturax_OSCAR-2109_101819.txt"
+  },
+  {
+    "path": "utf-8-sig-portuguese/culturax_mC4_101817.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-portuguese/culturax_mC4_101817.txt"
+  },
+  {
+    "path": "utf-8-sig-portuguese/culturax_mC4_101818.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-portuguese/culturax_mC4_101818.txt"
+  },
+  {
+    "path": "utf-8-sig-romanian/culturax_OSCAR-2019_78977.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-romanian/culturax_OSCAR-2019_78977.txt"
+  },
+  {
+    "path": "utf-8-sig-romanian/culturax_mC4_78976.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-romanian/culturax_mC4_78976.txt"
+  },
+  {
+    "path": "utf-8-sig-romanian/culturax_mC4_78978.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-romanian/culturax_mC4_78978.txt"
+  },
+  {
+    "path": "utf-8-sig-russian/_ude_russian.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-russian/_ude_russian.txt"
+  },
+  {
+    "path": "utf-8-sig-russian/culturax_OSCAR-2019_85057.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-russian/culturax_OSCAR-2019_85057.txt"
+  },
+  {
+    "path": "utf-8-sig-russian/culturax_OSCAR-2019_85055.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-russian/culturax_OSCAR-2019_85055.txt"
+  },
+  {
+    "path": "utf-8-sig-serbian/culturax_mC4_66918.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-serbian/culturax_mC4_66918.txt"
+  },
+  {
+    "path": "utf-8-sig-serbian/culturax_mC4_66920.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-serbian/culturax_mC4_66920.txt"
+  },
+  {
+    "path": "utf-8-sig-serbian/culturax_mC4_66921.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-serbian/culturax_mC4_66921.txt"
+  },
+  {
+    "path": "utf-8-sig-slovak/culturax_mC4_95224.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-slovak/culturax_mC4_95224.txt"
+  },
+  {
+    "path": "utf-8-sig-slovak/culturax_mC4_95226.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-slovak/culturax_mC4_95226.txt"
+  },
+  {
+    "path": "utf-8-sig-slovak/culturax_mC4_95227.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-slovak/culturax_mC4_95227.txt"
+  },
+  {
+    "path": "utf-8-sig-slovene/culturax_mC4_66688.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-slovene/culturax_mC4_66688.txt"
+  },
+  {
+    "path": "utf-8-sig-slovene/culturax_mC4_66689.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-slovene/culturax_mC4_66689.txt"
+  },
+  {
+    "path": "utf-8-sig-slovene/culturax_mC4_66690.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-slovene/culturax_mC4_66690.txt"
+  },
+  {
+    "path": "utf-8-sig-spanish/culturax_mC4_87069.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-spanish/culturax_mC4_87069.txt"
+  },
+  {
+    "path": "utf-8-sig-spanish/culturax_mC4_87070.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-spanish/culturax_mC4_87070.txt"
+  },
+  {
+    "path": "utf-8-sig-spanish/culturax_mC4_87071.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-spanish/culturax_mC4_87071.txt"
+  },
+  {
+    "path": "utf-8-sig-swedish/culturax_mC4_96485.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-swedish/culturax_mC4_96485.txt"
+  },
+  {
+    "path": "utf-8-sig-swedish/culturax_mC4_96486.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-swedish/culturax_mC4_96486.txt"
+  },
+  {
+    "path": "utf-8-sig-swedish/culturax_mC4_96487.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-swedish/culturax_mC4_96487.txt"
+  },
+  {
+    "path": "utf-8-sig-tajik/culturax_mC4_74865.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-tajik/culturax_mC4_74865.txt"
+  },
+  {
+    "path": "utf-8-sig-tajik/culturax_mC4_74866.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-tajik/culturax_mC4_74866.txt"
+  },
+  {
+    "path": "utf-8-sig-tajik/culturax_mC4_74867.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-tajik/culturax_mC4_74867.txt"
+  },
+  {
+    "path": "utf-8-sig-thai/culturax_OSCAR-2301_109134.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-thai/culturax_OSCAR-2301_109134.txt"
+  },
+  {
+    "path": "utf-8-sig-thai/culturax_mC4_109133.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-thai/culturax_mC4_109133.txt"
+  },
+  {
+    "path": "utf-8-sig-thai/culturax_mC4_109136.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-thai/culturax_mC4_109136.txt"
+  },
+  {
+    "path": "utf-8-sig-turkish/culturax_mC4_107848.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-turkish/culturax_mC4_107848.txt"
+  },
+  {
+    "path": "utf-8-sig-turkish/culturax_mC4_107849.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-turkish/culturax_mC4_107849.txt"
+  },
+  {
+    "path": "utf-8-sig-turkish/culturax_mC4_107850.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-turkish/culturax_mC4_107850.txt"
+  },
+  {
+    "path": "utf-8-sig-ukrainian/culturax_mC4_95019.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-ukrainian/culturax_mC4_95019.txt"
+  },
+  {
+    "path": "utf-8-sig-ukrainian/culturax_mC4_95020.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-ukrainian/culturax_mC4_95020.txt"
+  },
+  {
+    "path": "utf-8-sig-ukrainian/culturax_mC4_95021.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-ukrainian/culturax_mC4_95021.txt"
+  },
+  {
+    "path": "utf-8-sig-urdu/culturax_mC4_82296.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-urdu/culturax_mC4_82296.txt"
+  },
+  {
+    "path": "utf-8-sig-urdu/culturax_mC4_82297.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-urdu/culturax_mC4_82297.txt"
+  },
+  {
+    "path": "utf-8-sig-urdu/culturax_mC4_82298.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-urdu/culturax_mC4_82298.txt"
+  },
+  {
+    "path": "utf-8-sig-vietnamese/culturax_OSCAR-2109_85695.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-vietnamese/culturax_OSCAR-2109_85695.txt"
+  },
+  {
+    "path": "utf-8-sig-vietnamese/culturax_mC4_85693.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-vietnamese/culturax_mC4_85693.txt"
+  },
+  {
+    "path": "utf-8-sig-vietnamese/culturax_mC4_85694.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-vietnamese/culturax_mC4_85694.txt"
+  },
+  {
+    "path": "utf-8-sig-welsh/culturax_mC4_78726.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-welsh/culturax_mC4_78726.txt"
+  },
+  {
+    "path": "utf-8-sig-welsh/culturax_mC4_78727.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-welsh/culturax_mC4_78727.txt"
+  },
+  {
+    "path": "utf-8-sig-welsh/culturax_mC4_78728.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-welsh/culturax_mC4_78728.txt"
+  },
+  {
+    "path": "cp037-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp037-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp037-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp037-turkish/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp037-turkish/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp037-turkish/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp273-german/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp273-german/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp273-german/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp500-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp500-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp500-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp720-farsi/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp720-farsi/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp720-farsi/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp850-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp850-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp850-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp852-croatian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp852-croatian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp852-croatian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp858-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp858-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp858-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp866-macedonian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp866-macedonian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp866-macedonian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp866-serbian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp866-serbian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp866-serbian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-danish/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-danish/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-danish/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-dutch/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-dutch/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-dutch/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-english/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-english/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-english/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-finnish/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-finnish/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-finnish/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-french/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-french/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-french/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-german/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-german/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-german/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-icelandic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-icelandic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-icelandic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-indonesian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-indonesian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-indonesian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-italian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-italian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-italian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-norwegian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-norwegian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-norwegian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-portuguese/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-portuguese/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-portuguese/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-spanish/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-spanish/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-spanish/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-swedish/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-swedish/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "hp-roman8-swedish/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-2022-jp-2004-japanese/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-2022-jp-2004-japanese/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-2022-jp-2004-japanese/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-2022-jp-ext-japanese/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-2022-jp-ext-japanese/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-2022-jp-ext-japanese/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-10-finnish/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-10-finnish/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-10-finnish/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-14-gaelic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-14-gaelic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-14-gaelic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-16-croatian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-16-croatian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-16-croatian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-16-slovak/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-16-slovak/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-16-slovak/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-6-farsi/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-6-farsi/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-6-farsi/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "maclatin2-croatian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "maclatin2-croatian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "maclatin2-croatian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "macroman-icelandic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "macroman-icelandic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "macroman-icelandic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "macroman-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "macroman-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "macroman-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16-croatian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16-croatian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16-croatian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16-gaelic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16-gaelic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16-gaelic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16be-croatian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16be-croatian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16be-croatian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16be-gaelic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16be-gaelic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16be-gaelic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16be-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16be-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16be-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16le-croatian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16le-croatian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16le-croatian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16le-gaelic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16le-gaelic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16le-gaelic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16le-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16le-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-16le-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32-croatian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32-croatian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32-croatian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32-gaelic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32-gaelic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32-gaelic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32be-croatian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32be-croatian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32be-croatian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32be-gaelic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32be-gaelic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32be-gaelic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32be-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32be-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32be-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32le-croatian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32le-croatian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32le-croatian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32le-gaelic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32le-gaelic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32le-gaelic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32le-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32le-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-32le-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-croatian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-croatian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-croatian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-gaelic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-gaelic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-gaelic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1250-romanian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1250-romanian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1250-romanian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1256-farsi/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1256-farsi/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1256-farsi/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-sig-croatian/culturax_00000.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-croatian/culturax_00000.txt"
+  },
+  {
+    "path": "utf-8-sig-croatian/culturax_00001.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-croatian/culturax_00001.txt"
+  },
+  {
+    "path": "utf-8-sig-croatian/culturax_00002.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-croatian/culturax_00002.txt"
+  },
+  {
+    "path": "utf-8-sig-gaelic/culturax_00000.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-gaelic/culturax_00000.txt"
+  },
+  {
+    "path": "utf-8-sig-gaelic/culturax_00001.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-gaelic/culturax_00001.txt"
+  },
+  {
+    "path": "utf-8-sig-gaelic/culturax_00002.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-gaelic/culturax_00002.txt"
+  },
+  {
+    "path": "utf-8-sig-malay/culturax_00000.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-malay/culturax_00000.txt"
+  },
+  {
+    "path": "utf-8-sig-malay/culturax_00001.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-malay/culturax_00001.txt"
+  },
+  {
+    "path": "utf-8-sig-malay/culturax_00002.txt",
+    "source": "utf-8",
+    "method": "bom-prepend",
+    "retrieved": "2026-03-03",
+    "notes": "BOM prepended to utf-8-malay/culturax_00002.txt"
+  },
+  {
+    "path": "utf-7-arabic/culturax_OSCAR-2109_98639.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-arabic/culturax_OSCAR-2109_98639.txt"
+  },
+  {
+    "path": "utf-7-arabic/culturax_mC4_98635.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-arabic/culturax_mC4_98635.txt"
+  },
+  {
+    "path": "utf-7-arabic/culturax_mC4_98638.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-arabic/culturax_mC4_98638.txt"
+  },
+  {
+    "path": "utf-7-belarusian/culturax_mC4_77015.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-belarusian/culturax_mC4_77015.txt"
+  },
+  {
+    "path": "utf-7-belarusian/culturax_mC4_77016.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-belarusian/culturax_mC4_77016.txt"
+  },
+  {
+    "path": "utf-7-belarusian/culturax_mC4_77017.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-belarusian/culturax_mC4_77017.txt"
+  },
+  {
+    "path": "utf-7-breton/culturax_OSCAR-2019_43762.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-breton/culturax_OSCAR-2019_43762.txt"
+  },
+  {
+    "path": "utf-7-breton/culturax_OSCAR-2019_43764.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-breton/culturax_OSCAR-2019_43764.txt"
+  },
+  {
+    "path": "utf-7-bulgarian/culturax_OSCAR-2019_84188.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-bulgarian/culturax_OSCAR-2019_84188.txt"
+  },
+  {
+    "path": "utf-7-bulgarian/culturax_OSCAR-2301_84186.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-bulgarian/culturax_OSCAR-2301_84186.txt"
+  },
+  {
+    "path": "utf-7-bulgarian/culturax_mC4_84187.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-bulgarian/culturax_mC4_84187.txt"
+  },
+  {
+    "path": "utf-7-chinese/_ude_5.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-chinese/_ude_5.txt"
+  },
+  {
+    "path": "utf-7-chinese/culturax_mC4_5.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-chinese/culturax_mC4_5.txt"
+  },
+  {
+    "path": "utf-7-chinese/culturax_mC4_3.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-chinese/culturax_mC4_3.txt"
+  },
+  {
+    "path": "utf-7-croatian/culturax_00000.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-croatian/culturax_00000.txt"
+  },
+  {
+    "path": "utf-7-croatian/culturax_00001.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-croatian/culturax_00001.txt"
+  },
+  {
+    "path": "utf-7-croatian/culturax_00002.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-croatian/culturax_00002.txt"
+  },
+  {
+    "path": "utf-7-czech/culturax_OSCAR-2019_98821.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-czech/culturax_OSCAR-2019_98821.txt"
+  },
+  {
+    "path": "utf-7-czech/culturax_mC4_98820.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-czech/culturax_mC4_98820.txt"
+  },
+  {
+    "path": "utf-7-czech/culturax_mC4_98822.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-czech/culturax_mC4_98822.txt"
+  },
+  {
+    "path": "utf-7-danish/culturax_mC4_83466.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-danish/culturax_mC4_83466.txt"
+  },
+  {
+    "path": "utf-7-danish/culturax_mC4_83467.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-danish/culturax_mC4_83467.txt"
+  },
+  {
+    "path": "utf-7-danish/culturax_mC4_83468.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-danish/culturax_mC4_83468.txt"
+  },
+  {
+    "path": "utf-7-dutch/culturax_OSCAR-2301_107677.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-dutch/culturax_OSCAR-2301_107677.txt"
+  },
+  {
+    "path": "utf-7-dutch/culturax_mC4_107675.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-dutch/culturax_mC4_107675.txt"
+  },
+  {
+    "path": "utf-7-dutch/culturax_mC4_107676.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-dutch/culturax_mC4_107676.txt"
+  },
+  {
+    "path": "utf-7-english/_ude_3.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-english/_ude_3.txt"
+  },
+  {
+    "path": "utf-7-english/weblabor.hu.xml",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-english/weblabor.hu.xml"
+  },
+  {
+    "path": "utf-7-english/reddit_wsb.csv",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-english/reddit_wsb.csv"
+  },
+  {
+    "path": "utf-7-esperanto/culturax_mC4_40441.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-esperanto/culturax_mC4_40441.txt"
+  },
+  {
+    "path": "utf-7-esperanto/culturax_mC4_40442.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-esperanto/culturax_mC4_40442.txt"
+  },
+  {
+    "path": "utf-7-esperanto/culturax_mC4_40443.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-esperanto/culturax_mC4_40443.txt"
+  },
+  {
+    "path": "utf-7-estonian/culturax_mC4_66818.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-estonian/culturax_mC4_66818.txt"
+  },
+  {
+    "path": "utf-7-estonian/culturax_mC4_66819.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-estonian/culturax_mC4_66819.txt"
+  },
+  {
+    "path": "utf-7-estonian/culturax_mC4_66820.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-estonian/culturax_mC4_66820.txt"
+  },
+  {
+    "path": "utf-7-farsi/culturax_mC4_104835.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-farsi/culturax_mC4_104835.txt"
+  },
+  {
+    "path": "utf-7-farsi/culturax_mC4_104836.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-farsi/culturax_mC4_104836.txt"
+  },
+  {
+    "path": "utf-7-farsi/culturax_mC4_104837.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-farsi/culturax_mC4_104837.txt"
+  },
+  {
+    "path": "utf-7-finnish/culturax_mC4_80361.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-finnish/culturax_mC4_80361.txt"
+  },
+  {
+    "path": "utf-7-finnish/culturax_mC4_80362.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-finnish/culturax_mC4_80362.txt"
+  },
+  {
+    "path": "utf-7-finnish/culturax_mC4_80363.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-finnish/culturax_mC4_80363.txt"
+  },
+  {
+    "path": "utf-7-french/culturax_OSCAR-2201_88371.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-french/culturax_OSCAR-2201_88371.txt"
+  },
+  {
+    "path": "utf-7-french/culturax_OSCAR-2301_88370.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-french/culturax_OSCAR-2301_88370.txt"
+  },
+  {
+    "path": "utf-7-french/culturax_mC4_88369.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-french/culturax_mC4_88369.txt"
+  },
+  {
+    "path": "utf-7-gaelic/culturax_00000.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-gaelic/culturax_00000.txt"
+  },
+  {
+    "path": "utf-7-gaelic/culturax_00001.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-gaelic/culturax_00001.txt"
+  },
+  {
+    "path": "utf-7-gaelic/culturax_00002.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-gaelic/culturax_00002.txt"
+  },
+  {
+    "path": "utf-7-german/culturax_OSCAR-2301_83754.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-german/culturax_OSCAR-2301_83754.txt"
+  },
+  {
+    "path": "utf-7-german/culturax_mC4_83755.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-german/culturax_mC4_83755.txt"
+  },
+  {
+    "path": "utf-7-german/culturax_mC4_83756.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-german/culturax_mC4_83756.txt"
+  },
+  {
+    "path": "utf-7-greek/_ude_greek.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-greek/_ude_greek.txt"
+  },
+  {
+    "path": "utf-7-greek/culturax_mC4_103810.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-greek/culturax_mC4_103810.txt"
+  },
+  {
+    "path": "utf-7-greek/culturax_OSCAR-2201_103812.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-greek/culturax_OSCAR-2201_103812.txt"
+  },
+  {
+    "path": "utf-7-hebrew/_ude_he3.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-hebrew/_ude_he3.txt"
+  },
+  {
+    "path": "utf-7-hebrew/culturax_OSCAR-2301_58266.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-hebrew/culturax_OSCAR-2301_58266.txt"
+  },
+  {
+    "path": "utf-7-hebrew/culturax_OSCAR-2301_58267.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-hebrew/culturax_OSCAR-2301_58267.txt"
+  },
+  {
+    "path": "utf-7-hungarian/culturax_OSCAR-2109_82419.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-hungarian/culturax_OSCAR-2109_82419.txt"
+  },
+  {
+    "path": "utf-7-hungarian/culturax_OSCAR-2301_82420.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-hungarian/culturax_OSCAR-2301_82420.txt"
+  },
+  {
+    "path": "utf-7-hungarian/culturax_mC4_82418.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-hungarian/culturax_mC4_82418.txt"
+  },
+  {
+    "path": "utf-7-icelandic/culturax_mC4_77487.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-icelandic/culturax_mC4_77487.txt"
+  },
+  {
+    "path": "utf-7-icelandic/culturax_mC4_77488.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-icelandic/culturax_mC4_77488.txt"
+  },
+  {
+    "path": "utf-7-icelandic/culturax_mC4_77489.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-icelandic/culturax_mC4_77489.txt"
+  },
+  {
+    "path": "utf-7-indonesian/culturax_mC4_114889.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-indonesian/culturax_mC4_114889.txt"
+  },
+  {
+    "path": "utf-7-indonesian/culturax_mC4_114890.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-indonesian/culturax_mC4_114890.txt"
+  },
+  {
+    "path": "utf-7-indonesian/culturax_mC4_114892.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-indonesian/culturax_mC4_114892.txt"
+  },
+  {
+    "path": "utf-7-irish/culturax_mC4_63468.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-irish/culturax_mC4_63468.txt"
+  },
+  {
+    "path": "utf-7-irish/culturax_mC4_63469.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-irish/culturax_mC4_63469.txt"
+  },
+  {
+    "path": "utf-7-irish/culturax_mC4_63470.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-irish/culturax_mC4_63470.txt"
+  },
+  {
+    "path": "utf-7-italian/culturax_mC4_92388.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-italian/culturax_mC4_92388.txt"
+  },
+  {
+    "path": "utf-7-italian/culturax_mC4_92390.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-italian/culturax_mC4_92390.txt"
+  },
+  {
+    "path": "utf-7-italian/culturax_mC4_92391.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-italian/culturax_mC4_92391.txt"
+  },
+  {
+    "path": "utf-7-japanese/_mozilla_bug426271_text-utf-8.html",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-japanese/_mozilla_bug426271_text-utf-8.html"
+  },
+  {
+    "path": "utf-7-japanese/culturax_mC4_4.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-japanese/culturax_mC4_4.txt"
+  },
+  {
+    "path": "utf-7-japanese/culturax_mC4_5.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-japanese/culturax_mC4_5.txt"
+  },
+  {
+    "path": "utf-7-kazakh/culturax_mC4_73160.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-kazakh/culturax_mC4_73160.txt"
+  },
+  {
+    "path": "utf-7-kazakh/culturax_mC4_73161.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-kazakh/culturax_mC4_73161.txt"
+  },
+  {
+    "path": "utf-7-kazakh/culturax_mC4_73162.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-kazakh/culturax_mC4_73162.txt"
+  },
+  {
+    "path": "utf-7-korean/_ude_1.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-korean/_ude_1.txt"
+  },
+  {
+    "path": "utf-7-korean/_ude_2.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-korean/_ude_2.txt"
+  },
+  {
+    "path": "utf-7-korean/culturax_mC4_1.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-korean/culturax_mC4_1.txt"
+  },
+  {
+    "path": "utf-7-latvian/culturax_mC4_71628.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-latvian/culturax_mC4_71628.txt"
+  },
+  {
+    "path": "utf-7-latvian/culturax_mC4_71629.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-latvian/culturax_mC4_71629.txt"
+  },
+  {
+    "path": "utf-7-latvian/culturax_mC4_71630.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-latvian/culturax_mC4_71630.txt"
+  },
+  {
+    "path": "utf-7-lithuanian/culturax_mC4_73445.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-lithuanian/culturax_mC4_73445.txt"
+  },
+  {
+    "path": "utf-7-lithuanian/culturax_mC4_73446.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-lithuanian/culturax_mC4_73446.txt"
+  },
+  {
+    "path": "utf-7-lithuanian/culturax_mC4_73447.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-lithuanian/culturax_mC4_73447.txt"
+  },
+  {
+    "path": "utf-7-macedonian/culturax_mC4_102724.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-macedonian/culturax_mC4_102724.txt"
+  },
+  {
+    "path": "utf-7-macedonian/culturax_mC4_102726.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-macedonian/culturax_mC4_102726.txt"
+  },
+  {
+    "path": "utf-7-macedonian/culturax_mC4_102727.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-macedonian/culturax_mC4_102727.txt"
+  },
+  {
+    "path": "utf-7-malay/culturax_00000.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-malay/culturax_00000.txt"
+  },
+  {
+    "path": "utf-7-malay/culturax_00001.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-malay/culturax_00001.txt"
+  },
+  {
+    "path": "utf-7-malay/culturax_00002.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-malay/culturax_00002.txt"
+  },
+  {
+    "path": "utf-7-maltese/culturax_mC4_51488.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-maltese/culturax_mC4_51488.txt"
+  },
+  {
+    "path": "utf-7-maltese/culturax_mC4_51489.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-maltese/culturax_mC4_51489.txt"
+  },
+  {
+    "path": "utf-7-maltese/culturax_mC4_51490.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-maltese/culturax_mC4_51490.txt"
+  },
+  {
+    "path": "utf-7-norwegian/culturax_mC4_66762.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-norwegian/culturax_mC4_66762.txt"
+  },
+  {
+    "path": "utf-7-norwegian/culturax_mC4_66763.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-norwegian/culturax_mC4_66763.txt"
+  },
+  {
+    "path": "utf-7-norwegian/culturax_mC4_66764.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-norwegian/culturax_mC4_66764.txt"
+  },
+  {
+    "path": "utf-7-polish/culturax_OSCAR-2019_97062.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-polish/culturax_OSCAR-2019_97062.txt"
+  },
+  {
+    "path": "utf-7-polish/culturax_mC4_97060.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-polish/culturax_mC4_97060.txt"
+  },
+  {
+    "path": "utf-7-polish/culturax_mC4_97061.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-polish/culturax_mC4_97061.txt"
+  },
+  {
+    "path": "utf-7-portuguese/culturax_OSCAR-2109_101819.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-portuguese/culturax_OSCAR-2109_101819.txt"
+  },
+  {
+    "path": "utf-7-portuguese/culturax_mC4_101817.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-portuguese/culturax_mC4_101817.txt"
+  },
+  {
+    "path": "utf-7-portuguese/culturax_mC4_101818.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-portuguese/culturax_mC4_101818.txt"
+  },
+  {
+    "path": "utf-7-romanian/culturax_OSCAR-2019_78977.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-romanian/culturax_OSCAR-2019_78977.txt"
+  },
+  {
+    "path": "utf-7-romanian/culturax_mC4_78976.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-romanian/culturax_mC4_78976.txt"
+  },
+  {
+    "path": "utf-7-romanian/culturax_mC4_78978.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-romanian/culturax_mC4_78978.txt"
+  },
+  {
+    "path": "utf-7-russian/_ude_russian.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-russian/_ude_russian.txt"
+  },
+  {
+    "path": "utf-7-russian/culturax_OSCAR-2019_85057.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-russian/culturax_OSCAR-2019_85057.txt"
+  },
+  {
+    "path": "utf-7-russian/culturax_OSCAR-2019_85055.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-russian/culturax_OSCAR-2019_85055.txt"
+  },
+  {
+    "path": "utf-7-serbian/culturax_mC4_66918.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-serbian/culturax_mC4_66918.txt"
+  },
+  {
+    "path": "utf-7-serbian/culturax_mC4_66920.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-serbian/culturax_mC4_66920.txt"
+  },
+  {
+    "path": "utf-7-serbian/culturax_mC4_66921.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-serbian/culturax_mC4_66921.txt"
+  },
+  {
+    "path": "utf-7-slovak/culturax_mC4_95224.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-slovak/culturax_mC4_95224.txt"
+  },
+  {
+    "path": "utf-7-slovak/culturax_mC4_95226.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-slovak/culturax_mC4_95226.txt"
+  },
+  {
+    "path": "utf-7-slovak/culturax_mC4_95227.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-slovak/culturax_mC4_95227.txt"
+  },
+  {
+    "path": "utf-7-slovene/culturax_mC4_66688.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-slovene/culturax_mC4_66688.txt"
+  },
+  {
+    "path": "utf-7-slovene/culturax_mC4_66689.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-slovene/culturax_mC4_66689.txt"
+  },
+  {
+    "path": "utf-7-slovene/culturax_mC4_66690.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-slovene/culturax_mC4_66690.txt"
+  },
+  {
+    "path": "utf-7-spanish/culturax_mC4_87069.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-spanish/culturax_mC4_87069.txt"
+  },
+  {
+    "path": "utf-7-spanish/culturax_mC4_87070.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-spanish/culturax_mC4_87070.txt"
+  },
+  {
+    "path": "utf-7-spanish/culturax_mC4_87071.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-spanish/culturax_mC4_87071.txt"
+  },
+  {
+    "path": "utf-7-swedish/culturax_mC4_96485.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-swedish/culturax_mC4_96485.txt"
+  },
+  {
+    "path": "utf-7-swedish/culturax_mC4_96486.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-swedish/culturax_mC4_96486.txt"
+  },
+  {
+    "path": "utf-7-swedish/culturax_mC4_96487.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-swedish/culturax_mC4_96487.txt"
+  },
+  {
+    "path": "utf-7-tajik/culturax_mC4_74865.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-tajik/culturax_mC4_74865.txt"
+  },
+  {
+    "path": "utf-7-tajik/culturax_mC4_74866.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-tajik/culturax_mC4_74866.txt"
+  },
+  {
+    "path": "utf-7-tajik/culturax_mC4_74867.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-tajik/culturax_mC4_74867.txt"
+  },
+  {
+    "path": "utf-7-thai/culturax_OSCAR-2301_109134.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-thai/culturax_OSCAR-2301_109134.txt"
+  },
+  {
+    "path": "utf-7-thai/culturax_mC4_109133.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-thai/culturax_mC4_109133.txt"
+  },
+  {
+    "path": "utf-7-thai/culturax_mC4_109136.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-thai/culturax_mC4_109136.txt"
+  },
+  {
+    "path": "utf-7-turkish/culturax_mC4_107848.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-turkish/culturax_mC4_107848.txt"
+  },
+  {
+    "path": "utf-7-turkish/culturax_mC4_107849.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-turkish/culturax_mC4_107849.txt"
+  },
+  {
+    "path": "utf-7-turkish/culturax_mC4_107850.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-turkish/culturax_mC4_107850.txt"
+  },
+  {
+    "path": "utf-7-ukrainian/culturax_mC4_95019.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-ukrainian/culturax_mC4_95019.txt"
+  },
+  {
+    "path": "utf-7-ukrainian/culturax_mC4_95020.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-ukrainian/culturax_mC4_95020.txt"
+  },
+  {
+    "path": "utf-7-ukrainian/culturax_mC4_95021.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-ukrainian/culturax_mC4_95021.txt"
+  },
+  {
+    "path": "utf-7-urdu/culturax_mC4_82296.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-urdu/culturax_mC4_82296.txt"
+  },
+  {
+    "path": "utf-7-urdu/culturax_mC4_82297.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-urdu/culturax_mC4_82297.txt"
+  },
+  {
+    "path": "utf-7-urdu/culturax_mC4_82298.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-urdu/culturax_mC4_82298.txt"
+  },
+  {
+    "path": "utf-7-vietnamese/culturax_OSCAR-2109_85695.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-vietnamese/culturax_OSCAR-2109_85695.txt"
+  },
+  {
+    "path": "utf-7-vietnamese/culturax_mC4_85693.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-vietnamese/culturax_mC4_85693.txt"
+  },
+  {
+    "path": "utf-7-vietnamese/culturax_mC4_85694.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-vietnamese/culturax_mC4_85694.txt"
+  },
+  {
+    "path": "utf-7-welsh/culturax_mC4_78726.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-welsh/culturax_mC4_78726.txt"
+  },
+  {
+    "path": "utf-7-welsh/culturax_mC4_78727.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-welsh/culturax_mC4_78727.txt"
+  },
+  {
+    "path": "utf-7-welsh/culturax_mC4_78728.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-welsh/culturax_mC4_78728.txt"
+  },
+  {
+    "path": "cp864-arabic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp1006-urdu/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp1006-urdu/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "cp1006-urdu/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-dutch/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-dutch/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-dutch/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-icelandic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-icelandic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-icelandic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-indonesian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-norwegian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-norwegian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-norwegian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-portuguese/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-portuguese/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-portuguese/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-swedish/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-swedish/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-1-swedish/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-dutch/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-dutch/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-dutch/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-english/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-english/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-english/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-icelandic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-icelandic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-icelandic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-indonesian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-italian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-italian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-italian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-norwegian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-norwegian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-norwegian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-portuguese/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-portuguese/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-portuguese/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-swedish/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-swedish/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-15-swedish/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-2-romanian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-2-romanian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-2-romanian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "shift-jis-japanese/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "shift-jis-japanese/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "shift-jis-japanese/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-malay/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-malay/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-8-malay/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-dutch/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-dutch/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-dutch/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-icelandic/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-icelandic/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-icelandic/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-indonesian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-italian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-italian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-italian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-norwegian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-norwegian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-norwegian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-portuguese/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-portuguese/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-portuguese/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-swedish/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-swedish/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "windows-1252-swedish/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "utf-7-malay/culturax_00000.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-malay/culturax_00000.txt"
+  },
+  {
+    "path": "utf-7-malay/culturax_00001.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-malay/culturax_00001.txt"
+  },
+  {
+    "path": "utf-7-malay/culturax_00002.txt",
+    "source": "utf-8",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": "Re-encoded from utf-8-malay/culturax_00002.txt"
+  },
+  {
+    "path": "iso-8859-13-estonian/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-13-estonian/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-13-estonian/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-14-breton/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-14-breton/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-14-breton/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-14-irish/culturax_00000.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-14-irish/culturax_00001.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "iso-8859-14-irish/culturax_00002.txt",
+    "source": "culturax",
+    "method": "transcoded",
+    "retrieved": "2026-03-03",
+    "notes": ""
+  },
+  {
+    "path": "gb18030-zh/_ude_1.txt",
+    "source": "ude",
+    "notes": "Chinese Wikipedia article about the Chinese language. Requires gb18030 (not decodable as gb2312)."
+  },
+  {
+    "path": "utf-16be-zh/sample_chinese_no_bom.txt",
+    "source": "charset-normalizer",
+    "notes": "BOM-less Chinese text (mixed simplified and traditional)."
+  },
+  {
+    "path": "utf-16le-zh/sample_chinese_no_bom.txt",
+    "source": "charset-normalizer",
+    "notes": "BOM-less Chinese text (mixed simplified and traditional)."
+  },
+  {
+    "path": "utf-32be-zh/sample_chinese_no_bom.txt",
+    "source": "charset-normalizer",
+    "notes": "BOM-less Chinese text (mixed simplified and traditional)."
+  },
+  {
+    "path": "utf-32le-zh/sample_chinese_no_bom.txt",
+    "source": "charset-normalizer",
+    "notes": "BOM-less Chinese text (mixed simplified and traditional)."
+  },
+  {
+    "path": "utf-8-en/CHANGELOG.md",
+    "source": "charset-normalizer",
+    "notes": "charset-normalizer CHANGELOG (near-ASCII, only 2 non-ASCII bytes)."
+  },
+  {
+    "path": "utf-8-en/_ude_6.txt",
+    "source": "ude",
+    "notes": "English Wikipedia article about the English language."
+  },
+  {
+    "path": "windows-1250-sr/github_bug_672.txt",
+    "source": "charset-normalizer",
+    "notes": "Serbian subtitle file from charset-normalizer issue #672."
+  }
+]
