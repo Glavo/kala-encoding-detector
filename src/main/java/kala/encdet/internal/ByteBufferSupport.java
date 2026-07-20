@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.UnmodifiableView;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 /// Creates normalized zero-copy views over arrays and byte buffers.
@@ -80,8 +81,8 @@ public final class ByteBufferSupport {
 
     /// Decodes a range by mapping each unsigned byte to the same Unicode value.
     ///
-    /// This operation allocates decoded characters but never copies the source
-    /// bytes into another byte container.
+    /// This operation does not change the source buffer's position, limit, or
+    /// mark.
     ///
     /// @param buffer source buffer
     /// @param offset first logical index relative to the source position
@@ -89,13 +90,22 @@ public final class ByteBufferSupport {
     /// @return ISO-8859-1-equivalent text
     /// @throws NullPointerException if `buffer` is `null`
     /// @throws IndexOutOfBoundsException if the range is outside the remaining bytes
+    /// @implNote Array-backed buffers are decoded directly from their exposed
+    /// array. Other buffers are copied into a temporary byte array without
+    /// changing the source buffer's position, limit, or mark.
     public static String latin1String(ByteBuffer buffer, int offset, int length) {
         Objects.checkFromIndexSize(offset, length, buffer.remaining());
-        char[] characters = new char[length];
         int start = buffer.position() + offset;
-        for (int index = 0; index < length; index++) {
-            characters[index] = (char) Byte.toUnsignedInt(buffer.get(start + index));
+        if (buffer.hasArray()) {
+            return new String(
+                    buffer.array(),
+                    buffer.arrayOffset() + start,
+                    length,
+                    StandardCharsets.ISO_8859_1
+            );
         }
-        return new String(characters);
+        byte[] bytes = new byte[length];
+        buffer.get(start, bytes, 0, length);
+        return new String(bytes, StandardCharsets.ISO_8859_1);
     }
 }

@@ -67,4 +67,36 @@ final class ByteBufferSupportTest {
         assertEquals(77, prefix.get(1));
         assertEquals(2, prefix.remaining());
     }
+
+    /// Verifies Latin-1 decoding uses an exposed array range without changing state.
+    @Test
+    void latin1StringDecodesArrayRangeWithoutChangingState() {
+        byte[] data = {0, 'A', (byte) 0xe9, 'Z', 0};
+        ByteBuffer buffer = ByteBuffer.wrap(data, 1, 3).slice();
+        buffer.position(1);
+        buffer.mark();
+
+        assertTrue(buffer.hasArray());
+        assertEquals("éZ", ByteBufferSupport.latin1String(buffer, 0, 2));
+        assertEquals(1, buffer.position());
+        assertEquals(3, buffer.limit());
+        buffer.reset();
+        assertEquals(1, buffer.position());
+    }
+
+    /// Verifies Latin-1 decoding bulk-copies direct bytes without changing state.
+    @Test
+    void latin1StringDecodesDirectRangeWithoutChangingState() {
+        ByteBuffer buffer = ByteBuffer.allocateDirect(4);
+        buffer.put(new byte[]{'A', (byte) 0xe9, 'Z', 0}).flip();
+        buffer.position(1).limit(3);
+        buffer.mark();
+
+        assertFalse(buffer.hasArray());
+        assertEquals("éZ", ByteBufferSupport.latin1String(buffer, 0, 2));
+        assertEquals(1, buffer.position());
+        assertEquals(3, buffer.limit());
+        buffer.reset();
+        assertEquals(1, buffer.position());
+    }
 }

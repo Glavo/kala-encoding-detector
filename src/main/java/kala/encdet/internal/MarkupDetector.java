@@ -420,15 +420,13 @@ final class MarkupDetector {
             return null;
         }
 
-        char[] name = new char[end - start];
         for (int index = start; index < end; index++) {
             int value = Byte.toUnsignedInt(data.get(index));
             if (value > 0x7f || value == 0) {
                 return null;
             }
-            name[index - start] = (char) value;
         }
-        return EncodingRegistry.lookup(new String(name));
+        return EncodingRegistry.lookup(ByteBufferSupport.latin1String(data, start, end - start));
     }
 
     /// Finds one byte in an absolute buffer range.
