@@ -11,8 +11,7 @@ During the Gradle build, the files `models.bin`, `idf.bin`, and `confusion.bin`
 are extracted byte-for-byte from the fixed commit's source archive. They are
 included in published artifacts but are not checked into this repository.
 The source archive and every extracted or generated resource are verified by
-SHA-256. Digests and provenance are recorded in
-`src/main/resources/kala/encdet/internal/RESOURCE-SOURCES.txt`.
+SHA-256.
 
 chardet and its extracted resources are available under the 0BSD license:
 

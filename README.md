@@ -173,5 +173,5 @@ and alias resources are generated from pinned CPython commit
 the Python Software Foundation License Version 2. The test corpus does not have
 one uniform license; each file remains copyright its respective publisher. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), the generated corpus
-`README.md` and `CATALOG.md`, and the bundled `RESOURCE-SOURCES.txt` manifest
-for details and hashes.
+`README.md` and `CATALOG.md`, and the pinned digests in the Gradle build and
+resource generator for details.
