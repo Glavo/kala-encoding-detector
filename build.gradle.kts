@@ -22,6 +22,11 @@ repositories {
     mavenCentral()
 }
 
+val jmhSourceSet = sourceSets.create("jmh") {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+}
+
 dependencies {
     compileOnly("org.jetbrains:annotations:26.1.0")
 
@@ -29,6 +34,13 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("org.jetbrains:annotations:26.1.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    add(jmhSourceSet.implementationConfigurationName, "org.openjdk.jmh:jmh-core:1.37")
+    add(
+        jmhSourceSet.annotationProcessorConfigurationName,
+        "org.openjdk.jmh:jmh-generator-annprocess:1.37"
+    )
+    add(jmhSourceSet.compileOnlyConfigurationName, "org.jetbrains:annotations:26.1.0")
 }
 
 val downloadChardetSource = tasks.register<DownloadPinnedArchive>("downloadChardetSource") {
@@ -130,6 +142,14 @@ tasks.withType<JavaCompile> {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.register<JavaExec>("jmh") {
+    group = "benchmark"
+    description = "Runs the JMH encoding-detector benchmarks"
+    dependsOn(tasks.named(jmhSourceSet.classesTaskName), tasks.classes)
+    classpath = jmhSourceSet.runtimeClasspath
+    mainClass.set("org.openjdk.jmh.Main")
 }
 
 tasks.javadoc {

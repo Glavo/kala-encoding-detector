@@ -42,6 +42,27 @@ perform downloads at runtime.
 The generated launcher is `build/install/kala-encdet/bin/kala-encdet` (or
 `kala-encdet.bat` on Windows).
 
+## Benchmarks
+
+JMH 1.37 benchmarks live in the independent `jmh` source set and do not add
+dependencies to the library or CLI runtime. The benchmark matrix compares
+`byte[]`, heap `ByteBuffer`, and direct `ByteBuffer` detection, plus complete
+candidate enumeration, using ASCII, UTF-8, and Windows-1252 inputs from 1 KiB
+through the default 200,000-byte scan limit.
+
+Run the complete warmed benchmark matrix with:
+
+```text
+./gradlew jmh
+```
+
+JMH options and a benchmark-name regular expression can be passed through the
+Gradle task. For example, this command performs a short focused run:
+
+```text
+./gradlew jmh --args='EncodingDetectorBenchmark.detectByteArray -p content=UTF_8 -p size=16384 -wi 1 -i 3 -f 1'
+```
+
 ## Basic API
 
 ```java
