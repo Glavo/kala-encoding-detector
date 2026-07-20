@@ -3,7 +3,7 @@
 
 package kala.encdet.internal;
 
-import kala.encdet.Encoding;
+import kala.encdet.EncodingDetector.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;

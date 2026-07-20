@@ -3,6 +3,8 @@
 
 package kala.encdet;
 
+import kala.encdet.EncodingDetector.Result;
+
 import org.jetbrains.annotations.NotNullByDefault;
 import org.junit.jupiter.api.Test;
 
@@ -33,28 +35,28 @@ final class ConcurrentDetectionTest {
                         + "Après les études, ils préfèrent dîner dans un café."
         ).getBytes(StandardCharsets.ISO_8859_1);
         EncodingDetector detector = EncodingDetector.DEFAULT;
-        DetectionResult expected = detector.detect(data);
+        Result expected = detector.detect(data);
         int workers = 24;
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(workers);
         try {
-            List<Callable<DetectionResult>> tasks = new ArrayList<>(workers);
+            List<Callable<Result>> tasks = new ArrayList<>(workers);
             for (int index = 0; index < workers; index++) {
                 tasks.add(() -> {
                     start.await();
-                    DetectionResult result = expected;
+                    Result result = expected;
                     for (int iteration = 0; iteration < 50; iteration++) {
                         result = detector.detect(data);
                     }
                     return result;
                 });
             }
-            List<Future<DetectionResult>> futures = new ArrayList<>(workers);
-            for (Callable<DetectionResult> task : tasks) {
+            List<Future<Result>> futures = new ArrayList<>(workers);
+            for (Callable<Result> task : tasks) {
                 futures.add(executor.submit(task));
             }
             start.countDown();
-            for (Future<DetectionResult> future : futures) {
+            for (Future<Result> future : futures) {
                 assertEquals(expected, future.get());
             }
         } finally {

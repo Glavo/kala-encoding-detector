@@ -3,9 +3,9 @@
 
 package kala.encdet.internal;
 
-import kala.encdet.Encoding;
 import kala.encdet.EncodingDetector;
-import kala.encdet.EncodingEra;
+import kala.encdet.EncodingDetector.Encoding;
+import kala.encdet.EncodingDetector.Era;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +25,7 @@ final class RegistryCoverageTest {
     void registryHasCompletePinnedCoverage() {
         List<EncodingRegistry.Info> entries = EncodingRegistry.candidates(EncodingDetector.DEFAULT);
         assertEquals(86, entries.size());
-        assertEquals(6, EncodingEra.values().length);
+        assertEquals(6, Era.values().length);
 
         LinkedHashSet<Encoding> encodings = new LinkedHashSet<>();
         HashSet<String> aliases = new HashSet<>();

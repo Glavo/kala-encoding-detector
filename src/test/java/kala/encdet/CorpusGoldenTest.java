@@ -3,6 +3,9 @@
 
 package kala.encdet;
 
+import kala.encdet.EncodingDetector.Encoding;
+import kala.encdet.EncodingDetector.Result;
+
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -56,7 +59,7 @@ final class CorpusGoldenTest {
                     continue;
                 }
                 List<ExpectedResult> expected = parseResults(fields[2]);
-                List<DetectionResult> actual = EncodingDetector.DEFAULT.detectAllUnfiltered(data);
+                List<Result> actual = EncodingDetector.DEFAULT.detectAllUnfiltered(data);
                 compareResults(path, expected, actual, mismatches);
                 samples++;
             }
@@ -78,7 +81,7 @@ final class CorpusGoldenTest {
     private static void compareResults(
             String path,
             List<ExpectedResult> expected,
-            List<DetectionResult> actual,
+            List<Result> actual,
             List<String> mismatches
     ) {
         if (expected.size() != actual.size()) {
@@ -92,7 +95,7 @@ final class CorpusGoldenTest {
         }
         for (int index = 0; index < expected.size(); index++) {
             ExpectedResult expectedResult = expected.get(index);
-            DetectionResult actualResult = actual.get(index);
+            Result actualResult = actual.get(index);
             if (!java.util.Objects.equals(expectedResult.encoding(), actualResult.encoding())
                     || !java.util.Objects.equals(expectedResult.language(), actualResult.language())
                     || !java.util.Objects.equals(expectedResult.mimeType(), actualResult.mimeType())
@@ -164,8 +167,8 @@ final class CorpusGoldenTest {
     ///
     /// @param results actual candidates
     /// @return encoding list
-    private static List<@Nullable Encoding> encodingNamesActual(List<DetectionResult> results) {
-        return results.stream().map(DetectionResult::encoding).toList();
+    private static List<@Nullable Encoding> encodingNamesActual(List<Result> results) {
+        return results.stream().map(Result::encoding).toList();
     }
 
     /// Adds one diagnostic while enforcing the output cap.

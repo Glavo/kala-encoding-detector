@@ -3,9 +3,9 @@
 
 package kala.encdet.internal;
 
-import kala.encdet.Encoding;
 import kala.encdet.EncodingDetector;
-import kala.encdet.EncodingEra;
+import kala.encdet.EncodingDetector.Encoding;
+import kala.encdet.EncodingDetector.Era;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -98,7 +98,7 @@ public final class EncodingRegistry {
     /// @param detector immutable detector configuration
     /// @return immutable entries in registry order
     static @Unmodifiable List<Info> candidates(EncodingDetector detector) {
-        Set<EncodingEra> eras = detector.encodingEras();
+        Set<Era> eras = detector.encodingEras();
         @Nullable Set<Encoding> included = detector.includeEncodings();
         @Nullable Set<Encoding> excluded = detector.excludeEncodings();
         ArrayList<Info> result = new ArrayList<>(ENTRIES.size());
@@ -161,9 +161,9 @@ public final class EncodingRegistry {
                 if (encoding == null) {
                     throw malformed(lineNumber, "unknown or duplicate canonical name " + name);
                 }
-                EncodingEra era;
+                Era era;
                 try {
-                    era = EncodingEra.valueOf(fields[1]);
+                    era = Era.valueOf(fields[1]);
                 } catch (IllegalArgumentException exception) {
                     throw malformed(lineNumber, "unknown era " + fields[1], exception);
                 }
@@ -320,7 +320,7 @@ public final class EncodingRegistry {
     record Info(
             Encoding encoding,
             @Unmodifiable List<String> aliases,
-            EncodingEra era,
+            Era era,
             boolean multibyte,
             @Unmodifiable List<String> languages
     ) {

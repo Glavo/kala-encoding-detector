@@ -3,6 +3,9 @@
 
 package kala.encdet;
 
+import kala.encdet.EncodingDetector.Encoding;
+import kala.encdet.EncodingDetector.Result;
+
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.UnmodifiableView;
 import org.junit.jupiter.api.Test;
@@ -68,11 +71,11 @@ final class PipelineEdgeCaseTest {
     void distinguishesSparseNullTextFromBinaryData() {
         byte[] sparse = "alpha beta gamma delta".getBytes(StandardCharsets.US_ASCII);
         sparse[10] = 0;
-        DetectionResult ascii = EncodingDetector.DEFAULT.detect(sparse);
+        Result ascii = EncodingDetector.DEFAULT.detect(sparse);
         assertEquals(Encoding.ASCII, ascii.encoding());
         assertEquals(0.99, ascii.confidence());
 
-        DetectionResult binary = EncodingDetector.DEFAULT.detect(new byte[100]);
+        Result binary = EncodingDetector.DEFAULT.detect(new byte[100]);
         assertNull(binary.encoding());
         assertEquals("application/octet-stream", binary.mimeType());
         assertEquals(0.95, binary.confidence());
@@ -127,7 +130,7 @@ final class PipelineEdgeCaseTest {
         EncodingDetector detector = EncodingDetector.DEFAULT;
         byte[] xmlData = "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?><root/>"
                 .getBytes(StandardCharsets.US_ASCII);
-        DetectionResult xml = detector.detect(directView(xmlData));
+        Result xml = detector.detect(directView(xmlData));
         assertEquals(detector.detect(xmlData), xml);
         assertEquals(Encoding.ISO_8859_1, xml.encoding());
         assertEquals("text/xml", xml.mimeType());
@@ -135,14 +138,14 @@ final class PipelineEdgeCaseTest {
 
         byte[] htmlData = "<meta charset=\"utf-8\"><p>Hello</p>"
                 .getBytes(StandardCharsets.US_ASCII);
-        DetectionResult html = detector.detect(readOnlyView(htmlData));
+        Result html = detector.detect(readOnlyView(htmlData));
         assertEquals(detector.detect(htmlData), html);
         assertEquals(Encoding.UTF_8, html.encoding());
         assertEquals("text/html", html.mimeType());
 
         byte[] pepData = "#!/usr/bin/env python\n# -*- coding: iso-8859-1 -*-\nx='é'\n"
                 .getBytes(StandardCharsets.ISO_8859_1);
-        DetectionResult pep = detector.detect(directView(pepData));
+        Result pep = detector.detect(directView(pepData));
         assertEquals(detector.detect(pepData), pep);
         assertEquals(Encoding.ISO_8859_1, pep.encoding());
         assertEquals("text/x-python", pep.mimeType());
@@ -240,7 +243,7 @@ final class PipelineEdgeCaseTest {
     /// @param data     signature bytes
     /// @param mimeType expected MIME type
     private static void assertMagic(byte[] data, String mimeType) {
-        DetectionResult result = EncodingDetector.DEFAULT.detect(data);
+        Result result = EncodingDetector.DEFAULT.detect(data);
         assertNull(result.encoding());
         assertEquals(1.0, result.confidence());
         assertEquals(mimeType, result.mimeType());

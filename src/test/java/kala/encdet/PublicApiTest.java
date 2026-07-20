@@ -3,6 +3,10 @@
 
 package kala.encdet;
 
+import kala.encdet.EncodingDetector.Encoding;
+import kala.encdet.EncodingDetector.Era;
+import kala.encdet.EncodingDetector.Result;
+
 import org.jetbrains.annotations.NotNullByDefault;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +33,7 @@ final class PublicApiTest {
     @Test
     void defaultDetectorMatchesReference() {
         EncodingDetector detector = EncodingDetector.DEFAULT;
-        assertEquals(EnumSet.allOf(EncodingEra.class), detector.encodingEras());
+        assertEquals(EnumSet.allOf(Era.class), detector.encodingEras());
         assertEquals(200_000, detector.maxBytes());
         assertEquals(
                 EncodingDetector.DEFAULT_MINIMUM_CONFIDENCE,
@@ -42,7 +46,7 @@ final class PublicApiTest {
         assertEquals(Encoding.UTF_8, detector.emptyInputEncoding());
         assertThrows(
                 UnsupportedOperationException.class,
-                () -> detector.encodingEras().add(EncodingEra.DOS)
+                () -> detector.encodingEras().add(Era.DOS)
         );
 
     }
@@ -50,7 +54,7 @@ final class PublicApiTest {
     /// Verifies immutable configuration changes and defensive copies.
     @Test
     void configurationMethodsDefensivelyCopyCollections() {
-        EnumSet<EncodingEra> eras = EnumSet.of(EncodingEra.MODERN_WEB);
+        EnumSet<Era> eras = EnumSet.of(Era.MODERN_WEB);
         EnumSet<Encoding> included = EnumSet.of(Encoding.CP1252, Encoding.UTF_8);
         EnumSet<Encoding> excluded = EnumSet.of(Encoding.ISO_8859_1);
         EncodingDetector detector = EncodingDetector.DEFAULT
@@ -61,10 +65,10 @@ final class PublicApiTest {
                 .withNoMatchEncoding(Encoding.CP1252)
                 .withEmptyInputEncoding(Encoding.ASCII);
 
-        eras.add(EncodingEra.DOS);
+        eras.add(Era.DOS);
         included.clear();
         excluded.clear();
-        assertEquals(Set.of(EncodingEra.MODERN_WEB), detector.encodingEras());
+        assertEquals(Set.of(Era.MODERN_WEB), detector.encodingEras());
         assertEquals(0.75, detector.minimumConfidence());
         assertEquals(Set.of(Encoding.CP1252, Encoding.UTF_8), detector.includeEncodings());
         assertEquals(Set.of(Encoding.ISO_8859_1), detector.excludeEncodings());
@@ -84,15 +88,15 @@ final class PublicApiTest {
         assertEquals(200_000, detector.maxBytes());
         assertEquals(17, changed.maxBytes());
         assertEquals(0.75, changed.minimumConfidence());
-        assertEquals(Set.of(EncodingEra.MODERN_WEB), changed.encodingEras());
-        assertEquals(Set.of(EncodingEra.DOS), changed.withEncodingEra(EncodingEra.DOS).encodingEras());
+        assertEquals(Set.of(Era.MODERN_WEB), changed.encodingEras());
+        assertEquals(Set.of(Era.DOS), changed.withEncodingEra(Era.DOS).encodingEras());
     }
 
     /// Verifies unchanged configuration operations preserve detector identity.
     @Test
     void unchangedConfigurationReturnsSameInstance() {
         EncodingDetector detector = EncodingDetector.DEFAULT
-                .withEncodingEra(EncodingEra.DOS)
+                .withEncodingEra(Era.DOS)
                 .withMaxBytes(12)
                 .withMinimumConfidence(0.4)
                 .withPreferredSuperset(true)
@@ -101,8 +105,8 @@ final class PublicApiTest {
                 .withNoMatchEncoding(Encoding.CP437)
                 .withEmptyInputEncoding(Encoding.ASCII);
 
-        assertSame(detector, detector.withEncodingEras(Set.of(EncodingEra.DOS)));
-        assertSame(detector, detector.withEncodingEra(EncodingEra.DOS));
+        assertSame(detector, detector.withEncodingEras(Set.of(Era.DOS)));
+        assertSame(detector, detector.withEncodingEra(Era.DOS));
         assertSame(detector, detector.withMaxBytes(12));
         assertSame(detector, detector.withMinimumConfidence(0.4));
         assertSame(detector, detector.withPreferredSuperset(true));
@@ -235,11 +239,11 @@ final class PublicApiTest {
     void detectsDeterministicTextCases() {
         EncodingDetector detector = EncodingDetector.DEFAULT;
         assertEquals(
-                new DetectionResult(Encoding.ASCII, 1.0, "pl", "text/plain"),
+                new Result(Encoding.ASCII, 1.0, "pl", "text/plain"),
                 detector.detect("Hello world".getBytes(StandardCharsets.US_ASCII))
         );
         assertEquals(
-                new DetectionResult(Encoding.UTF_8, 0.10, null, "text/plain"),
+                new Result(Encoding.UTF_8, 0.10, null, "text/plain"),
                 detector.detect(new byte[0])
         );
         assertEquals(
@@ -257,8 +261,8 @@ final class PublicApiTest {
     void byteBufferInputsMatchArraysAndPreserveBufferState() {
         byte[] data = "Héllo 世界 — Καλημέρα".getBytes(StandardCharsets.UTF_8);
         EncodingDetector detector = EncodingDetector.DEFAULT;
-        DetectionResult expected = detector.detect(data);
-        List<DetectionResult> expectedAll = detector.detectAllUnfiltered(data);
+        Result expected = detector.detect(data);
+        List<Result> expectedAll = detector.detectAllUnfiltered(data);
 
         ByteBuffer direct = ByteBuffer.allocateDirect(data.length + 4);
         direct.put((byte) 0x80);
@@ -313,7 +317,7 @@ final class PublicApiTest {
         EncodingDetector overlap = EncodingDetector.DEFAULT
                 .withIncludedEncodings(Set.of(Encoding.ASCII))
                 .withExcludedEncodings(Set.of(Encoding.ASCII));
-        DetectionResult none = overlap.detect("Hello".getBytes(StandardCharsets.US_ASCII));
+        Result none = overlap.detect("Hello".getBytes(StandardCharsets.US_ASCII));
         assertNull(none.encoding());
         assertEquals(0.0, none.confidence());
         assertEquals("application/octet-stream", none.mimeType());
@@ -350,7 +354,7 @@ final class PublicApiTest {
         System.arraycopy(ascii, 0, data, 0, ascii.length);
         System.arraycopy(suffix, 0, data, ascii.length, suffix.length);
         EncodingDetector bounded = EncodingDetector.DEFAULT.withMaxBytes(ascii.length);
-        DetectionResult boundedExpected = bounded.detect(ascii);
+        Result boundedExpected = bounded.detect(ascii);
         assertEquals(boundedExpected, bounded.detect(data));
         assertEquals(boundedExpected, bounded.detect(ByteBuffer.wrap(data)));
         assertEquals(Encoding.ASCII, boundedExpected.encoding());
@@ -365,8 +369,8 @@ final class PublicApiTest {
                 (byte) 0xf6, (byte) 0xfc, (byte) 0xe4
         };
         EncodingDetector detector = EncodingDetector.DEFAULT;
-        List<DetectionResult> all = detector.detectAllUnfiltered(data);
-        List<DetectionResult> filtered = detector.detectAll(data);
+        List<Result> all = detector.detectAllUnfiltered(data);
+        List<Result> filtered = detector.detectAll(data);
         assertFalse(all.isEmpty());
         assertEquals(detector.detect(data), all.get(0));
         double minimumConfidence = detector.minimumConfidence();
@@ -383,7 +387,7 @@ final class PublicApiTest {
         }
         assertThrows(
                 UnsupportedOperationException.class,
-                () -> all.add(new DetectionResult(Encoding.ASCII, 1.0, null, "text/plain"))
+                () -> all.add(new Result(Encoding.ASCII, 1.0, null, "text/plain"))
         );
         assertEquals(detector.detectAllUnfiltered(data), all);
     }
@@ -395,13 +399,13 @@ final class PublicApiTest {
                 (byte) 0xe9, (byte) 0xe8, (byte) 0xea, (byte) 0xeb,
                 (byte) 0xf6, (byte) 0xfc, (byte) 0xe4
         };
-        List<DetectionResult> all = EncodingDetector.DEFAULT.detectAllUnfiltered(data);
+        List<Result> all = EncodingDetector.DEFAULT.detectAllUnfiltered(data);
         double highest = all.get(0).confidence();
         double lowest = all.get(all.size() - 1).confidence();
         assertTrue(highest > lowest);
 
         double threshold = (highest + lowest) / 2.0;
-        List<DetectionResult> expected = all.stream()
+        List<Result> expected = all.stream()
                 .filter(result -> result.confidence() >= threshold)
                 .toList();
         assertFalse(expected.isEmpty());
@@ -414,7 +418,7 @@ final class PublicApiTest {
         assertEquals(all, detector.detectAllUnfiltered(data));
         assertEquals(EncodingDetector.DEFAULT.detect(data), detector.detect(data));
 
-        List<DetectionResult> boundary = all.stream()
+        List<Result> boundary = all.stream()
                 .filter(result -> result.confidence() >= highest)
                 .toList();
         assertEquals(
@@ -462,11 +466,11 @@ final class PublicApiTest {
         assertThrows(NullPointerException.class, () -> EncodingDetector.lookupEncoding(null));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new DetectionResult(Encoding.ASCII, Double.NaN, null, null)
+                () -> new Result(Encoding.ASCII, Double.NaN, null, null)
         );
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new DetectionResult(Encoding.ASCII, 1.01, null, null)
+                () -> new Result(Encoding.ASCII, 1.01, null, null)
         );
     }
 }

@@ -66,14 +66,14 @@ Gradle task. For example, this command performs a short focused run:
 ## Basic API
 
 ```java
-import kala.encdet.DetectionResult;
 import kala.encdet.EncodingDetector;
+import kala.encdet.EncodingDetector.Result;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 byte[] input = Files.readAllBytes(Path.of("document.txt"));
-DetectionResult result = EncodingDetector.DEFAULT.detect(input);
+Result result = EncodingDetector.DEFAULT.detect(input);
 
 System.out.println(
         result.encoding() == null ? null : result.encoding().canonicalName()
@@ -99,22 +99,22 @@ every candidate. Both lists are immutable and use stable
 descending-confidence order.
 
 ```java
-import kala.encdet.DetectionResult;
-import kala.encdet.Encoding;
 import kala.encdet.EncodingDetector;
-import kala.encdet.EncodingEra;
+import kala.encdet.EncodingDetector.Encoding;
+import kala.encdet.EncodingDetector.Era;
+import kala.encdet.EncodingDetector.Result;
 
 import java.util.Set;
 
 EncodingDetector detector = EncodingDetector.DEFAULT
-        .withEncodingEras(Set.of(EncodingEra.MODERN_WEB))
+        .withEncodingEras(Set.of(Era.MODERN_WEB))
         .withMaxBytes(100_000)
         .withMinimumConfidence(0.35)
         .withIncludedEncodings(Set.of(Encoding.UTF_8, Encoding.CP1252))
         .withNoMatchEncoding(Encoding.CP1252)
         .withPreferredSuperset(false);
 
-DetectionResult result = detector.detect(input);
+Result result = detector.detect(input);
 ```
 
 `EncodingDetector` is immutable. Every `withXxx` method leaves its receiver
@@ -122,12 +122,13 @@ unchanged. It returns that receiver when the requested value is already
 configured and otherwise returns an independent detector, so configured
 instances can be reused safely across detection calls and threads.
 
-The `Encoding` enum represents all 86 detection targets throughout the public
-API. Its `canonicalName()` and `displayName()` methods provide text only at
-interchange and presentation boundaries. Those names are not guaranteed to be
-accepted by `Charset.forName`, because Java 17's charset providers do not cover
-every target. A target is not always an exact decoder identity: lookup may fold
-related aliases such as `cp037` into `Encoding.CP1140`.
+The `EncodingDetector.Encoding` enum represents all 86 detection targets
+throughout the public API. Its `canonicalName()` and `displayName()` methods
+provide text only at interchange and presentation boundaries. Those names are
+not guaranteed to be accepted by `Charset.forName`, because Java 17's charset
+providers do not cover every target. A target is not always an exact decoder
+identity: lookup may fold related aliases such as `cp037` into
+`EncodingDetector.Encoding.CP1140`.
 `EncodingDetector.lookupEncoding` resolves canonical, IANA, WHATWG, and codec
 aliases to enum values without consulting a JDK charset provider;
 `supportedEncodings` returns the enum values in registry order.
@@ -139,8 +140,8 @@ aliases to enum values without consulting a JDK charset provider;
 - `maxBytes = 200_000`
 - no preferred-superset remapping
 - no include or exclude filter
-- `Encoding.CP1252` when no candidate survives
-- `Encoding.UTF_8` for empty input
+- `EncodingDetector.Encoding.CP1252` when no candidate survives
+- `EncodingDetector.Encoding.UTF_8` for empty input
 
 Filters apply in era, include, then exclude order. They also gate BOM, markup,
 escape, and fallback results. Binary classification is not filtered and is
@@ -173,7 +174,7 @@ type document.txt | kala-encdet
 Use `kala-encdet --help` for the complete option summary.
 
 The CLI accepts textual aliases and renders each detected enum value through
-`Encoding.displayName()` for chardet-compatible output.
+`EncodingDetector.Encoding.displayName()` for chardet-compatible output.
 
 ## Verification data
 

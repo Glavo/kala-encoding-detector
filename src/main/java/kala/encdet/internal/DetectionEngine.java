@@ -3,9 +3,9 @@
 
 package kala.encdet.internal;
 
-import kala.encdet.DetectionResult;
-import kala.encdet.Encoding;
 import kala.encdet.EncodingDetector;
+import kala.encdet.EncodingDetector.Encoding;
+import kala.encdet.EncodingDetector.Result;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -92,21 +92,21 @@ public final class DetectionEngine {
     /// @param input    caller-owned bytes, which are never modified or retained
     /// @param detector immutable detector configuration
     /// @return immutable public candidates in stable ranking order
-    public static @Unmodifiable List<DetectionResult> detect(
+    public static @Unmodifiable List<Result> detect(
             @UnmodifiableView ByteBuffer input,
             EncodingDetector detector
     ) {
         @UnmodifiableView ByteBuffer data = ByteBufferSupport.prefix(input, detector.maxBytes());
         List<PipelineResult> results = runCore(data, detector);
         results = fillLanguages(data, results);
-        ArrayList<DetectionResult> publicResults = new ArrayList<>(results.size());
+        ArrayList<Result> publicResults = new ArrayList<>(results.size());
         for (PipelineResult result : results) {
             String mimeType = result.mimeType() != null
                     ? result.mimeType()
                     : result.encoding() == null ? "application/octet-stream" : "text/plain";
             @Nullable Encoding encoding = transformEncoding(result.encoding(), detector);
             double confidence = Math.max(0.0, Math.min(result.confidence(), 1.0));
-            publicResults.add(new DetectionResult(
+            publicResults.add(new Result(
                     encoding,
                     confidence,
                     result.language(),

@@ -3,8 +3,8 @@
 
 package kala.encdet.benchmark;
 
-import kala.encdet.DetectionResult;
 import kala.encdet.EncodingDetector;
+import kala.encdet.EncodingDetector.Result;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jetbrains.annotations.UnmodifiableView;
@@ -71,7 +71,7 @@ public class EncodingDetectorBenchmark {
     /// @param state prepared benchmark input
     /// @return highest-ranked detection result
     @Benchmark
-    public DetectionResult detectByteArray(InputState state) {
+    public Result detectByteArray(InputState state) {
         return DETECTOR.detect(state.data);
     }
 
@@ -80,7 +80,7 @@ public class EncodingDetectorBenchmark {
     /// @param state prepared benchmark input
     /// @return highest-ranked detection result
     @Benchmark
-    public DetectionResult detectHeapByteBuffer(InputState state) {
+    public Result detectHeapByteBuffer(InputState state) {
         return DETECTOR.detect(state.heapBuffer);
     }
 
@@ -89,7 +89,7 @@ public class EncodingDetectorBenchmark {
     /// @param state prepared benchmark input
     /// @return highest-ranked detection result
     @Benchmark
-    public DetectionResult detectDirectByteBuffer(InputState state) {
+    public Result detectDirectByteBuffer(InputState state) {
         return DETECTOR.detect(state.directBuffer);
     }
 
@@ -98,7 +98,7 @@ public class EncodingDetectorBenchmark {
     /// @param state prepared benchmark input
     /// @return immutable ordered detection candidates
     @Benchmark
-    public @Unmodifiable List<DetectionResult> detectAllUnfilteredByteArray(InputState state) {
+    public @Unmodifiable List<Result> detectAllUnfilteredByteArray(InputState state) {
         return DETECTOR.detectAllUnfiltered(state.data);
     }
 

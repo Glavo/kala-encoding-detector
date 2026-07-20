@@ -3,10 +3,10 @@
 
 package kala.encdet.internal.cli;
 
-import kala.encdet.DetectionResult;
-import kala.encdet.Encoding;
 import kala.encdet.EncodingDetector;
-import kala.encdet.EncodingEra;
+import kala.encdet.EncodingDetector.Encoding;
+import kala.encdet.EncodingDetector.Era;
+import kala.encdet.EncodingDetector.Result;
 import kala.encdet.internal.EncodingRegistry;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
@@ -119,7 +119,7 @@ public final class Main {
                     continue;
                 }
                 try {
-                    DetectionResult result = parsed.toDetector().detect(data);
+                    Result result = parsed.toDetector().detect(data);
                     printResult(result, file, parsed.minimal, parsed.language, output);
                 } catch (RuntimeException exception) {
                     error.println(
@@ -139,7 +139,7 @@ public final class Main {
             return 1;
         }
         try {
-            DetectionResult result = parsed.toDetector().detect(data);
+            Result result = parsed.toDetector().detect(data);
             printResult(result, "stdin", parsed.minimal, parsed.language, output);
             return 0;
         } catch (RuntimeException exception) {
@@ -156,7 +156,7 @@ public final class Main {
     /// @param includeLanguage whether language information is printed
     /// @param output          destination stream
     private static void printResult(
-            DetectionResult result,
+            Result result,
             String label,
             boolean minimal,
             boolean includeLanguage,
@@ -188,7 +188,7 @@ public final class Main {
     ///
     /// @param result detection result
     /// @return ISO language code
-    private static String languageCode(DetectionResult result) {
+    private static String languageCode(Result result) {
         return result.language() == null ? "und" : result.language();
     }
 
@@ -227,7 +227,7 @@ public final class Main {
         private boolean version;
 
         /// Selected encoding eras.
-        private Set<EncodingEra> eras = EnumSet.allOf(EncodingEra.class);
+        private Set<Era> eras = EnumSet.allOf(Era.class);
 
         /// Optional raw include filter.
         private @Nullable Set<String> includeNames;
@@ -343,12 +343,12 @@ public final class Main {
         /// @param value lower-case CLI era name
         /// @return selected eras
         /// @throws CliException when the selector is unknown
-        private static Set<EncodingEra> parseEra(String value) throws CliException {
+        private static Set<Era> parseEra(String value) throws CliException {
             if (value.equals("all")) {
-                return EnumSet.allOf(EncodingEra.class);
+                return EnumSet.allOf(Era.class);
             }
             try {
-                return EnumSet.of(EncodingEra.valueOf(value.toUpperCase(Locale.ROOT)));
+                return EnumSet.of(Era.valueOf(value.toUpperCase(Locale.ROOT)));
             } catch (IllegalArgumentException exception) {
                 throw new CliException(
                         "argument --encoding-era: invalid choice: '" + value + "'"
