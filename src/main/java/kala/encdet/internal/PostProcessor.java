@@ -30,11 +30,11 @@ final class PostProcessor {
             ));
 
     /// Distinguishing bytes for niche Latin candidates.
-    private static final @Unmodifiable Map<Encoding, @Unmodifiable Set<Integer>> DEMOTION_CANDIDATES =
+    private static final @Unmodifiable Map<Encoding, ByteSet> DEMOTION_CANDIDATES =
             createDemotionCandidates();
 
     /// Tajik-specific KOI8-T bytes.
-    private static final @Unmodifiable Set<Integer> KOI8_T_DISTINGUISHING = Set.of(
+    private static final ByteSet KOI8_T_DISTINGUISHING = ByteSet.of(
             0x80, 0x81, 0x83, 0x8a, 0x8c, 0x8d, 0x8e, 0x90, 0xa1, 0xa2, 0xa5, 0xb5
     );
 
@@ -45,22 +45,22 @@ final class PostProcessor {
     /// Creates the immutable byte-evidence table for niche Latin encodings.
     ///
     /// @return the byte-evidence table
-    private static @Unmodifiable Map<Encoding, @Unmodifiable Set<Integer>> createDemotionCandidates() {
-        EnumMap<Encoding, @Unmodifiable Set<Integer>> candidates = new EnumMap<>(Encoding.class);
-        candidates.put(Encoding.ISO_8859_10, Set.of(
+    private static @Unmodifiable Map<Encoding, ByteSet> createDemotionCandidates() {
+        EnumMap<Encoding, ByteSet> candidates = new EnumMap<>(Encoding.class);
+        candidates.put(Encoding.ISO_8859_10, ByteSet.of(
                 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa8, 0xa9, 0xaa, 0xab, 0xac,
                 0xae, 0xaf, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb8, 0xb9, 0xba,
                 0xbb, 0xbc, 0xbd, 0xbe, 0xbf, 0xc0, 0xc7, 0xc8, 0xca, 0xcc, 0xd1,
                 0xd2, 0xd7, 0xd9, 0xe0, 0xe7, 0xe8, 0xea, 0xec, 0xf1, 0xf2, 0xf7,
                 0xf9, 0xff
         ));
-        candidates.put(Encoding.ISO_8859_14, Set.of(
+        candidates.put(Encoding.ISO_8859_14, ByteSet.of(
                 0xa1, 0xa2, 0xa4, 0xa5, 0xa6, 0xa8, 0xaa, 0xab, 0xac, 0xaf, 0xb0,
                 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb7, 0xb8, 0xb9, 0xba, 0xbb, 0xbc,
                 0xbd, 0xbe, 0xbf, 0xd0, 0xd7, 0xde, 0xf0, 0xf7, 0xfe
         ));
-        candidates.put(Encoding.CP1254, Set.of(0xd0, 0xdd, 0xde, 0xf0, 0xfd, 0xfe));
-        candidates.put(Encoding.HP_ROMAN8, Set.of(
+        candidates.put(Encoding.CP1254, ByteSet.of(0xd0, 0xdd, 0xde, 0xf0, 0xfd, 0xfe));
+        candidates.put(Encoding.HP_ROMAN8, ByteSet.of(
                 0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca,
                 0xcb, 0xcc, 0xcd, 0xce, 0xcf, 0xd1, 0xd4, 0xd5, 0xd6, 0xd9, 0xdd,
                 0xde
@@ -145,14 +145,13 @@ final class PostProcessor {
             Encoding encoding,
             @UnmodifiableView ByteBuffer data
     ) {
-        @Nullable @Unmodifiable Set<Integer> distinguishing =
-                DEMOTION_CANDIDATES.get(encoding);
+        @Nullable ByteSet distinguishing = DEMOTION_CANDIDATES.get(encoding);
         if (distinguishing == null) {
             return false;
         }
         for (int index = 0; index < data.remaining(); index++) {
-            int unsigned = Byte.toUnsignedInt(data.get(index));
-            if (unsigned > 0x7f && distinguishing.contains(unsigned)) {
+            byte value = data.get(index);
+            if (value < 0 && distinguishing.contains(value)) {
                 return false;
             }
         }
@@ -205,11 +204,11 @@ final class PostProcessor {
     /// @return whether a matching high byte exists
     private static boolean containsAny(
             @UnmodifiableView ByteBuffer data,
-            @Unmodifiable Set<Integer> values
+            ByteSet values
     ) {
         for (int index = 0; index < data.remaining(); index++) {
-            int unsigned = Byte.toUnsignedInt(data.get(index));
-            if (unsigned > 0x7f && values.contains(unsigned)) {
+            byte value = data.get(index);
+            if (value < 0 && values.contains(value)) {
                 return true;
             }
         }
