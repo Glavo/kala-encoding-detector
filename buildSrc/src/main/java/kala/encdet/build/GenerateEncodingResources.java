@@ -22,10 +22,10 @@ import javax.inject.Inject;
 
 import java.io.IOException;
 
-/// Generates all runtime binary resources required by the detector.
+/// Generates all runtime resources required by the detector.
 ///
 /// The task extracts the pinned upstream statistical files and builds the
-/// kala-specific validity and decode tables from deterministic textual data.
+/// kala-specific registry, validity, and decode tables from pinned source archives.
 @NotNullByDefault
 @CacheableTask
 public abstract class GenerateEncodingResources extends DefaultTask {
@@ -38,34 +38,26 @@ public abstract class GenerateEncodingResources extends DefaultTask {
     /// @return archive input property
     @InputFile
     @PathSensitive(PathSensitivity.NONE)
-    public abstract RegularFileProperty getSourceArchive();
+    public abstract RegularFileProperty getChardetSourceArchive();
 
     /// Returns the exact root directory expected inside the source archive.
     ///
     /// @return archive root property
     @Input
-    public abstract Property<String> getArchiveRoot();
+    public abstract Property<String> getChardetArchiveRoot();
 
-    /// Returns the reviewable single-byte mapping source.
+    /// Returns the verified CPython source archive.
     ///
-    /// @return mapping input property
+    /// @return archive input property
     @InputFile
     @PathSensitive(PathSensitivity.NONE)
-    public abstract RegularFileProperty getSingleByteMappings();
+    public abstract RegularFileProperty getCpythonSourceArchive();
 
-    /// Returns the reviewable stateless multibyte range source.
+    /// Returns the exact root directory expected inside the CPython archive.
     ///
-    /// @return range input property
-    @InputFile
-    @PathSensitive(PathSensitivity.NONE)
-    public abstract RegularFileProperty getMultibyteRanges();
-
-    /// Returns the reviewable HZ range source.
-    ///
-    /// @return range input property
-    @InputFile
-    @PathSensitive(PathSensitivity.NONE)
-    public abstract RegularFileProperty getHzRanges();
+    /// @return archive root property
+    @Input
+    public abstract Property<String> getCpythonArchiveRoot();
 
     /// Returns the generated classpath resource root.
     ///
@@ -85,11 +77,10 @@ public abstract class GenerateEncodingResources extends DefaultTask {
         getFileSystemOperations().delete(spec -> spec.delete(getOutputDirectory()));
         try {
             EncodingResourceGenerator.generate(
-                    getSourceArchive().get().getAsFile().toPath(),
-                    getArchiveRoot().get(),
-                    getSingleByteMappings().get().getAsFile().toPath(),
-                    getMultibyteRanges().get().getAsFile().toPath(),
-                    getHzRanges().get().getAsFile().toPath(),
+                    getChardetSourceArchive().get().getAsFile().toPath(),
+                    getChardetArchiveRoot().get(),
+                    getCpythonSourceArchive().get().getAsFile().toPath(),
+                    getCpythonArchiveRoot().get(),
                     getOutputDirectory().get().getAsFile().toPath()
             );
         } catch (IOException | IllegalArgumentException exception) {

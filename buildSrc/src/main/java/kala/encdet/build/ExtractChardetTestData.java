@@ -40,12 +40,23 @@ public abstract class ExtractChardetTestData extends DefaultTask {
     @Input
     public abstract Property<String> getArchiveRoot();
 
-    /// Returns the complete path, length, and digest inventory.
+    /// Returns the exact expected number of corpus files.
     ///
-    /// @return inventory input property
-    @InputFile
-    @PathSensitive(PathSensitivity.NONE)
-    public abstract RegularFileProperty getInventory();
+    /// @return file-count input property
+    @Input
+    public abstract Property<Integer> getExpectedFileCount();
+
+    /// Returns the exact expected aggregate uncompressed byte length.
+    ///
+    /// @return aggregate-length input property
+    @Input
+    public abstract Property<Long> getExpectedTotalBytes();
+
+    /// Returns the expected canonical corpus-tree SHA-256 digest.
+    ///
+    /// @return lower-case digest input property
+    @Input
+    public abstract Property<String> getExpectedTreeSha256();
 
     /// Returns the generated test-resource root.
     ///
@@ -60,7 +71,9 @@ public abstract class ExtractChardetTestData extends DefaultTask {
             TestCorpusExtractor.extract(
                     getSourceArchive().get().getAsFile().toPath(),
                     getArchiveRoot().get(),
-                    getInventory().get().getAsFile().toPath(),
+                    getExpectedFileCount().get(),
+                    getExpectedTotalBytes().get(),
+                    getExpectedTreeSha256().get(),
                     getOutputDirectory().get().getAsFile().toPath()
             );
         } catch (IOException | IllegalArgumentException exception) {

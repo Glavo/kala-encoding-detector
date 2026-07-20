@@ -22,7 +22,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/// Verifies the fixed upstream corpus inventory and complete oracle candidates.
+/// Verifies the generated upstream corpus against an independent behavioral oracle.
 @NotNullByDefault
 final class CorpusGoldenTest {
     /// Corpus classpath prefix.
@@ -30,29 +30,6 @@ final class CorpusGoldenTest {
 
     /// Maximum mismatch details retained in one assertion message.
     private static final int MAX_DETAILS = 40;
-
-    /// Verifies every vendored file's byte length and SHA-256 digest.
-    ///
-    /// @throws IOException if a test resource cannot be read
-    @Test
-    void snapshotMatchesInventory() throws IOException {
-        int count = 0;
-        try (BufferedReader reader = resourceReader("chardet-test-data-inventory.tsv")) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.isEmpty() || line.charAt(0) == '#') {
-                    continue;
-                }
-                String[] fields = line.split("\\t", -1);
-                assertEquals(3, fields.length, "Malformed inventory line: " + line);
-                byte[] data = resourceBytes(CORPUS_PREFIX + fields[0]);
-                assertEquals(Long.parseLong(fields[1]), data.length, fields[0]);
-                assertEquals(fields[2], sha256(data), fields[0]);
-                count++;
-            }
-        }
-        assertEquals(2531, count);
-    }
 
     /// Verifies every result field, confidence, and candidate order.
     ///

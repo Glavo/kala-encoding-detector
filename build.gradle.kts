@@ -10,6 +10,8 @@ plugins {
 
 val chardetCommit = "e3dfaa1c75256c9d2a06103b566ea92997844f70"
 val chardetArchiveSha256 = "a95933ef915caf1a1717d94a5c96b5cc0220b0f576c320ae475f8a3be73751d5"
+val cpythonCommit = "c63aec69bd59c55314c06c23f4c22c03de76fe45"
+val cpythonArchiveSha256 = "ebe31c63a7e1857bac15f64027d97671732ab7db3379a6601cfd80f08c793ca2"
 val testDataCommit = "fa16e9ffde8fd55606e2c7be7423a5fa702cb4a1"
 val testDataArchiveSha256 = "a323ac01da5007b41d59cf9e741d862cd14aada832e7182c19be19c1bd984449"
 
@@ -41,15 +43,26 @@ val downloadChardetSource = tasks.register<DownloadPinnedArchive>("downloadChard
     )
 }
 
+val downloadCpythonSource = tasks.register<DownloadPinnedArchive>("downloadCpythonSource") {
+    group = "build setup"
+    description = "Downloads the pinned CPython source archive"
+    sourceUri.set("https://codeload.github.com/python/cpython/zip/$cpythonCommit")
+    expectedSha256.set(cpythonArchiveSha256)
+    maximumBytes.set(40L * 1024L * 1024L)
+    offline.set(gradle.startParameter.isOffline)
+    archiveFile.set(
+        layout.projectDirectory.file(".gradle/upstream-archives/$cpythonArchiveSha256.zip")
+    )
+}
+
 val generateEncodingResources = tasks.register<GenerateEncodingResources>("generateEncodingResources") {
     group = "build setup"
     description = "Generates deterministic encoding detector resources"
-    dependsOn(downloadChardetSource)
-    sourceArchive.set(downloadChardetSource.flatMap { it.archiveFile })
-    archiveRoot.set("chardet-$chardetCommit")
-    singleByteMappings.set(layout.projectDirectory.file("gradle/encoding-data/single-byte-mappings.tsv"))
-    multibyteRanges.set(layout.projectDirectory.file("gradle/encoding-data/multibyte-validity.ranges"))
-    hzRanges.set(layout.projectDirectory.file("gradle/encoding-data/hz-validity.ranges"))
+    dependsOn(downloadChardetSource, downloadCpythonSource)
+    chardetSourceArchive.set(downloadChardetSource.flatMap { it.archiveFile })
+    chardetArchiveRoot.set("chardet-$chardetCommit")
+    cpythonSourceArchive.set(downloadCpythonSource.flatMap { it.archiveFile })
+    cpythonArchiveRoot.set("cpython-$cpythonCommit")
     outputDirectory.set(layout.buildDirectory.dir("generated-resources/main"))
 }
 
@@ -71,7 +84,9 @@ val extractChardetTestData = tasks.register<ExtractChardetTestData>("extractChar
     dependsOn(downloadChardetTestData)
     sourceArchive.set(downloadChardetTestData.flatMap { it.archiveFile })
     archiveRoot.set("test-data-$testDataCommit")
-    inventory.set(layout.projectDirectory.file("src/test/resources/chardet-test-data-inventory.tsv"))
+    expectedFileCount.set(2531)
+    expectedTotalBytes.set(52_675_437L)
+    expectedTreeSha256.set("3d025b519a47ac2ac1eadcb458a28741ef47fa44747b1ff9f64a3d279c7d5d0d")
     outputDirectory.set(layout.buildDirectory.dir("generated-resources/test"))
 }
 

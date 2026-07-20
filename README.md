@@ -27,12 +27,14 @@ distribution with:
 ./gradlew test javadoc installDist
 ```
 
-The source tree does not contain the detector's binary tables or the binary
-test corpus. Tasks that process main resources download the fixed
-`chardet@e3dfaa1` source ZIP, verify its SHA-256, extract the three upstream
-model files, and generate the kala-specific tables with pure Java code from
-the reviewable text data under `gradle/encoding-data`. Test tasks independently
-download and verify `chardet/test-data@fa16e9f`. Archives are retained in
+The source tree does not contain the detector's binary tables, generated
+registry or codec tables, or the binary test corpus. Tasks that process main
+resources download the fixed `chardet@e3dfaa1` and
+`CPython@c63aec69bd59c55314c06c23f4c22c03de76fe45` source ZIPs, verify their
+SHA-256 digests, extract the three upstream model files, and generate all
+remaining runtime resources by parsing the pinned sources with pure Java code
+under `buildSrc`. Test tasks independently download and verify
+`chardet/test-data@fa16e9f`. Archives are retained in
 `.gradle/upstream-archives`, so later clean builds can run with `--offline`.
 The resulting JAR and application distribution are self-contained and never
 perform downloads at runtime.
@@ -153,19 +155,23 @@ The CLI accepts textual aliases and renders each detected enum value through
 The test suite uses the complete `chardet/test-data` snapshot at commit
 [`fa16e9f`](https://github.com/chardet/test-data/commit/fa16e9ffde8fd55606e2c7be7423a5fa702cb4a1).
 The snapshot is extracted as a generated test resource rather than checked
-into this repository. A committed text inventory verifies all 2,531 files by
-path, size, and SHA-256. A fixed oracle covers all 2,517 detection samples and
-checks the complete candidate sequence, encoding, confidence, language, and
-MIME type. The build and tests never read a local reference checkout.
+into this repository. Extraction verifies the source archive digest, exactly
+2,531 files, 52,675,437 total bytes, and a canonical tree digest. A committed
+fixed oracle covers all 2,517 detection samples and checks each input digest
+and the complete candidate sequence, encoding, confidence, language, and MIME
+type. This oracle remains independent test data; generating it with the Java
+detector would make the verification self-referential. The build and tests
+never read a local reference checkout.
 
 ## License and provenance
 
 Java source code is licensed under the Mozilla Public License 2.0. The pinned
 upstream implementation and the extracted `models.bin`, `idf.bin`, and
 `confusion.bin` resources are licensed under the 0BSD license. Reviewable codec
-mapping data records behavior derived from CPython 3.14.6, which is distributed
-under the Python Software Foundation License Version 2. The test corpus does
-not have one uniform license; each file remains copyright its respective
-publisher. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), the generated
-corpus `README.md` and `CATALOG.md`, and the bundled `RESOURCE-SOURCES.txt`
-manifest for details and hashes.
+and alias resources are generated from pinned CPython commit
+`c63aec69bd59c55314c06c23f4c22c03de76fe45`, whose source is distributed under
+the Python Software Foundation License Version 2. The test corpus does not have
+one uniform license; each file remains copyright its respective publisher. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), the generated corpus
+`README.md` and `CATALOG.md`, and the bundled `RESOURCE-SOURCES.txt` manifest
+for details and hashes.

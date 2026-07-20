@@ -18,7 +18,6 @@
 *.yml         text eol=lf
 *.csv         text eol=lf
 *.tsv         text eol=lf
-*.ranges      text eol=lf
 *.html        text eol=lf
 *.css         text eol=lf
 *.txt         text eol=lf
