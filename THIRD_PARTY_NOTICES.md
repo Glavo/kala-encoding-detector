@@ -7,12 +7,14 @@ This project is a Java port based on chardet commit
 
 <https://github.com/chardet/chardet/commit/e3dfaa1c75256c9d2a06103b566ea92997844f70>
 
-The files `models.bin`, `idf.bin`, and `confusion.bin` are byte-for-byte copies
-of resources at that commit. Their SHA-256 digests and the provenance of the
-project-generated registry, validity, and decode resources are recorded in
+During the Gradle build, the files `models.bin`, `idf.bin`, and `confusion.bin`
+are extracted byte-for-byte from the fixed commit's source archive. They are
+included in published artifacts but are not checked into this repository.
+The source archive and every extracted or generated resource are verified by
+SHA-256. Digests and provenance are recorded in
 `src/main/resources/kala/encdet/internal/RESOURCE-SOURCES.txt`.
 
-chardet and its copied resources are available under the 0BSD license:
+chardet and its extracted resources are available under the 0BSD license:
 
 > Copyright (c) 2026 Dan Blanchard
 >
@@ -29,19 +31,31 @@ chardet and its copied resources are available under the 0BSD license:
 
 The Java source written for this port is separately licensed under MPL-2.0.
 
+## CPython codec behavior
+
+The reviewable text tables under `gradle/encoding-data` were derived by
+exhaustively observing strict codec behavior in CPython 3.14.6. They are used
+by pure Java build logic to generate deterministic byte-validity and decoding
+resources; no CPython code or executable is invoked by the build.
+
+CPython is distributed under the Python Software Foundation License Version 2
+and additional component licenses. The applicable license text is available
+at <https://docs.python.org/3.14/license.html>.
+
 ## chardet test-data snapshot
 
 The complete test snapshot at
-`fa16e9ffde8fd55606e2c7be7423a5fa702cb4a1` is included under
-`src/test/resources/chardet-test-data`:
+`fa16e9ffde8fd55606e2c7be7423a5fa702cb4a1` is downloaded from its fixed source
+archive and extracted into generated test resources:
 
 <https://github.com/chardet/test-data/commit/fa16e9ffde8fd55606e2c7be7423a5fa702cb4a1>
 
-The corpus does not have one uniform license and is not relicensed under
-MPL-2.0. Each test file remains copyright its respective publisher. The
-upstream `README.md`, `CATALOG.md`, repository metadata, and source information
-are preserved with the snapshot. The project inventory records every included
-file's path, byte length, and SHA-256 digest.
+The corpus is not checked into this repository. It does not have one uniform
+license and is not relicensed under MPL-2.0. Each test file remains copyright
+its respective publisher. The upstream `README.md`, `CATALOG.md`, repository
+metadata, and source information are preserved in the generated snapshot. The
+committed text inventory records every extracted file's path, byte length, and
+SHA-256 digest.
 
 ## Build and test dependencies
 
