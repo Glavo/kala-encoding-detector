@@ -49,9 +49,6 @@ final class ByteValidity {
     /// Number of syntactically possible GB18030 four-byte pointers.
     private static final int GB18030_POINTER_COUNT = 126 * 10 * 126 * 10;
 
-    /// Base64 byte-to-sextet lookup; `-1` denotes a non-Base64 byte.
-    private static final int @Unmodifiable [] BASE64_VALUES = createBase64Values();
-
     /// Prevents instantiation of this static stage.
     private ByteValidity() {
     }
@@ -555,20 +552,7 @@ final class ByteValidity {
     /// @param value encoded byte
     /// @return value in `[0, 63]`, or `-1`
     private static int base64Value(byte value) {
-        return BASE64_VALUES[Byte.toUnsignedInt(value)];
-    }
-
-    /// Creates the UTF-7 Base64 lookup table.
-    ///
-    /// @return immutable lookup array
-    private static int @Unmodifiable [] createBase64Values() {
-        int[] values = new int[256];
-        java.util.Arrays.fill(values, -1);
-        String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        for (int index = 0; index < alphabet.length(); index++) {
-            values[alphabet.charAt(index)] = index;
-        }
-        return values;
+        return Constants.UTF7_BASE64_VALUES[Byte.toUnsignedInt(value)];
     }
 
     /// Loads generated single-byte masks.

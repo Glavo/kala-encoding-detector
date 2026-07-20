@@ -6,7 +6,6 @@ package kala.encdet.internal;
 import kala.encdet.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.Unmodifiable;
 import org.jetbrains.annotations.UnmodifiableView;
 
 import java.nio.ByteBuffer;
@@ -16,9 +15,6 @@ import java.nio.ByteBuffer;
 final class EscapeDetector {
     /// Deterministic confidence used by escape-sequence detection.
     private static final double CONFIDENCE = 0.95;
-
-    /// UTF-7 Base64 lookup; `-1` denotes a non-Base64 byte.
-    private static final int @Unmodifiable [] BASE64_VALUES = createBase64Values();
 
     /// Prevents instantiation of this static stage.
     private EscapeDetector() {
@@ -334,19 +330,6 @@ final class EscapeDetector {
     /// @param value encoded byte
     /// @return value in `[0, 63]`, or `-1`
     private static int base64Value(byte value) {
-        return BASE64_VALUES[Byte.toUnsignedInt(value)];
-    }
-
-    /// Creates a UTF-7 Base64 lookup table.
-    ///
-    /// @return immutable lookup array
-    private static int @Unmodifiable [] createBase64Values() {
-        int[] values = new int[256];
-        java.util.Arrays.fill(values, -1);
-        String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        for (int index = 0; index < alphabet.length(); index++) {
-            values[alphabet.charAt(index)] = index;
-        }
-        return values;
+        return Constants.UTF7_BASE64_VALUES[Byte.toUnsignedInt(value)];
     }
 }
