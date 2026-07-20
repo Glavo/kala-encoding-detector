@@ -43,10 +43,6 @@ final class PublicApiTest {
                 () -> detector.encodingEras().add(EncodingEra.DOS)
         );
 
-        EncodingDetector independentlyCreated = new EncodingDetector();
-        assertEquals(detector.encodingEras(), independentlyCreated.encodingEras());
-        assertEquals(detector.maxBytes(), independentlyCreated.maxBytes());
-        assertEquals(detector.minimumConfidence(), independentlyCreated.minimumConfidence());
     }
 
     /// Verifies immutable configuration changes and defensive copies.

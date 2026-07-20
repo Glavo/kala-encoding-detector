@@ -42,9 +42,22 @@ public final class EncodingDetector {
     /// [#detectAll(ByteBuffer)].
     public static final double DEFAULT_MINIMUM_CONFIDENCE = 0.20;
 
-    /// Default detector matching the configuration described by
-    /// [#EncodingDetector()].
-    public static final EncodingDetector DEFAULT = new EncodingDetector();
+    /// Default detector with every encoding era enabled.
+    ///
+    /// It examines at most 200,000 bytes, retains candidates with confidence
+    /// of at least `0.20`, disables preferred-superset remapping and both
+    /// filters, uses [Encoding#CP1252] when no candidate survives, and uses
+    /// [Encoding#UTF_8] for empty input.
+    public static final EncodingDetector DEFAULT = new EncodingDetector(
+            EnumSet.allOf(EncodingEra.class),
+            200_000,
+            DEFAULT_MINIMUM_CONFIDENCE,
+            false,
+            null,
+            null,
+            Encoding.CP1252,
+            Encoding.UTF_8
+    );
 
     /// Eligible encoding eras in enum declaration order.
     private final @Unmodifiable Set<EncodingEra> encodingEras;
@@ -71,25 +84,6 @@ public final class EncodingDetector {
 
     /// Low-confidence fallback used for empty input.
     private final Encoding emptyInputEncoding;
-
-    /// Creates a detector with the default configuration.
-    ///
-    /// The default enables every encoding era, examines at most 200,000 bytes,
-    /// keeps candidates above confidence `0.20`, disables preferred-superset
-    /// remapping and both filters, uses [Encoding#CP1252] when no candidate
-    /// survives, and uses [Encoding#UTF_8] for empty input.
-    public EncodingDetector() {
-        this(
-                EnumSet.allOf(EncodingEra.class),
-                200_000,
-                DEFAULT_MINIMUM_CONFIDENCE,
-                false,
-                null,
-                null,
-                Encoding.CP1252,
-                Encoding.UTF_8
-        );
-    }
 
     /// Creates and validates one immutable detector configuration.
     ///
@@ -203,7 +197,7 @@ public final class EncodingDetector {
     /// @throws NullPointerException     if `value` or an element is `null`
     /// @throws IllegalArgumentException if `value` is empty
     public EncodingDetector withEncodingEras(Set<EncodingEra> value) {
-        return copy(
+        return new EncodingDetector(
                 value,
                 maxBytes,
                 minimumConfidence,
@@ -230,7 +224,7 @@ public final class EncodingDetector {
     /// @return an independently configured detector
     /// @throws IllegalArgumentException if `value` is not positive
     public EncodingDetector withMaxBytes(int value) {
-        return copy(
+        return new EncodingDetector(
                 encodingEras,
                 value,
                 minimumConfidence,
@@ -253,7 +247,7 @@ public final class EncodingDetector {
     /// @throws IllegalArgumentException if `value` is not finite or outside
     /// `[0.0, 1.0]`
     public EncodingDetector withMinimumConfidence(double value) {
-        return copy(
+        return new EncodingDetector(
                 encodingEras,
                 maxBytes,
                 value,
@@ -270,7 +264,7 @@ public final class EncodingDetector {
     /// @param value whether to remap subset encodings
     /// @return an independently configured detector
     public EncodingDetector withPreferredSuperset(boolean value) {
-        return copy(
+        return new EncodingDetector(
                 encodingEras,
                 maxBytes,
                 minimumConfidence,
@@ -289,7 +283,7 @@ public final class EncodingDetector {
     /// @throws NullPointerException     if an element is `null`
     /// @throws IllegalArgumentException if the set is empty
     public EncodingDetector withIncludedEncodings(@Nullable Set<Encoding> value) {
-        return copy(
+        return new EncodingDetector(
                 encodingEras,
                 maxBytes,
                 minimumConfidence,
@@ -308,7 +302,7 @@ public final class EncodingDetector {
     /// @throws NullPointerException     if an element is `null`
     /// @throws IllegalArgumentException if the set is empty
     public EncodingDetector withExcludedEncodings(@Nullable Set<Encoding> value) {
-        return copy(
+        return new EncodingDetector(
                 encodingEras,
                 maxBytes,
                 minimumConfidence,
@@ -326,7 +320,7 @@ public final class EncodingDetector {
     /// @return an independently configured detector
     /// @throws NullPointerException     if `value` is `null`
     public EncodingDetector withNoMatchEncoding(Encoding value) {
-        return copy(
+        return new EncodingDetector(
                 encodingEras,
                 maxBytes,
                 minimumConfidence,
@@ -344,7 +338,7 @@ public final class EncodingDetector {
     /// @return an independently configured detector
     /// @throws NullPointerException     if `value` is `null`
     public EncodingDetector withEmptyInputEncoding(Encoding value) {
-        return copy(
+        return new EncodingDetector(
                 encodingEras,
                 maxBytes,
                 minimumConfidence,
@@ -493,39 +487,6 @@ public final class EncodingDetector {
     /// @return an immutable ordered set
     public static @Unmodifiable Set<Encoding> supportedEncodings() {
         return EncodingRegistry.supportedEncodings();
-    }
-
-    /// Creates an immutable copy with all supplied configuration values.
-    ///
-    /// @param eras              eligible encoding eras
-    /// @param maximumBytes      maximum leading bytes
-    /// @param confidence        inclusive filtered-candidate confidence bound
-    /// @param preferredSuperset preferred-superset setting
-    /// @param included          optional inclusion filter
-    /// @param excluded          optional exclusion filter
-    /// @param noMatch           no-match fallback
-    /// @param emptyInput        empty-input fallback
-    /// @return a validated independent detector
-    private static EncodingDetector copy(
-            Set<EncodingEra> eras,
-            int maximumBytes,
-            double confidence,
-            boolean preferredSuperset,
-            @Nullable Set<Encoding> included,
-            @Nullable Set<Encoding> excluded,
-            Encoding noMatch,
-            Encoding emptyInput
-    ) {
-        return new EncodingDetector(
-                eras,
-                maximumBytes,
-                confidence,
-                preferredSuperset,
-                included,
-                excluded,
-                noMatch,
-                emptyInput
-        );
     }
 
     /// Copies an era set while preserving enum declaration order.
