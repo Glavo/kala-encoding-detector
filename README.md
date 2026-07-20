@@ -91,7 +91,7 @@ content, position, limit, or mark. Both input forms use the same zero-copy
 current remaining region. Callers must not modify the underlying bytes while a
 detection call is in progress.
 
-`detectAll` keeps candidates whose confidence is strictly greater than the
+`detectAll` keeps candidates whose confidence is greater than or equal to the
 detector's configured minimum confidence, which defaults to `0.20`. Configure
 it with `withMinimumConfidence`. If filtering would remove every candidate,
 `detectAll` returns the unfiltered list. `detectAllUnfiltered` always returns

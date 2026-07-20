@@ -38,7 +38,7 @@ import java.util.Set;
 /// filter or present in the exclusion filter.
 @NotNullByDefault
 public final class EncodingDetector {
-    /// Default exclusive confidence threshold used by [#detectAll(byte[])] and
+    /// Default minimum confidence used by [#detectAll(byte[])] and
     /// [#detectAll(ByteBuffer)].
     public static final double DEFAULT_MINIMUM_CONFIDENCE = 0.20;
 
@@ -52,7 +52,7 @@ public final class EncodingDetector {
     /// Maximum number of leading input bytes examined.
     private final int maxBytes;
 
-    /// Exclusive lower confidence bound applied to filtered candidate lists.
+    /// Inclusive lower confidence bound applied to filtered candidate lists.
     private final double minimumConfidence;
 
     /// Whether subset encodings are remapped to preferred supersets.
@@ -95,7 +95,7 @@ public final class EncodingDetector {
     ///
     /// @param encodingEras       eligible encoding eras
     /// @param maxBytes           maximum leading input bytes examined
-    /// @param minimumConfidence  exclusive filtered-candidate confidence threshold
+    /// @param minimumConfidence  inclusive filtered-candidate confidence bound
     /// @param preferSuperset     whether to remap subset encodings
     /// @param includeEncodings   optional inclusion filter
     /// @param excludeEncodings   optional exclusion filter
@@ -154,7 +154,7 @@ public final class EncodingDetector {
         return maxBytes;
     }
 
-    /// Returns the exclusive lower confidence bound used to filter candidates.
+    /// Returns the inclusive lower confidence bound used to filter candidates.
     ///
     /// @return a finite value in `[0.0, 1.0]`
     public double minimumConfidence() {
@@ -245,8 +245,8 @@ public final class EncodingDetector {
     /// Returns a detector with a new filtered-candidate confidence threshold.
     ///
     /// [#detectAll(byte[])] and [#detectAll(ByteBuffer)] retain candidates
-    /// whose confidence is strictly greater than this value. If none qualify,
-    /// they return the unfiltered candidates.
+    /// whose confidence is greater than or equal to this value. If none
+    /// qualify, they return the unfiltered candidates.
     ///
     /// @param value a finite value in `[0.0, 1.0]`
     /// @return an independently configured detector
@@ -385,11 +385,12 @@ public final class EncodingDetector {
 
     /// Returns candidates above the configured confidence threshold.
     ///
-    /// If no candidate has confidence greater than [#minimumConfidence()], the
-    /// unfiltered candidates are returned. The result is sorted stably by
-    /// descending confidence and cannot be modified. Only the first
-    /// [#maxBytes()] input bytes are examined. The input array is read directly
-    /// without copying, is not retained, and must not change during detection.
+    /// If no candidate has confidence greater than or equal to
+    /// [#minimumConfidence()], the unfiltered candidates are returned. The
+    /// result is sorted stably by descending confidence and cannot be modified.
+    /// Only the first [#maxBytes()] input bytes are examined. The input array is
+    /// read directly without copying, is not retained, and must not change
+    /// during detection.
     ///
     /// @param input bytes to examine
     /// @return immutable filtered candidates
@@ -397,7 +398,7 @@ public final class EncodingDetector {
     public @Unmodifiable List<DetectionResult> detectAll(byte[] input) {
         List<DetectionResult> all = detectAllUnfiltered(input);
         List<DetectionResult> filtered = all.stream()
-                .filter(result -> result.confidence() > minimumConfidence)
+                .filter(result -> result.confidence() >= minimumConfidence)
                 .toList();
         return filtered.isEmpty() ? all : filtered;
     }
@@ -407,10 +408,10 @@ public final class EncodingDetector {
     /// Only the first [#maxBytes()] remaining bytes are examined. The buffer's
     /// content, position, limit, and mark are not modified, and its underlying
     /// bytes are read directly without copying. If no candidate has confidence
-    /// greater than [#minimumConfidence()], the unfiltered candidates are
-    /// returned. The result is sorted stably by descending confidence and
-    /// cannot be modified. The underlying bytes must not change during
-    /// detection.
+    /// greater than or equal to [#minimumConfidence()], the unfiltered
+    /// candidates are returned. The result is sorted stably by descending
+    /// confidence and cannot be modified. The underlying bytes must not change
+    /// during detection.
     ///
     /// @param input buffer whose remaining bytes are examined
     /// @return immutable filtered candidates
@@ -418,7 +419,7 @@ public final class EncodingDetector {
     public @Unmodifiable List<DetectionResult> detectAll(ByteBuffer input) {
         List<DetectionResult> all = detectAllUnfiltered(input);
         List<DetectionResult> filtered = all.stream()
-                .filter(result -> result.confidence() > minimumConfidence)
+                .filter(result -> result.confidence() >= minimumConfidence)
                 .toList();
         return filtered.isEmpty() ? all : filtered;
     }
@@ -498,7 +499,7 @@ public final class EncodingDetector {
     ///
     /// @param eras              eligible encoding eras
     /// @param maximumBytes      maximum leading bytes
-    /// @param confidence        exclusive filtered-candidate confidence threshold
+    /// @param confidence        inclusive filtered-candidate confidence bound
     /// @param preferredSuperset preferred-superset setting
     /// @param included          optional inclusion filter
     /// @param excluded          optional exclusion filter

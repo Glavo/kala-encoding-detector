@@ -330,10 +330,10 @@ final class PublicApiTest {
         assertFalse(all.isEmpty());
         assertEquals(detector.detect(data), all.get(0));
         double minimumConfidence = detector.minimumConfidence();
-        if (all.stream().anyMatch(result -> result.confidence() > minimumConfidence)) {
+        if (all.stream().anyMatch(result -> result.confidence() >= minimumConfidence)) {
             assertTrue(
                     filtered.stream()
-                            .allMatch(result -> result.confidence() > minimumConfidence)
+                            .allMatch(result -> result.confidence() >= minimumConfidence)
             );
         } else {
             assertEquals(all, filtered);
@@ -348,7 +348,7 @@ final class PublicApiTest {
         assertEquals(detector.detectAllUnfiltered(data), all);
     }
 
-    /// Verifies the configured threshold filters both input forms strictly.
+    /// Verifies the configured minimum filters both input forms inclusively.
     @Test
     void configuresMinimumConfidence() {
         byte[] data = {
@@ -362,7 +362,7 @@ final class PublicApiTest {
 
         double threshold = (highest + lowest) / 2.0;
         List<DetectionResult> expected = all.stream()
-                .filter(result -> result.confidence() > threshold)
+                .filter(result -> result.confidence() >= threshold)
                 .toList();
         assertFalse(expected.isEmpty());
         assertTrue(expected.size() < all.size());
@@ -374,8 +374,16 @@ final class PublicApiTest {
         assertEquals(all, detector.detectAllUnfiltered(data));
         assertEquals(EncodingDetector.DEFAULT.detect(data), detector.detect(data));
 
-        EncodingDetector strict = detector.withMinimumConfidence(highest);
-        assertEquals(all, strict.detectAll(data));
+        List<DetectionResult> boundary = all.stream()
+                .filter(result -> result.confidence() >= highest)
+                .toList();
+        assertEquals(
+                boundary,
+                detector.withMinimumConfidence(highest).detectAll(data)
+        );
+
+        assertTrue(highest < 1.0);
+        assertEquals(all, detector.withMinimumConfidence(1.0).detectAll(data));
     }
 
     /// Verifies public argument null checks and result confidence validation.
