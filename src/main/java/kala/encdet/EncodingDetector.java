@@ -23,8 +23,9 @@ import java.util.Set;
 ///
 /// Instances are safe for concurrent use. Shared registry and model state is
 /// immutable after lazy initialization, and every detection invocation uses a
-/// separate context. Configuration methods return independent detector
-/// instances and never modify their receiver.
+/// separate context. Configuration methods never modify their receiver. They
+/// return it when the requested value is already configured and otherwise
+/// return an independently configured detector.
 ///
 /// Candidate eligibility is evaluated in era, inclusion, then exclusion
 /// order. Exclusion therefore wins when the same encoding occurs in both
@@ -49,7 +50,7 @@ public final class EncodingDetector {
     /// filters, uses [Encoding#CP1252] when no candidate survives, and uses
     /// [Encoding#UTF_8] for empty input.
     public static final EncodingDetector DEFAULT = new EncodingDetector(
-            EnumSet.allOf(EncodingEra.class),
+            Collections.unmodifiableSet(EnumSet.allOf(EncodingEra.class)),
             200_000,
             DEFAULT_MINIMUM_CONFIDENCE,
             false,
@@ -85,53 +86,34 @@ public final class EncodingDetector {
     /// Low-confidence fallback used for empty input.
     private final Encoding emptyInputEncoding;
 
-    /// Creates and validates one immutable detector configuration.
+    /// Creates a detector from validated immutable configuration state.
     ///
-    /// @param encodingEras       eligible encoding eras
+    /// @param encodingEras       immutable eligible encoding eras
     /// @param maxBytes           maximum leading input bytes examined
     /// @param minimumConfidence  inclusive filtered-candidate confidence bound
     /// @param preferSuperset     whether to remap subset encodings
-    /// @param includeEncodings   optional inclusion filter
-    /// @param excludeEncodings   optional exclusion filter
+    /// @param includeEncodings   optional immutable inclusion filter
+    /// @param excludeEncodings   optional immutable exclusion filter
     /// @param noMatchEncoding    no-match fallback
     /// @param emptyInputEncoding empty-input fallback
-    /// @throws NullPointerException     if a required value, collection element,
-    /// or encoding is `null`
-    /// @throws IllegalArgumentException if an era set or supplied encoding
-    /// filter is empty, `maxBytes` is not positive, or `minimumConfidence`
-    /// is not finite or outside `[0.0, 1.0]`
     private EncodingDetector(
-            Set<EncodingEra> encodingEras,
+            @Unmodifiable Set<EncodingEra> encodingEras,
             int maxBytes,
             double minimumConfidence,
             boolean preferSuperset,
-            @Nullable Set<Encoding> includeEncodings,
-            @Nullable Set<Encoding> excludeEncodings,
+            @Nullable @Unmodifiable Set<Encoding> includeEncodings,
+            @Nullable @Unmodifiable Set<Encoding> excludeEncodings,
             Encoding noMatchEncoding,
             Encoding emptyInputEncoding
     ) {
-        if (encodingEras.isEmpty()) {
-            throw new IllegalArgumentException("encodingEras must not be empty");
-        }
-        if (maxBytes < 1) {
-            throw new IllegalArgumentException("maxBytes must be a positive integer");
-        }
-        if (!Double.isFinite(minimumConfidence)
-                || minimumConfidence < 0.0
-                || minimumConfidence > 1.0) {
-            throw new IllegalArgumentException(
-                    "minimumConfidence must be a finite value between 0.0 and 1.0"
-            );
-        }
-
-        this.encodingEras = immutableEras(encodingEras);
+        this.encodingEras = encodingEras;
         this.maxBytes = maxBytes;
         this.minimumConfidence = minimumConfidence;
         this.preferSuperset = preferSuperset;
-        this.includeEncodings = immutableEncodings(includeEncodings, "includeEncodings");
-        this.excludeEncodings = immutableEncodings(excludeEncodings, "excludeEncodings");
-        this.noMatchEncoding = Objects.requireNonNull(noMatchEncoding, "noMatchEncoding");
-        this.emptyInputEncoding = Objects.requireNonNull(emptyInputEncoding, "emptyInputEncoding");
+        this.includeEncodings = includeEncodings;
+        this.excludeEncodings = excludeEncodings;
+        this.noMatchEncoding = noMatchEncoding;
+        this.emptyInputEncoding = emptyInputEncoding;
     }
 
     /// Returns the eligible encoding eras.
@@ -193,12 +175,18 @@ public final class EncodingDetector {
     /// Returns a detector restricted to the supplied encoding eras.
     ///
     /// @param value a nonempty era set
-    /// @return an independently configured detector
+    /// @return this detector if unchanged; otherwise a new detector
     /// @throws NullPointerException     if `value` or an element is `null`
     /// @throws IllegalArgumentException if `value` is empty
     public EncodingDetector withEncodingEras(Set<EncodingEra> value) {
+        if (value.isEmpty()) {
+            throw new IllegalArgumentException("value must not be empty");
+        }
+        if (encodingEras.equals(value)) {
+            return this;
+        }
         return new EncodingDetector(
-                value,
+                immutableEras(value),
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
@@ -212,18 +200,37 @@ public final class EncodingDetector {
     /// Returns a detector restricted to one encoding era.
     ///
     /// @param value the sole eligible era
-    /// @return an independently configured detector
+    /// @return this detector if unchanged; otherwise a new detector
     /// @throws NullPointerException if `value` is `null`
     public EncodingDetector withEncodingEra(EncodingEra value) {
-        return withEncodingEras(EnumSet.of(value));
+        Objects.requireNonNull(value, "value");
+        if (encodingEras.size() == 1 && encodingEras.contains(value)) {
+            return this;
+        }
+        return new EncodingDetector(
+                Collections.unmodifiableSet(EnumSet.of(value)),
+                maxBytes,
+                minimumConfidence,
+                preferSuperset,
+                includeEncodings,
+                excludeEncodings,
+                noMatchEncoding,
+                emptyInputEncoding
+        );
     }
 
     /// Returns a detector with a new maximum input length.
     ///
     /// @param value a positive byte count
-    /// @return an independently configured detector
+    /// @return this detector if unchanged; otherwise a new detector
     /// @throws IllegalArgumentException if `value` is not positive
     public EncodingDetector withMaxBytes(int value) {
+        if (value < 1) {
+            throw new IllegalArgumentException("value must be a positive integer");
+        }
+        if (maxBytes == value) {
+            return this;
+        }
         return new EncodingDetector(
                 encodingEras,
                 value,
@@ -243,10 +250,18 @@ public final class EncodingDetector {
     /// qualify, they return the unfiltered candidates.
     ///
     /// @param value a finite value in `[0.0, 1.0]`
-    /// @return an independently configured detector
+    /// @return this detector if unchanged; otherwise a new detector
     /// @throws IllegalArgumentException if `value` is not finite or outside
     /// `[0.0, 1.0]`
     public EncodingDetector withMinimumConfidence(double value) {
+        if (!Double.isFinite(value) || value < 0.0 || value > 1.0) {
+            throw new IllegalArgumentException(
+                    "value must be a finite value between 0.0 and 1.0"
+            );
+        }
+        if (minimumConfidence == value) {
+            return this;
+        }
         return new EncodingDetector(
                 encodingEras,
                 maxBytes,
@@ -262,8 +277,11 @@ public final class EncodingDetector {
     /// Returns a detector with preferred-superset remapping enabled or disabled.
     ///
     /// @param value whether to remap subset encodings
-    /// @return an independently configured detector
+    /// @return this detector if unchanged; otherwise a new detector
     public EncodingDetector withPreferredSuperset(boolean value) {
+        if (preferSuperset == value) {
+            return this;
+        }
         return new EncodingDetector(
                 encodingEras,
                 maxBytes,
@@ -279,16 +297,33 @@ public final class EncodingDetector {
     /// Returns a detector using an optional encoding inclusion filter.
     ///
     /// @param value encodings to include, or `null` to disable the filter
-    /// @return an independently configured detector
+    /// @return this detector if unchanged; otherwise a new detector
     /// @throws NullPointerException     if an element is `null`
     /// @throws IllegalArgumentException if the set is empty
     public EncodingDetector withIncludedEncodings(@Nullable Set<Encoding> value) {
+        @Nullable @Unmodifiable Set<Encoding> included;
+        if (value == null) {
+            if (includeEncodings == null) {
+                return this;
+            }
+            included = null;
+        } else {
+            if (value.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "value must not be empty; pass null to disable filtering"
+                );
+            }
+            if (includeEncodings != null && includeEncodings.equals(value)) {
+                return this;
+            }
+            included = immutableEncodings(value);
+        }
         return new EncodingDetector(
                 encodingEras,
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
-                value,
+                included,
                 excludeEncodings,
                 noMatchEncoding,
                 emptyInputEncoding
@@ -298,17 +333,34 @@ public final class EncodingDetector {
     /// Returns a detector using an optional encoding exclusion filter.
     ///
     /// @param value encodings to exclude, or `null` to disable the filter
-    /// @return an independently configured detector
+    /// @return this detector if unchanged; otherwise a new detector
     /// @throws NullPointerException     if an element is `null`
     /// @throws IllegalArgumentException if the set is empty
     public EncodingDetector withExcludedEncodings(@Nullable Set<Encoding> value) {
+        @Nullable @Unmodifiable Set<Encoding> excluded;
+        if (value == null) {
+            if (excludeEncodings == null) {
+                return this;
+            }
+            excluded = null;
+        } else {
+            if (value.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "value must not be empty; pass null to disable filtering"
+                );
+            }
+            if (excludeEncodings != null && excludeEncodings.equals(value)) {
+                return this;
+            }
+            excluded = immutableEncodings(value);
+        }
         return new EncodingDetector(
                 encodingEras,
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
                 includeEncodings,
-                value,
+                excluded,
                 noMatchEncoding,
                 emptyInputEncoding
         );
@@ -317,9 +369,13 @@ public final class EncodingDetector {
     /// Returns a detector using the supplied no-match fallback.
     ///
     /// @param value fallback encoding
-    /// @return an independently configured detector
+    /// @return this detector if unchanged; otherwise a new detector
     /// @throws NullPointerException     if `value` is `null`
     public EncodingDetector withNoMatchEncoding(Encoding value) {
+        Objects.requireNonNull(value, "value");
+        if (noMatchEncoding == value) {
+            return this;
+        }
         return new EncodingDetector(
                 encodingEras,
                 maxBytes,
@@ -335,9 +391,13 @@ public final class EncodingDetector {
     /// Returns a detector using the supplied empty-input fallback.
     ///
     /// @param value fallback encoding
-    /// @return an independently configured detector
+    /// @return this detector if unchanged; otherwise a new detector
     /// @throws NullPointerException     if `value` is `null`
     public EncodingDetector withEmptyInputEncoding(Encoding value) {
+        Objects.requireNonNull(value, "value");
+        if (emptyInputEncoding == value) {
+            return this;
+        }
         return new EncodingDetector(
                 encodingEras,
                 maxBytes,
@@ -498,23 +558,11 @@ public final class EncodingDetector {
         return Collections.unmodifiableSet(copy);
     }
 
-    /// Copies an optional encoding filter.
+    /// Copies an encoding filter.
     ///
-    /// @param encodings     supplied encodings, or `null`
-    /// @param parameterName parameter used in an error message
-    /// @return immutable encoding set, or `null`
-    private static @Nullable @Unmodifiable Set<Encoding> immutableEncodings(
-            @Nullable Set<Encoding> encodings,
-            String parameterName
-    ) {
-        if (encodings == null) {
-            return null;
-        }
-        if (encodings.isEmpty()) {
-            throw new IllegalArgumentException(
-                    parameterName + " must not be empty; pass null to disable filtering"
-            );
-        }
+    /// @param encodings nonempty supplied encodings
+    /// @return immutable encoding set
+    private static @Unmodifiable Set<Encoding> immutableEncodings(Set<Encoding> encodings) {
         EnumSet<Encoding> copy = EnumSet.noneOf(Encoding.class);
         copy.addAll(encodings);
         return Collections.unmodifiableSet(copy);

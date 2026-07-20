@@ -117,9 +117,10 @@ EncodingDetector detector = EncodingDetector.DEFAULT
 DetectionResult result = detector.detect(input);
 ```
 
-`EncodingDetector` is immutable. Every `withXxx` method returns an independent
-detector and leaves its receiver unchanged, so configured instances can be
-reused safely across detection calls and threads.
+`EncodingDetector` is immutable. Every `withXxx` method leaves its receiver
+unchanged. It returns that receiver when the requested value is already
+configured and otherwise returns an independent detector, so configured
+instances can be reused safely across detection calls and threads.
 
 The `Encoding` enum represents all 86 detection targets throughout the public
 API. Its `canonicalName()` and `displayName()` methods provide text only at
