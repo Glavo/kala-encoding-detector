@@ -38,9 +38,9 @@ import java.util.Set;
 /// filter or present in the exclusion filter.
 @NotNullByDefault
 public final class EncodingDetector {
-    /// Confidence threshold used by [#detectAll(byte[])] and
+    /// Default exclusive confidence threshold used by [#detectAll(byte[])] and
     /// [#detectAll(ByteBuffer)].
-    public static final double MINIMUM_THRESHOLD = 0.20;
+    public static final double DEFAULT_MINIMUM_CONFIDENCE = 0.20;
 
     /// Default detector matching the configuration described by
     /// [#EncodingDetector()].
@@ -51,6 +51,9 @@ public final class EncodingDetector {
 
     /// Maximum number of leading input bytes examined.
     private final int maxBytes;
+
+    /// Exclusive lower confidence bound applied to filtered candidate lists.
+    private final double minimumConfidence;
 
     /// Whether subset encodings are remapped to preferred supersets.
     private final boolean preferSuperset;
@@ -72,12 +75,14 @@ public final class EncodingDetector {
     /// Creates a detector with the default configuration.
     ///
     /// The default enables every encoding era, examines at most 200,000 bytes,
-    /// disables preferred-superset remapping and both filters, uses [Encoding#CP1252]
-    /// when no candidate survives, and uses [Encoding#UTF_8] for empty input.
+    /// keeps candidates above confidence `0.20`, disables preferred-superset
+    /// remapping and both filters, uses [Encoding#CP1252] when no candidate
+    /// survives, and uses [Encoding#UTF_8] for empty input.
     public EncodingDetector() {
         this(
                 EnumSet.allOf(EncodingEra.class),
                 200_000,
+                DEFAULT_MINIMUM_CONFIDENCE,
                 false,
                 null,
                 null,
@@ -90,6 +95,7 @@ public final class EncodingDetector {
     ///
     /// @param encodingEras       eligible encoding eras
     /// @param maxBytes           maximum leading input bytes examined
+    /// @param minimumConfidence  exclusive filtered-candidate confidence threshold
     /// @param preferSuperset     whether to remap subset encodings
     /// @param includeEncodings   optional inclusion filter
     /// @param excludeEncodings   optional exclusion filter
@@ -98,10 +104,12 @@ public final class EncodingDetector {
     /// @throws NullPointerException     if a required value, collection element,
     /// or encoding is `null`
     /// @throws IllegalArgumentException if an era set or supplied encoding
-    /// filter is empty or `maxBytes` is not positive
+    /// filter is empty, `maxBytes` is not positive, or `minimumConfidence`
+    /// is not finite or outside `[0.0, 1.0]`
     private EncodingDetector(
             Set<EncodingEra> encodingEras,
             int maxBytes,
+            double minimumConfidence,
             boolean preferSuperset,
             @Nullable Set<Encoding> includeEncodings,
             @Nullable Set<Encoding> excludeEncodings,
@@ -114,9 +122,17 @@ public final class EncodingDetector {
         if (maxBytes < 1) {
             throw new IllegalArgumentException("maxBytes must be a positive integer");
         }
+        if (!Double.isFinite(minimumConfidence)
+                || minimumConfidence < 0.0
+                || minimumConfidence > 1.0) {
+            throw new IllegalArgumentException(
+                    "minimumConfidence must be a finite value between 0.0 and 1.0"
+            );
+        }
 
         this.encodingEras = immutableEras(encodingEras);
         this.maxBytes = maxBytes;
+        this.minimumConfidence = minimumConfidence;
         this.preferSuperset = preferSuperset;
         this.includeEncodings = immutableEncodings(includeEncodings, "includeEncodings");
         this.excludeEncodings = immutableEncodings(excludeEncodings, "excludeEncodings");
@@ -136,6 +152,13 @@ public final class EncodingDetector {
     /// @return a positive byte count
     public int maxBytes() {
         return maxBytes;
+    }
+
+    /// Returns the exclusive lower confidence bound used to filter candidates.
+    ///
+    /// @return a finite value in `[0.0, 1.0]`
+    public double minimumConfidence() {
+        return minimumConfidence;
     }
 
     /// Reports whether subset encodings are remapped to preferred supersets.
@@ -183,6 +206,7 @@ public final class EncodingDetector {
         return copy(
                 value,
                 maxBytes,
+                minimumConfidence,
                 preferSuperset,
                 includeEncodings,
                 excludeEncodings,
@@ -209,6 +233,30 @@ public final class EncodingDetector {
         return copy(
                 encodingEras,
                 value,
+                minimumConfidence,
+                preferSuperset,
+                includeEncodings,
+                excludeEncodings,
+                noMatchEncoding,
+                emptyInputEncoding
+        );
+    }
+
+    /// Returns a detector with a new filtered-candidate confidence threshold.
+    ///
+    /// [#detectAll(byte[])] and [#detectAll(ByteBuffer)] retain candidates
+    /// whose confidence is strictly greater than this value. If none qualify,
+    /// they return the unfiltered candidates.
+    ///
+    /// @param value a finite value in `[0.0, 1.0]`
+    /// @return an independently configured detector
+    /// @throws IllegalArgumentException if `value` is not finite or outside
+    /// `[0.0, 1.0]`
+    public EncodingDetector withMinimumConfidence(double value) {
+        return copy(
+                encodingEras,
+                maxBytes,
+                value,
                 preferSuperset,
                 includeEncodings,
                 excludeEncodings,
@@ -225,6 +273,7 @@ public final class EncodingDetector {
         return copy(
                 encodingEras,
                 maxBytes,
+                minimumConfidence,
                 value,
                 includeEncodings,
                 excludeEncodings,
@@ -243,6 +292,7 @@ public final class EncodingDetector {
         return copy(
                 encodingEras,
                 maxBytes,
+                minimumConfidence,
                 preferSuperset,
                 value,
                 excludeEncodings,
@@ -261,6 +311,7 @@ public final class EncodingDetector {
         return copy(
                 encodingEras,
                 maxBytes,
+                minimumConfidence,
                 preferSuperset,
                 includeEncodings,
                 value,
@@ -278,6 +329,7 @@ public final class EncodingDetector {
         return copy(
                 encodingEras,
                 maxBytes,
+                minimumConfidence,
                 preferSuperset,
                 includeEncodings,
                 excludeEncodings,
@@ -295,6 +347,7 @@ public final class EncodingDetector {
         return copy(
                 encodingEras,
                 maxBytes,
+                minimumConfidence,
                 preferSuperset,
                 includeEncodings,
                 excludeEncodings,
@@ -330,13 +383,13 @@ public final class EncodingDetector {
         return detectNormalized(ByteBufferSupport.view(input));
     }
 
-    /// Returns candidates above the default confidence threshold.
+    /// Returns candidates above the configured confidence threshold.
     ///
-    /// If no candidate has confidence greater than `0.20`, the unfiltered
-    /// candidates are returned. The result is sorted stably by descending
-    /// confidence and cannot be modified. Only the first [#maxBytes()] input
-    /// bytes are examined. The input array is read directly without copying,
-    /// is not retained, and must not change during detection.
+    /// If no candidate has confidence greater than [#minimumConfidence()], the
+    /// unfiltered candidates are returned. The result is sorted stably by
+    /// descending confidence and cannot be modified. Only the first
+    /// [#maxBytes()] input bytes are examined. The input array is read directly
+    /// without copying, is not retained, and must not change during detection.
     ///
     /// @param input bytes to examine
     /// @return immutable filtered candidates
@@ -344,19 +397,20 @@ public final class EncodingDetector {
     public @Unmodifiable List<DetectionResult> detectAll(byte[] input) {
         List<DetectionResult> all = detectAllUnfiltered(input);
         List<DetectionResult> filtered = all.stream()
-                .filter(result -> result.confidence() > MINIMUM_THRESHOLD)
+                .filter(result -> result.confidence() > minimumConfidence)
                 .toList();
         return filtered.isEmpty() ? all : filtered;
     }
 
-    /// Returns candidates above the default confidence threshold for a buffer.
+    /// Returns candidates above the configured confidence threshold for a buffer.
     ///
     /// Only the first [#maxBytes()] remaining bytes are examined. The buffer's
     /// content, position, limit, and mark are not modified, and its underlying
     /// bytes are read directly without copying. If no candidate has confidence
-    /// greater than `0.20`, the unfiltered candidates are returned. The result
-    /// is sorted stably by descending confidence and cannot be modified. The
-    /// underlying bytes must not change during detection.
+    /// greater than [#minimumConfidence()], the unfiltered candidates are
+    /// returned. The result is sorted stably by descending confidence and
+    /// cannot be modified. The underlying bytes must not change during
+    /// detection.
     ///
     /// @param input buffer whose remaining bytes are examined
     /// @return immutable filtered candidates
@@ -364,7 +418,7 @@ public final class EncodingDetector {
     public @Unmodifiable List<DetectionResult> detectAll(ByteBuffer input) {
         List<DetectionResult> all = detectAllUnfiltered(input);
         List<DetectionResult> filtered = all.stream()
-                .filter(result -> result.confidence() > MINIMUM_THRESHOLD)
+                .filter(result -> result.confidence() > minimumConfidence)
                 .toList();
         return filtered.isEmpty() ? all : filtered;
     }
@@ -444,6 +498,7 @@ public final class EncodingDetector {
     ///
     /// @param eras              eligible encoding eras
     /// @param maximumBytes      maximum leading bytes
+    /// @param confidence        exclusive filtered-candidate confidence threshold
     /// @param preferredSuperset preferred-superset setting
     /// @param included          optional inclusion filter
     /// @param excluded          optional exclusion filter
@@ -453,6 +508,7 @@ public final class EncodingDetector {
     private static EncodingDetector copy(
             Set<EncodingEra> eras,
             int maximumBytes,
+            double confidence,
             boolean preferredSuperset,
             @Nullable Set<Encoding> included,
             @Nullable Set<Encoding> excluded,
@@ -462,6 +518,7 @@ public final class EncodingDetector {
         return new EncodingDetector(
                 eras,
                 maximumBytes,
+                confidence,
                 preferredSuperset,
                 included,
                 excluded,

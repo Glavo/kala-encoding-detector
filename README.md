@@ -91,10 +91,12 @@ content, position, limit, or mark. Both input forms use the same zero-copy
 current remaining region. Callers must not modify the underlying bytes while a
 detection call is in progress.
 
-`detectAll` keeps candidates whose confidence is strictly greater than `0.20`.
-If that would remove every candidate, it returns the unfiltered list.
-`detectAllUnfiltered` always returns every candidate. Both lists are immutable
-and use stable descending-confidence order.
+`detectAll` keeps candidates whose confidence is strictly greater than the
+detector's configured minimum confidence, which defaults to `0.20`. Configure
+it with `withMinimumConfidence`. If filtering would remove every candidate,
+`detectAll` returns the unfiltered list. `detectAllUnfiltered` always returns
+every candidate. Both lists are immutable and use stable
+descending-confidence order.
 
 ```java
 import kala.encdet.DetectionResult;
@@ -107,6 +109,7 @@ import java.util.Set;
 EncodingDetector detector = EncodingDetector.DEFAULT
         .withEncodingEras(Set.of(EncodingEra.MODERN_WEB))
         .withMaxBytes(100_000)
+        .withMinimumConfidence(0.35)
         .withIncludedEncodings(Set.of(Encoding.UTF_8, Encoding.CP1252))
         .withNoMatchEncoding(Encoding.CP1252)
         .withPreferredSuperset(false);
