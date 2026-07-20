@@ -158,12 +158,11 @@ public class EncodingDetectorBenchmark {
         /// Prepared array input.
         private byte @Unmodifiable [] data = new byte[0];
 
-        /// Prepared read-only heap buffer.
-        private @UnmodifiableView ByteBuffer heapBuffer = ByteBuffer.allocate(0).asReadOnlyBuffer();
+        /// Prepared heap buffer treated as unmodifiable during measurement.
+        private @UnmodifiableView ByteBuffer heapBuffer = ByteBuffer.allocate(0);
 
-        /// Prepared read-only direct buffer.
-        private @UnmodifiableView ByteBuffer directBuffer = ByteBuffer.allocateDirect(0)
-                .asReadOnlyBuffer();
+        /// Prepared direct buffer treated as unmodifiable during measurement.
+        private @UnmodifiableView ByteBuffer directBuffer = ByteBuffer.allocateDirect(0);
 
         /// Creates an initially empty JMH state.
         public InputState() {
@@ -173,11 +172,11 @@ public class EncodingDetectorBenchmark {
         @Setup(Level.Trial)
         public void setUp() {
             data = repeatPattern(patternFor(content), size);
-            heapBuffer = ByteBuffer.wrap(data).asReadOnlyBuffer();
+            heapBuffer = ByteBuffer.wrap(data);
 
             ByteBuffer writableDirectBuffer = ByteBuffer.allocateDirect(data.length);
             writableDirectBuffer.put(data).flip();
-            directBuffer = writableDirectBuffer.asReadOnlyBuffer();
+            directBuffer = writableDirectBuffer;
         }
     }
 }

@@ -10,24 +10,23 @@ import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/// Verifies normalized buffer views share their caller-owned byte storage.
+/// Verifies normalized buffer views share storage without added read-only layers.
 @NotNullByDefault
 final class ByteBufferSupportTest {
-    /// Verifies array wrapping is read-only, normalized, and zero-copy.
+    /// Verifies array wrapping is normalized, writable, and zero-copy.
     @Test
     void arrayViewSharesStorage() {
         byte[] data = {1, 2, 3};
         @UnmodifiableView ByteBuffer view = ByteBufferSupport.wrap(data);
 
-        assertTrue(view.isReadOnly());
+        assertFalse(view.isReadOnly());
         assertEquals(0, view.position());
         assertEquals(data.length, view.remaining());
         data[1] = 42;
         assertEquals(42, view.get(1));
-        assertThrows(java.nio.ReadOnlyBufferException.class, () -> view.put(0, (byte) 0));
     }
 
     /// Verifies a direct-buffer view captures only the remaining region without copying.
@@ -40,7 +39,7 @@ final class ByteBufferSupportTest {
 
         @UnmodifiableView ByteBuffer view = ByteBufferSupport.view(source);
         assertTrue(view.isDirect());
-        assertTrue(view.isReadOnly());
+        assertFalse(view.isReadOnly());
         assertEquals(0, view.position());
         assertEquals(4, view.remaining());
         assertEquals(20, view.get(0));
@@ -61,6 +60,8 @@ final class ByteBufferSupportTest {
         @UnmodifiableView ByteBuffer slice = ByteBufferSupport.slice(source, 1, 3);
         @UnmodifiableView ByteBuffer prefix = ByteBufferSupport.prefix(slice, 2);
 
+        assertFalse(slice.isReadOnly());
+        assertFalse(prefix.isReadOnly());
         data[2] = 77;
         assertEquals(77, slice.get(1));
         assertEquals(77, prefix.get(1));

@@ -12,8 +12,9 @@ import java.util.Objects;
 /// Creates normalized zero-copy views over arrays and byte buffers.
 ///
 /// Every returned buffer has position zero, a limit equal to its logical
-/// length, and read-only state. Read-only state prevents mutation through the
-/// view but does not snapshot or freeze the shared underlying storage.
+/// length, and shared underlying storage. Returned views preserve the source's
+/// write accessibility; [UnmodifiableView] is the internal contract not to
+/// mutate their content, rather than a runtime read-only wrapper.
 @NotNullByDefault
 public final class ByteBufferSupport {
     /// Prevents instantiation of this utility class.
@@ -22,11 +23,14 @@ public final class ByteBufferSupport {
 
     /// Returns a zero-copy view of a complete byte array.
     ///
+    /// The returned buffer is writable because the source array is writable,
+    /// but internal callers must treat the annotated view as unmodifiable.
+    ///
     /// @param data source array
-    /// @return normalized read-only view sharing `data`
+    /// @return normalized view sharing `data`
     /// @throws NullPointerException if `data` is `null`
     public static @UnmodifiableView ByteBuffer wrap(byte[] data) {
-        return ByteBuffer.wrap(Objects.requireNonNull(data, "data")).asReadOnlyBuffer();
+        return ByteBuffer.wrap(Objects.requireNonNull(data, "data"));
     }
 
     /// Returns a zero-copy view of a byte buffer's remaining bytes.
@@ -36,10 +40,10 @@ public final class ByteBufferSupport {
     /// underlying byte storage.
     ///
     /// @param buffer source buffer
-    /// @return normalized read-only remaining-byte view
+    /// @return normalized remaining-byte view preserving source write accessibility
     /// @throws NullPointerException if `buffer` is `null`
     public static @UnmodifiableView ByteBuffer view(ByteBuffer buffer) {
-        return Objects.requireNonNull(buffer, "buffer").slice().asReadOnlyBuffer();
+        return Objects.requireNonNull(buffer, "buffer").slice();
     }
 
     /// Returns a zero-copy subrange of a buffer's remaining bytes.
@@ -47,7 +51,7 @@ public final class ByteBufferSupport {
     /// @param buffer source buffer
     /// @param offset first logical index relative to the source position
     /// @param length number of bytes in the view
-    /// @return normalized read-only subrange view
+    /// @return normalized subrange view preserving source write accessibility
     /// @throws NullPointerException if `buffer` is `null`
     /// @throws IndexOutOfBoundsException if the range is outside the remaining bytes
     public static @UnmodifiableView ByteBuffer slice(
@@ -57,17 +61,15 @@ public final class ByteBufferSupport {
     ) {
         Objects.requireNonNull(buffer, "buffer");
         Objects.checkFromIndexSize(offset, length, buffer.remaining());
-        ByteBuffer range = buffer.duplicate();
         int start = buffer.position() + offset;
-        range.position(start).limit(start + length);
-        return range.slice().asReadOnlyBuffer();
+        return buffer.slice(start, length);
     }
 
     /// Returns a zero-copy leading view bounded by a maximum length.
     ///
     /// @param buffer source buffer
     /// @param maximumLength nonnegative maximum byte count
-    /// @return normalized read-only prefix view
+    /// @return normalized prefix view preserving source write accessibility
     /// @throws NullPointerException if `buffer` is `null`
     /// @throws IllegalArgumentException if `maximumLength` is negative
     public static @UnmodifiableView ByteBuffer prefix(ByteBuffer buffer, int maximumLength) {
