@@ -108,7 +108,6 @@ public final class EncodingDetector {
             Encoding noMatchEncoding,
             Encoding emptyInputEncoding
     ) {
-        Objects.requireNonNull(encodingEras, "encodingEras");
         if (encodingEras.isEmpty()) {
             throw new IllegalArgumentException("encodingEras must not be empty");
         }
@@ -182,7 +181,7 @@ public final class EncodingDetector {
     /// @throws IllegalArgumentException if `value` is empty
     public EncodingDetector withEncodingEras(Set<EncodingEra> value) {
         return copy(
-                Objects.requireNonNull(value, "value"),
+                value,
                 maxBytes,
                 preferSuperset,
                 includeEncodings,
@@ -198,7 +197,7 @@ public final class EncodingDetector {
     /// @return an independently configured detector
     /// @throws NullPointerException if `value` is `null`
     public EncodingDetector withEncodingEra(EncodingEra value) {
-        return withEncodingEras(EnumSet.of(Objects.requireNonNull(value, "value")));
+        return withEncodingEras(EnumSet.of(value));
     }
 
     /// Returns a detector with a new maximum input length.
@@ -282,7 +281,7 @@ public final class EncodingDetector {
                 preferSuperset,
                 includeEncodings,
                 excludeEncodings,
-                Objects.requireNonNull(value, "value"),
+                value,
                 emptyInputEncoding
         );
     }
@@ -300,7 +299,7 @@ public final class EncodingDetector {
                 includeEncodings,
                 excludeEncodings,
                 noMatchEncoding,
-                Objects.requireNonNull(value, "value")
+                value
         );
     }
 
@@ -314,7 +313,7 @@ public final class EncodingDetector {
     /// @return highest-ranked result
     /// @throws NullPointerException if `input` is `null`
     public DetectionResult detect(byte[] input) {
-        return detectNormalized(ByteBufferSupport.wrap(Objects.requireNonNull(input, "input")));
+        return detectNormalized(ByteBufferSupport.wrap(input));
     }
 
     /// Returns the highest-ranked result for the remaining buffer bytes.
@@ -382,7 +381,7 @@ public final class EncodingDetector {
     /// @throws NullPointerException if `input` is `null`
     public @Unmodifiable List<DetectionResult> detectAllUnfiltered(byte[] input) {
         return detectAllUnfilteredNormalized(
-                ByteBufferSupport.wrap(Objects.requireNonNull(input, "input"))
+                ByteBufferSupport.wrap(input)
         );
     }
 
@@ -407,7 +406,7 @@ public final class EncodingDetector {
     /// @param input bytes to examine
     /// @return highest-ranked result
     private DetectionResult detectNormalized(@UnmodifiableView ByteBuffer input) {
-        return DetectionEngine.detect(Objects.requireNonNull(input, "input"), this).get(0);
+        return DetectionEngine.detect(input, this).get(0);
     }
 
     /// Returns every candidate for a normalized zero-copy buffer view.
@@ -417,7 +416,7 @@ public final class EncodingDetector {
     private @Unmodifiable List<DetectionResult> detectAllUnfilteredNormalized(
             @UnmodifiableView ByteBuffer input
     ) {
-        return DetectionEngine.detect(Objects.requireNonNull(input, "input"), this).stream()
+        return DetectionEngine.detect(input, this).stream()
                 .sorted(Comparator.comparingDouble(DetectionResult::confidence).reversed())
                 .toList();
     }
@@ -431,7 +430,6 @@ public final class EncodingDetector {
     /// @return resolved encoding, or `null` if unknown
     /// @throws NullPointerException if `name` is `null`
     public static @Nullable Encoding lookupEncoding(String name) {
-        Objects.requireNonNull(name, "name");
         return EncodingRegistry.lookup(name);
     }
 
@@ -499,9 +497,7 @@ public final class EncodingDetector {
             );
         }
         EnumSet<Encoding> copy = EnumSet.noneOf(Encoding.class);
-        for (Encoding encoding : encodings) {
-            copy.add(Objects.requireNonNull(encoding, parameterName));
-        }
+        copy.addAll(encodings);
         return Collections.unmodifiableSet(copy);
     }
 }

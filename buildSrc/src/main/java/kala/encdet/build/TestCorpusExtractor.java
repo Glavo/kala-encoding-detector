@@ -139,7 +139,7 @@ final class TestCorpusExtractor {
                 if (!output.startsWith(outputRoot)) {
                     throw new IOException("ZIP entry escapes output directory: " + entry.path());
                 }
-                Files.createDirectories(Objects.requireNonNull(output.getParent()));
+                Files.createDirectories(output.getParent());
                 String fileDigest;
                 try (InputStream input = archive.getInputStream(entry.zipEntry());
                      OutputStream stream = Files.newOutputStream(output)) {

@@ -30,7 +30,7 @@ public final class ByteBufferSupport {
     /// @return normalized view sharing `data`
     /// @throws NullPointerException if `data` is `null`
     public static @UnmodifiableView ByteBuffer wrap(byte[] data) {
-        return ByteBuffer.wrap(Objects.requireNonNull(data, "data"));
+        return ByteBuffer.wrap(data);
     }
 
     /// Returns a zero-copy view of a byte buffer's remaining bytes.
@@ -43,7 +43,7 @@ public final class ByteBufferSupport {
     /// @return normalized remaining-byte view preserving source write accessibility
     /// @throws NullPointerException if `buffer` is `null`
     public static @UnmodifiableView ByteBuffer view(ByteBuffer buffer) {
-        return Objects.requireNonNull(buffer, "buffer").slice();
+        return buffer.slice();
     }
 
     /// Returns a zero-copy subrange of a buffer's remaining bytes.
@@ -59,7 +59,6 @@ public final class ByteBufferSupport {
             int offset,
             int length
     ) {
-        Objects.requireNonNull(buffer, "buffer");
         Objects.checkFromIndexSize(offset, length, buffer.remaining());
         int start = buffer.position() + offset;
         return buffer.slice(start, length);
@@ -73,7 +72,6 @@ public final class ByteBufferSupport {
     /// @throws NullPointerException if `buffer` is `null`
     /// @throws IllegalArgumentException if `maximumLength` is negative
     public static @UnmodifiableView ByteBuffer prefix(ByteBuffer buffer, int maximumLength) {
-        Objects.requireNonNull(buffer, "buffer");
         if (maximumLength < 0) {
             throw new IllegalArgumentException("maximumLength must not be negative");
         }
@@ -92,7 +90,6 @@ public final class ByteBufferSupport {
     /// @throws NullPointerException if `buffer` is `null`
     /// @throws IndexOutOfBoundsException if the range is outside the remaining bytes
     public static String latin1String(ByteBuffer buffer, int offset, int length) {
-        Objects.requireNonNull(buffer, "buffer");
         Objects.checkFromIndexSize(offset, length, buffer.remaining());
         char[] characters = new char[length];
         int start = buffer.position() + offset;

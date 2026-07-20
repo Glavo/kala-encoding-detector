@@ -5,8 +5,6 @@ package kala.encdet.internal;
 
 import org.jetbrains.annotations.NotNullByDefault;
 
-import java.util.Objects;
-
 /// Stores an immutable set of unsigned byte values in four 64-bit words.
 ///
 /// Membership tests do not allocate or box the queried value. Signed `byte`
@@ -48,8 +46,6 @@ final class ByteSet {
     /// @throws IllegalArgumentException if a value is outside `0..255`
     /// @throws NullPointerException if `values` is `null`
     static ByteSet of(int... values) {
-        Objects.requireNonNull(values, "values");
-
         long word0 = 0L;
         long word1 = 0L;
         long word2 = 0L;

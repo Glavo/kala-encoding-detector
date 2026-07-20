@@ -19,7 +19,6 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /// Runs the complete ordered detection pipeline and public result transforms.
@@ -141,23 +140,23 @@ public final class DetectionEngine {
         }
 
         @Nullable PipelineResult result = detectBom(data);
-        if (isAllowed(result, allowed)) {
-            return List.of(Objects.requireNonNull(result));
+        if (result != null && isAllowed(result, allowed)) {
+            return List.of(result);
         }
 
         result = UnicodePatternDetector.detect(data);
-        if (isAllowed(result, allowed)) {
-            return List.of(Objects.requireNonNull(result));
+        if (result != null && isAllowed(result, allowed)) {
+            return List.of(result);
         }
 
         result = EscapeDetector.detect(data);
-        if (isAllowed(result, allowed)) {
-            return List.of(Objects.requireNonNull(result));
+        if (result != null && isAllowed(result, allowed)) {
+            return List.of(result);
         }
 
         @Nullable PipelineResult magic = MagicDetector.detect(data);
         if (magic != null) {
-            return List.of(Objects.requireNonNull(magic));
+            return List.of(magic);
         }
 
         @Nullable PipelineResult utf8 = detectUtf8(data);
@@ -167,14 +166,14 @@ public final class DetectionEngine {
         }
 
         @Nullable PipelineResult markup = MarkupDetector.detect(data);
-        if (isAllowed(markup, allowed)) {
+        if (markup != null && isAllowed(markup, allowed)) {
             return List.of(MarkupDetector.promoteSuperset(data, markup, allowed));
         }
-        if (isAllowed(ascii, allowed)) {
-            return List.of(Objects.requireNonNull(ascii));
+        if (ascii != null && isAllowed(ascii, allowed)) {
+            return List.of(ascii);
         }
-        if (isAllowed(utf8, allowed)) {
-            return List.of(Objects.requireNonNull(utf8));
+        if (utf8 != null && isAllowed(utf8, allowed)) {
+            return List.of(utf8);
         }
 
         List<EncodingRegistry.Info> validCandidates = ByteValidity.filter(data, candidates);
@@ -231,16 +230,16 @@ public final class DetectionEngine {
         return PostProcessor.process(data, scored);
     }
 
-    /// Tests whether a non-null text result's encoding is allowed.
+    /// Tests whether a text result's encoding is allowed.
     ///
-    /// @param result  candidate result, or `null`
+    /// @param result  candidate result
     /// @param allowed allowed encodings
-    /// @return whether the result exists and is allowed
+    /// @return whether the result's encoding is present and allowed
     private static boolean isAllowed(
-            @Nullable PipelineResult result,
+            PipelineResult result,
             Set<Encoding> allowed
     ) {
-        return result != null && result.encoding() != null && allowed.contains(result.encoding());
+        return result.encoding() != null && allowed.contains(result.encoding());
     }
 
     /// Returns a fallback or the no-detection sentinel if it was filtered out.
