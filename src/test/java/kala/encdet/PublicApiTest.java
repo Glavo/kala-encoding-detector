@@ -48,6 +48,22 @@ final class PublicApiTest {
         );
     }
 
+    /// Verifies the modern-web preset changes only the effective encoding set.
+    @Test
+    void modernWebPresetUsesModernWebEncodings() {
+        EncodingDetector defaults = EncodingDetector.DEFAULT;
+        EncodingDetector detector = EncodingDetector.MODERN_WEB;
+
+        assertNotSame(defaults, detector);
+        assertEquals(encodingsIn(Era.MODERN_WEB), detector.encodings());
+        assertEquals(defaults.maxBytes(), detector.maxBytes());
+        assertEquals(defaults.minimumConfidence(), detector.minimumConfidence());
+        assertEquals(defaults.preferSuperset(), detector.preferSuperset());
+        assertEquals(defaults.noMatchEncoding(), detector.noMatchEncoding());
+        assertEquals(defaults.emptyInputEncoding(), detector.emptyInputEncoding());
+        assertSame(detector, detector.withEncodingEra(Era.MODERN_WEB));
+    }
+
     /// Verifies immutable configuration changes and defensive copies.
     @Test
     void configurationMethodsDefensivelyCopyCollections() {

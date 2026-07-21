@@ -1145,6 +1145,13 @@ public final class EncodingDetector {
             Encoding.UTF_8
     );
 
+    /// Preset detector limited to encodings classified in [Era#MODERN_WEB].
+    ///
+    /// Its maximum input length, confidence threshold, preferred-superset
+    /// setting, and fallback encodings are identical to those of [#DEFAULT].
+    public static final EncodingDetector MODERN_WEB =
+            DEFAULT.withEncodingEra(Era.MODERN_WEB);
+
     /// Maximum number of leading input bytes examined.
     private final int maxBytes;
 
