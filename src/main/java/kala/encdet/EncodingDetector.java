@@ -76,12 +76,12 @@ public final class EncodingDetector {
     /// mappings identified on individual constants, while OpenJDK 17 supplies
     /// additional mappings through its standard charset providers. Installed
     /// [java.nio.charset.spi.CharsetProvider] implementations may add mappings,
-    /// while custom runtime images may omit OpenJDK's extended providers. A
-    /// related charset with different character mappings is not substituted.
-    /// [#UTF_8_SIG] is the framing-only exception: its payload uses UTF-8, while
-    /// its signature remains outside the returned charset. Call
-    /// [#isCharsetSupported()] to test availability and [#charset()] to obtain
-    /// the payload charset.
+    /// while custom runtime images may omit OpenJDK's extended providers.
+    /// [#charset()] does not substitute a related charset with different
+    /// character mappings. [#UTF_8_SIG] is the framing-only exception: its
+    /// payload uses UTF-8, while its signature remains outside the returned
+    /// charset. [#approximateCharset()] additionally permits predefined related
+    /// mappings when an exact mapping is unavailable.
     ///
     /// @apiNote [#charset()] does not consume or emit external framing such as
     /// the signature associated with [#UTF_8_SIG].
@@ -1014,6 +1014,13 @@ public final class EncodingDetector {
         /// stale read may only cause [#charset()] to repeat the provider lookup.
         private @Nullable Charset charsetCache;
 
+        /// Successfully resolved approximate runtime charset.
+        ///
+        /// A `null` value means that no successful fallback lookup has been
+        /// cached. The cache is unsynchronized; a concurrent stale read may only
+        /// cause [#approximateCharset()] to repeat the provider lookup.
+        private @Nullable Charset approximateCharsetCache;
+
         /// Creates an encoding whose display and canonical names are identical.
         ///
         /// @param canonicalName canonical registry name
@@ -1127,6 +1134,63 @@ public final class EncodingDetector {
             charset = findCharset(canonicalName);
             if (charset != null) {
                 charsetCache = charset;
+            }
+            return charset;
+        }
+
+        /// Returns the closest configured Java charset available for this
+        /// encoding.
+        ///
+        /// This method returns [#charset()] when an exact payload mapping is
+        /// available. Otherwise, it may return a related charset that shares a
+        /// useful byte-compatible subset. An approximate charset can reject
+        /// valid source input or map some byte sequences to different
+        /// characters; callers requiring exact decoding must use [#charset()].
+        /// No approximation is made for encodings without a useful configured
+        /// fallback. This method is safe for concurrent invocation.
+        ///
+        /// The configured fallbacks are Big5-HKSCS to Big5, CP932 to Shift_JIS,
+        /// CP949 to EUC-KR, EUC-JIS-2004 to EUC-JP, GB18030 to GBK, the extended
+        /// ISO-2022-JP variants to ISO-2022-JP, Shift_JIS-2004 to Shift_JIS,
+        /// Windows-874 to TIS-620, KOI8-U and KOI8-T to KOI8-R, TIS-620 to
+        /// Windows-874, ISO-8859-15 to ISO-8859-1, CP1125 to IBM866, KZ-1048 and
+        /// PTCP154 to Windows-1251, CP858 to IBM850, and CP1140 to IBM037.
+        ///
+        /// @return exact or approximate payload charset, or `null` when neither
+        /// is available
+        public @Nullable Charset approximateCharset() {
+            @Nullable Charset charset = charset();
+            if (charset != null) {
+                return charset;
+            }
+            charset = approximateCharsetCache;
+            if (charset != null) {
+                return charset;
+            }
+
+            @Nullable String approximateName = switch (this) {
+                case BIG5_HKSCS -> "Big5";
+                case CP932, SHIFT_JIS_2004 -> "Shift_JIS";
+                case CP949 -> "EUC-KR";
+                case EUC_JIS_2004 -> "EUC-JP";
+                case GB18030 -> "GBK";
+                case ISO_2022_JP_2, ISO_2022_JP_2004, ISO_2022_JP_EXT -> "ISO-2022-JP";
+                case CP874 -> "TIS-620";
+                case KOI8_U, KOI8_T -> "KOI8-R";
+                case TIS_620 -> "x-windows-874";
+                case ISO_8859_15 -> "ISO-8859-1";
+                case CP1125 -> "IBM866";
+                case KZ1048, PTCP154 -> "windows-1251";
+                case CP858 -> "IBM850";
+                case CP1140 -> "IBM037";
+                default -> null;
+            };
+            if (approximateName == null) {
+                return null;
+            }
+            charset = findCharset(approximateName);
+            if (charset != null) {
+                approximateCharsetCache = charset;
             }
             return charset;
         }

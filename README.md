@@ -126,6 +126,8 @@ returns all targets in enum declaration order.
 JVM provides one, or `null` otherwise. It does not substitute a related
 encoding with different character mappings. `Encoding.UTF_8_SIG` returns the
 UTF-8 payload charset; its leading signature is framing outside that charset.
+`Encoding.approximateCharset()` first returns the exact mapping, then tries a
+configured related charset when only partial compatibility is available.
 Use `Encoding.isCharsetSupported()` to test availability in the current JVM.
 The Javadoc for each enum constant describes its Java charset support.
 

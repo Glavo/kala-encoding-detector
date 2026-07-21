@@ -9,6 +9,7 @@ import kala.encdet.EncodingDetector.Candidate;
 import kala.encdet.EncodingDetector.Result;
 
 import org.jetbrains.annotations.NotNullByDefault;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -238,6 +239,26 @@ final class PublicApiTest {
         assertNotEquals(Charset.forName("IBM037"), Encoding.CP1140.charset());
         assertNotEquals(Charset.forName("EUC-JP"), Encoding.EUC_JIS_2004.charset());
         assertNotEquals(Charset.forName("Shift_JIS"), Encoding.SHIFT_JIS_2004.charset());
+    }
+
+    /// Verifies exact charsets take precedence and configured approximations
+    /// remain explicitly distinguishable from exact runtime support.
+    @Test
+    void mapsEncodingTargetsToApproximateJavaCharsets() {
+        for (Encoding encoding : Encoding.values()) {
+            @Nullable Charset exact = encoding.charset();
+            if (exact != null) {
+                assertSame(exact, encoding.approximateCharset(), encoding.name());
+            }
+        }
+
+        assertNull(Encoding.EUC_JIS_2004.charset());
+        assertFalse(Encoding.EUC_JIS_2004.isCharsetSupported());
+        assertEquals(
+                Charset.forName("EUC-JP"),
+                Encoding.EUC_JIS_2004.approximateCharset()
+        );
+        assertNull(Encoding.UTF_7.approximateCharset());
     }
 
     /// Verifies charset availability reporting against runtime lookup.

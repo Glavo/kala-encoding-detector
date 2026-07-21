@@ -8,7 +8,9 @@
 /// folded into a related detection target, and the target's names are intended
 /// for interchange and presentation. Use
 /// [kala.encdet.EncodingDetector.Encoding#charset()] to obtain an exact
-/// `java.nio.charset.Charset` mapping when the current runtime provides one.
+/// `java.nio.charset.Charset` mapping when the current runtime provides one, or
+/// [kala.encdet.EncodingDetector.Encoding#approximateCharset()] to permit a
+/// configured related mapping.
 @org.jetbrains.annotations.NotNullByDefault
 
 package kala.encdet;
