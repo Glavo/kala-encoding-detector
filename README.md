@@ -172,11 +172,9 @@ When the text-detection pipeline produces no candidate, the default detector
 returns a candidate with a `null` encoding and zero confidence. Configure
 `withNoMatchEncoding` to opt into a specific low-confidence fallback.
 
-`EncodingDetector` instances are safe for concurrent use. Registry metadata,
-validity, decode, model, and confusion data are immutable after thread-safe
-lazy initialization. Successful `Encoding.charset()` resolutions use an
-unsynchronized positive cache, so concurrent cache misses may repeat a lookup.
-Each detection has independent working state.
+`EncodingDetector` instances are safe for concurrent use. Registry, validity,
+decode, model, and confusion data are immutable after thread-safe lazy
+initialization; each detection has independent working state.
 
 ## Command line
 

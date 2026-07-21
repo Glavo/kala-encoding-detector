@@ -19,11 +19,10 @@ import java.util.*;
 /// Detects character encodings using immutable reusable configuration.
 ///
 /// Instances are safe for concurrent use. Shared registry metadata and model
-/// data are immutable after lazy initialization. Runtime charset mappings use
-/// a positive cache; concurrent cache misses may repeat the provider lookup.
-/// Every detection invocation uses a separate context. Configuration methods
-/// never modify their receiver. They return it when the requested value is
-/// already configured and otherwise return an independently configured detector.
+/// state are immutable after lazy initialization, and every detection invocation
+/// uses a separate context. Configuration methods never modify their receiver.
+/// They return it when the requested value is already configured and otherwise
+/// return an independently configured detector.
 ///
 /// Candidate eligibility is defined by the configured encoding set. Era-based
 /// configuration methods replace that set with the encodings classified in the
