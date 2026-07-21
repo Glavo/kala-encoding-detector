@@ -1124,6 +1124,14 @@ public final class EncodingDetector {
         public @Nullable Candidate bestCandidate() {
             return candidates.isEmpty() ? null : candidates.get(0);
         }
+
+        /// Returns the encoding assigned to the highest-ranked candidate.
+        ///
+        /// @return highest-ranked candidate's encoding, or `null` when the result
+        /// is empty or its highest-ranked candidate represents a non-text format
+        public @Nullable Encoding bestEncoding() {
+            return candidates.isEmpty() ? null : candidates.get(0).encoding();
+        }
     }
 
     /// Default inclusive confidence threshold used by

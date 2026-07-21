@@ -9,7 +9,6 @@ import kala.encdet.EncodingDetector.Candidate;
 import kala.encdet.EncodingDetector.Result;
 
 import org.jetbrains.annotations.NotNullByDefault;
-import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
@@ -294,15 +293,15 @@ final class PublicApiTest {
         );
         assertEquals(
                 Encoding.UTF_8_SIG,
-                bestEncoding(detector.detect(
+                detector.detect(
                         new byte[]{(byte) 0xef, (byte) 0xbb, (byte) 0xbf, 'x'}
-                ))
+                ).bestEncoding()
         );
         assertEquals(
                 Encoding.UTF_8,
-                bestEncoding(detector.detect(
+                detector.detect(
                         "Héllo 世界".getBytes(StandardCharsets.UTF_8)
-                ))
+                ).bestEncoding()
         );
     }
 
@@ -353,10 +352,10 @@ final class PublicApiTest {
     void appliesPreferredSupersetTransform() {
         byte[] data = "Hello world".getBytes(StandardCharsets.US_ASCII);
         EncodingDetector preferred = EncodingDetector.DEFAULT.withPreferredSuperset(true);
-        assertEquals(Encoding.CP1252, bestEncoding(preferred.detect(data)));
+        assertEquals(Encoding.CP1252, preferred.detect(data).bestEncoding());
         assertEquals(
                 Encoding.ASCII,
-                bestEncoding(EncodingDetector.DEFAULT.detect(data))
+                EncodingDetector.DEFAULT.detect(data).bestEncoding()
         );
     }
 
@@ -367,9 +366,9 @@ final class PublicApiTest {
                 .withEncodings(Set.of(Encoding.CP1252));
         assertEquals(
                 Encoding.CP1252,
-                bestEncoding(includeCp1252.detect(
+                includeCp1252.detect(
                         "Héllo café".getBytes(StandardCharsets.UTF_8)
-                ))
+                ).bestEncoding()
         );
 
         EncodingDetector noEncodings = EncodingDetector.DEFAULT.withEncodings(Set.of());
@@ -396,13 +395,13 @@ final class PublicApiTest {
                 .withEmptyInputEncoding(Encoding.ASCII);
         assertEquals(
                 Encoding.ASCII,
-                bestEncoding(customFallbacks.detect(new byte[0]))
+                customFallbacks.detect(new byte[0]).bestEncoding()
         );
         assertEquals(
                 Encoding.ASCII,
-                bestEncoding(customFallbacks.detect(
+                customFallbacks.detect(
                         new byte[]{(byte) 0x80, (byte) 0x81, (byte) 0x82}
-                ))
+                ).bestEncoding()
         );
     }
 
@@ -414,8 +413,8 @@ final class PublicApiTest {
                 .withEncodings(EnumSet.complementOf(EnumSet.of(Encoding.UTF_8_SIG)));
         EncodingDetector included = EncodingDetector.DEFAULT
                 .withEncodings(Set.of(Encoding.CP1252));
-        assertEquals(Encoding.UTF_8, bestEncoding(excluded.detect(data)));
-        assertEquals(Encoding.CP1252, bestEncoding(included.detect(data)));
+        assertEquals(Encoding.UTF_8, excluded.detect(data).bestEncoding());
+        assertEquals(Encoding.CP1252, included.detect(data).bestEncoding());
     }
 
     /// Verifies scan bounding changes detection at the configured byte boundary.
@@ -430,10 +429,10 @@ final class PublicApiTest {
         Result boundedExpected = bounded.detect(ascii);
         assertEquals(boundedExpected, bounded.detect(data));
         assertEquals(boundedExpected, bounded.detect(ByteBuffer.wrap(data)));
-        assertEquals(Encoding.ASCII, bestEncoding(boundedExpected));
+        assertEquals(Encoding.ASCII, boundedExpected.bestEncoding());
         assertEquals(
                 Encoding.UTF_8,
-                bestEncoding(EncodingDetector.DEFAULT.detect(data))
+                EncodingDetector.DEFAULT.detect(data).bestEncoding()
         );
     }
 
@@ -535,6 +534,7 @@ final class PublicApiTest {
         assertEquals(List.of(high, low), result.candidates());
         assertEquals(List.of(high), result.likelyCandidates());
         assertEquals(high, result.bestCandidate());
+        assertEquals(Encoding.UTF_8, result.bestEncoding());
         assertThrows(UnsupportedOperationException.class, () -> result.candidates().clear());
         assertThrows(
                 UnsupportedOperationException.class,
@@ -543,6 +543,7 @@ final class PublicApiTest {
         assertTrue(empty.candidates().isEmpty());
         assertTrue(empty.likelyCandidates().isEmpty());
         assertNull(empty.bestCandidate());
+        assertNull(empty.bestEncoding());
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -617,15 +618,6 @@ final class PublicApiTest {
                 NullPointerException.class,
                 () -> new Result(List.of(candidate), null)
         );
-    }
-
-    /// Returns the encoding of the highest-ranked candidate, if present.
-    ///
-    /// @param result detection result
-    /// @return candidate encoding, or `null` when the result is empty or binary
-    private static @Nullable Encoding bestEncoding(Result result) {
-        @Nullable Candidate candidate = result.bestCandidate();
-        return candidate == null ? null : candidate.encoding();
     }
 
     /// Returns all encodings classified in one era.
