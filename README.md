@@ -166,7 +166,7 @@ target as an immutable set in enum declaration order.
 
 `EncodingDetector.DEFAULT` permits all supported encodings and uses:
 
-- `maxBytes = 200_000`
+- `maxBytes = EncodingDetector.DEFAULT_MAX_BYTES (200_000)`
 - `minimumConfidence = 0.20`
 - no preferred-superset remapping
 - every supported encoding in the effective encoding set

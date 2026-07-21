@@ -31,9 +31,6 @@ public final class Main {
     /// Application version shown by `--version`.
     private static final String VERSION = "0.1.0-SNAPSHOT";
 
-    /// Maximum bytes read from each file or standard input.
-    private static final int MAX_BYTES = 200_000;
-
     /// Human-readable language names keyed by ISO 639 code.
     private static final @Unmodifiable Map<String, String> LANGUAGE_NAMES = Map.ofEntries(
             Map.entry("ar", "arabic"), Map.entry("be", "belarusian"),
@@ -112,7 +109,7 @@ public final class Main {
             for (String file : parsed.files) {
                 byte[] data;
                 try (InputStream fileInput = Files.newInputStream(Path.of(file))) {
-                    data = fileInput.readNBytes(MAX_BYTES);
+                    data = fileInput.readNBytes(EncodingDetector.DEFAULT_MAX_BYTES);
                 } catch (IOException | RuntimeException exception) {
                     error.println("kala-encdet: " + file + ": " + exception.getMessage());
                     errors++;
@@ -133,7 +130,7 @@ public final class Main {
 
         byte[] data;
         try {
-            data = input.readNBytes(MAX_BYTES);
+            data = input.readNBytes(EncodingDetector.DEFAULT_MAX_BYTES);
         } catch (IOException exception) {
             error.println("kala-encdet: stdin: detection failed: " + exception.getMessage());
             return 1;

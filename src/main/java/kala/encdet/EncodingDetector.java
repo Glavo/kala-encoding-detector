@@ -1180,6 +1180,11 @@ public final class EncodingDetector {
         }
     }
 
+    /// Default maximum number of leading input bytes examined.
+    ///
+    /// This limit is used by [#DEFAULT] and the bundled command-line application.
+    public static final int DEFAULT_MAX_BYTES = 200_000;
+
     /// Default inclusive confidence threshold used by [Result#candidates()].
     public static final double DEFAULT_MINIMUM_CONFIDENCE = 0.20;
 
@@ -1191,7 +1196,7 @@ public final class EncodingDetector {
     /// qualifying text candidate, and recommends [Encoding#UTF_8] for empty
     /// input.
     public static final EncodingDetector DEFAULT = new EncodingDetector(
-            200_000,
+            DEFAULT_MAX_BYTES,
             DEFAULT_MINIMUM_CONFIDENCE,
             false,
             EnumSet.allOf(Encoding.class),

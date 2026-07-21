@@ -32,7 +32,8 @@ final class PublicApiTest {
     @Test
     void defaultDetectorUsesDocumentedConfiguration() {
         EncodingDetector detector = EncodingDetector.DEFAULT;
-        assertEquals(200_000, detector.maxBytes());
+        assertEquals(200_000, EncodingDetector.DEFAULT_MAX_BYTES);
+        assertEquals(EncodingDetector.DEFAULT_MAX_BYTES, detector.maxBytes());
         assertEquals(
                 EncodingDetector.DEFAULT_MINIMUM_CONFIDENCE,
                 detector.minimumConfidence()
@@ -93,7 +94,7 @@ final class PublicApiTest {
 
         EncodingDetector changed = detector.withMaxBytes(17);
         assertNotSame(detector, changed);
-        assertEquals(200_000, detector.maxBytes());
+        assertEquals(EncodingDetector.DEFAULT_MAX_BYTES, detector.maxBytes());
         assertEquals(17, changed.maxBytes());
         assertEquals(0.75, changed.minimumConfidence());
         assertEquals(Set.of(Encoding.CP1252, Encoding.UTF_8), changed.encodings());
