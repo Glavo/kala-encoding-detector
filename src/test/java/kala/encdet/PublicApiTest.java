@@ -234,9 +234,10 @@ final class PublicApiTest {
     /// Verifies charset availability reporting against exact runtime lookup.
     @Test
     void reportsCurrentRuntimeCharsetSupport() {
+        assertTrue(Encoding.UTF_8_SIG.isCharsetSupported());
         for (Encoding encoding : Encoding.values()) {
             assertEquals(
-                    encoding.charset() != null,
+                    encoding == Encoding.UTF_8_SIG || encoding.charset() != null,
                     encoding.isCharsetSupported(),
                     encoding.name()
             );

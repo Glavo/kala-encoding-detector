@@ -59,8 +59,9 @@ public final class EncodingDetector {
     /// [java.nio.charset.spi.CharsetProvider] implementations may add mappings,
     /// while custom runtime images may omit OpenJDK's extended providers. A
     /// related charset with different decoding semantics is not an exact
-    /// substitute. Call [#isCharsetSupported()] to test availability in the
-    /// current runtime and [#charset()] to obtain the mapping.
+    /// substitute. Call [#isCharsetSupported()] to test whether the runtime has
+    /// the required underlying charset support and [#charset()] to obtain an
+    /// exact mapping when one exists.
     ///
     /// @apiNote [#charset()] returns an exact `java.nio.charset.Charset`
     /// mapping when the current runtime provides one.
@@ -94,7 +95,9 @@ public final class EncodingDetector {
         /// it does not implement UTF-8-SIG framing: its decoder exposes the
         /// initial signature as `U+FEFF`, and its encoder does not prepend one.
         /// Consequently, [#charset()] returns `null` unless an installed provider
-        /// supplies an exact mapping.
+        /// supplies an exact mapping. [#isCharsetSupported()] nevertheless
+        /// returns `true` because Java SE provides the underlying UTF-8 codec
+        /// needed when signature framing is handled separately.
         UTF_8_SIG(
                 "utf-8-sig", "UTF-8-SIG", Era.MODERN_WEB, false,
                 List.of(),
@@ -1111,17 +1114,19 @@ public final class EncodingDetector {
             return charset;
         }
 
-        /// Returns whether the current runtime provides an exact Java charset
-        /// mapping for this encoding.
+        /// Returns whether the current runtime provides the charset support
+        /// needed to process this encoding.
         ///
-        /// This method is equivalent to `charset() != null`. Its result may
-        /// therefore depend on the charset providers installed in the current
-        /// runtime. Related charsets with different decoding semantics do not
-        /// count as support. This method is safe for concurrent invocation.
+        /// An exact mapping returned by [#charset()] counts as support.
+        /// [#UTF_8_SIG] also counts as supported because Java SE provides UTF-8;
+        /// its signature framing can be handled separately even when no exact
+        /// UTF-8-SIG charset is installed. For every other encoding, the result
+        /// may depend on the charset providers installed in the current runtime.
+        /// This method is safe for concurrent invocation.
         ///
-        /// @return `true` if [#charset()] returns a charset; `false` otherwise
+        /// @return `true` if the runtime can process this encoding
         public boolean isCharsetSupported() {
-            return charset() != null;
+            return this == UTF_8_SIG || charset() != null;
         }
 
         /// Returns the historical or operational group assigned to this target.
