@@ -177,7 +177,7 @@ final class PostProcessor {
                 break;
             }
         }
-        if (koi8TIndex < 0 || !containsAny(data, KOI8_T_DISTINGUISHING)) {
+        if (koi8TIndex < 0 || !containsKoi8TDistinguishingByte(data)) {
             return results;
         }
         PipelineResult selected = results.get(koi8TIndex);
@@ -197,18 +197,16 @@ final class PostProcessor {
         return reordered;
     }
 
-    /// Tests whether input contains any high byte in a set.
+    /// Tests whether input contains a Tajik-specific KOI8-T byte.
     ///
-    /// @param data   bytes to inspect
-    /// @param values unsigned byte set
-    /// @return whether a matching high byte exists
-    private static boolean containsAny(
-            @UnmodifiableView ByteBuffer data,
-            ByteSet values
+    /// @param data bytes to inspect
+    /// @return whether a distinguishing byte exists
+    private static boolean containsKoi8TDistinguishingByte(
+            @UnmodifiableView ByteBuffer data
     ) {
         for (int index = 0; index < data.remaining(); index++) {
             byte value = data.get(index);
-            if (value < 0 && values.contains(value)) {
+            if (value < 0 && KOI8_T_DISTINGUISHING.contains(value)) {
                 return true;
             }
         }

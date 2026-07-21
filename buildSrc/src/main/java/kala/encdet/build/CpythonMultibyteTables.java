@@ -64,7 +64,7 @@ final class CpythonMultibyteTables {
     /// allocated and owned by the returned result.
     ///
     /// @param cpythonArchive CPython source ZIP
-    /// @param archiveRoot exact root directory expected in the ZIP
+    /// @param archiveRoot    exact root directory expected in the ZIP
     /// @return immutable generated table collection and HZ pair mask
     /// @throws IOException if a required entry is missing or malformed
     static Result read(Path cpythonArchive, String archiveRoot) throws IOException {
@@ -240,8 +240,8 @@ final class CpythonMultibyteTables {
 
     /// Reads one bounded UTF-8 source entry from the archive.
     ///
-    /// @param archive open source archive
-    /// @param root normalized archive root
+    /// @param archive      open source archive
+    /// @param root         normalized archive root
     /// @param relativePath source path below the root
     /// @return decoded source text
     /// @throws IOException if the entry is absent, oversized, truncated, or malformed UTF-8
@@ -281,7 +281,7 @@ final class CpythonMultibyteTables {
     /// Parses one generated two-level CPython decode map.
     ///
     /// @param source mapping header source
-    /// @param name mapping stem
+    /// @param name   mapping stem
     /// @return valid byte pairs represented by the map
     /// @throws IOException if either generated declaration is malformed
     private static DecodeMap parseDecodeMap(String source, String name) throws IOException {
@@ -384,7 +384,7 @@ final class CpythonMultibyteTables {
     /// Parses the final definition of one integer preprocessor macro.
     ///
     /// @param source C source
-    /// @param name macro name
+    /// @param name   macro name
     /// @return macro value
     /// @throws IOException if no valid definition exists
     private static int parseLastDefine(String source, String name) throws IOException {
@@ -404,10 +404,10 @@ final class CpythonMultibyteTables {
 
     /// Parses one fixed-size C integer array, resolving a restricted macro map.
     ///
-    /// @param source C source
-    /// @param name array name
+    /// @param source         C source
+    /// @param name           array name
     /// @param expectedLength required element count
-    /// @param macros recognized symbolic integer values
+    /// @param macros         recognized symbolic integer values
     /// @return parsed array
     /// @throws IOException if the declaration or an element is malformed
     private static int @Unmodifiable [] parseIntegerArray(
@@ -441,9 +441,9 @@ final class CpythonMultibyteTables {
 
     /// Extracts the body of a balanced C initializer.
     ///
-    /// @param source complete source
+    /// @param source       complete source
     /// @param openingBrace index of the opening brace
-    /// @param label diagnostic label
+    /// @param label        diagnostic label
     /// @return initializer contents without outer braces
     /// @throws IOException if the brace is missing or unbalanced
     private static String extractInitializer(String source, int openingBrace, String label)
@@ -471,7 +471,7 @@ final class CpythonMultibyteTables {
 
     /// Splits a flat comma-separated C initializer and rejects empty interior fields.
     ///
-    /// @param body initializer body
+    /// @param body  initializer body
     /// @param label diagnostic label
     /// @return immutable trimmed tokens
     /// @throws IOException if an empty token occurs before the optional trailing comma
@@ -496,7 +496,7 @@ final class CpythonMultibyteTables {
 
     /// Splits an initializer containing only first-level structure initializers.
     ///
-    /// @param body outer initializer body
+    /// @param body  outer initializer body
     /// @param label diagnostic label
     /// @return immutable inner initializer bodies
     /// @throws IOException if unexpected text or unbalanced braces are present
@@ -619,11 +619,11 @@ final class CpythonMultibyteTables {
 
     /// Creates one immutable output table from a single mask and lead-byte decoder.
     ///
-    /// @param name canonical codec name
-    /// @param singles valid standalone bytes
-    /// @param decoder decoder used when the first byte is not standalone
-    /// @param kind extra-mask kind
-    /// @param extra extra mask
+    /// @param name          canonical codec name
+    /// @param singles       valid standalone bytes
+    /// @param decoder       decoder used when the first byte is not standalone
+    /// @param kind          extra-mask kind
+    /// @param extra         extra mask
     /// @param extraBitCount meaningful extra-mask bits
     /// @return generated table
     private static MultibyteTable createTable(
@@ -657,10 +657,10 @@ final class CpythonMultibyteTables {
 
     /// Tests one Big5-HKSCS double-byte sequence.
     ///
-    /// @param first first byte
+    /// @param first  first byte
     /// @param second second byte
-    /// @param big5 base Big5 map
-    /// @param hkscs HKSCS extension map
+    /// @param big5   base Big5 map
+    /// @param hkscs  HKSCS extension map
     /// @return whether CPython's decoder accepts the pair
     private static boolean acceptsBig5Hkscs(
             int first,
@@ -682,10 +682,10 @@ final class CpythonMultibyteTables {
 
     /// Tests one CP932 double-byte sequence.
     ///
-    /// @param first first byte
-    /// @param second second byte
+    /// @param first     first byte
+    /// @param second    second byte
     /// @param extension CP932 extension map
-    /// @param jisX0208 JIS X 0208 map
+    /// @param jisX0208  JIS X 0208 map
     /// @return whether CPython's decoder accepts the pair
     private static boolean acceptsCp932Pair(
             int first,
@@ -696,7 +696,8 @@ final class CpythonMultibyteTables {
         if (extension.contains(first, second)) {
             return true;
         }
-        if ((between(first, 0x81, 0x9f) || between(first, 0xe0, 0xea))
+        if (((first >= 0x81 && first <= 0x9f)
+                || (first >= 0xe0 && first <= 0xea))
                 && isShiftJisTrail(second)) {
             int row = first < 0xe0 ? first - 0x81 : first - 0xc1;
             int column = second < 0x80 ? second - 0x40 : second - 0x41;
@@ -704,14 +705,14 @@ final class CpythonMultibyteTables {
             column = (column < 0x5e ? column : column - 0x5e) + 0x21;
             return jisX0208.contains(row, column);
         }
-        return between(first, 0xf0, 0xf9) && isShiftJisTrail(second);
+        return first >= 0xf0 && first <= 0xf9 && isShiftJisTrail(second);
     }
 
     /// Tests one CP949 double-byte sequence.
     ///
-    /// @param first first byte
-    /// @param second second byte
-    /// @param ksX1001 KS X 1001 map
+    /// @param first     first byte
+    /// @param second    second byte
+    /// @param ksX1001   KS X 1001 map
     /// @param extension CP949 extension map
     /// @return whether CPython's decoder accepts the pair
     private static boolean acceptsCp949Pair(
@@ -726,12 +727,12 @@ final class CpythonMultibyteTables {
 
     /// Tests one EUC-JIS-2004 two-byte sequence.
     ///
-    /// @param first first byte
-    /// @param second second byte
-    /// @param jisX0208 JIS X 0208 map
+    /// @param first     first byte
+    /// @param second    second byte
+    /// @param jisX0208  JIS X 0208 map
     /// @param plane1Bmp JIS X 0213 plane-one BMP map
     /// @param plane1Emp JIS X 0213 plane-one supplementary map
-    /// @param pairMap JIS X 0213 paired-code-point map
+    /// @param pairMap   JIS X 0213 paired-code-point map
     /// @return whether CPython's decoder accepts the pair
     private static boolean acceptsEucJis2004Pair(
             int first,
@@ -742,7 +743,7 @@ final class CpythonMultibyteTables {
             DecodeMap pairMap
     ) {
         if (first == 0x8e) {
-            return between(second, 0xa1, 0xdf);
+            return second >= 0xa1 && second <= 0xdf;
         }
         if (first == 0x8f) {
             return false;
@@ -762,8 +763,8 @@ final class CpythonMultibyteTables {
     /// The `a4 d4` prefix begins CPython's eight-byte KS X 1001 make-up sequence and is therefore
     /// incomplete when presented as a two-byte input.
     ///
-    /// @param first first byte
-    /// @param second second byte
+    /// @param first   first byte
+    /// @param second  second byte
     /// @param ksX1001 KS X 1001 map
     /// @return whether CPython's decoder accepts the complete pair
     private static boolean acceptsEucKrPair(int first, int second, DecodeMap ksX1001) {
@@ -773,10 +774,10 @@ final class CpythonMultibyteTables {
 
     /// Tests one GB18030 two-byte sequence.
     ///
-    /// @param first first byte
-    /// @param second second byte
-    /// @param gb2312 GB2312 map
-    /// @param gbkExtension GBK extension map
+    /// @param first            first byte
+    /// @param second           second byte
+    /// @param gb2312           GB2312 map
+    /// @param gbkExtension     GBK extension map
     /// @param gb18030Extension GB18030 two-byte extension map
     /// @return whether CPython's decoder accepts the pair
     private static boolean acceptsGb18030Pair(
@@ -786,7 +787,7 @@ final class CpythonMultibyteTables {
             DecodeMap gbkExtension,
             DecodeMap gb18030Extension
     ) {
-        if (between(second, 0x30, 0x39)) {
+        if (second >= 0x30 && second <= 0x39) {
             return false;
         }
         return first == 0xa1 && second == 0xaa
@@ -799,14 +800,14 @@ final class CpythonMultibyteTables {
 
     /// Tests one Shift-JIS-2004 double-byte sequence.
     ///
-    /// @param first first byte
-    /// @param second second byte
-    /// @param jisX0208 JIS X 0208 map
+    /// @param first     first byte
+    /// @param second    second byte
+    /// @param jisX0208  JIS X 0208 map
     /// @param plane1Bmp JIS X 0213 plane-one BMP map
     /// @param plane2Bmp JIS X 0213 plane-two BMP map
     /// @param plane1Emp JIS X 0213 plane-one supplementary map
     /// @param plane2Emp JIS X 0213 plane-two supplementary map
-    /// @param pairMap JIS X 0213 paired-code-point map
+    /// @param pairMap   JIS X 0213 paired-code-point map
     /// @return whether CPython's decoder accepts the pair
     private static boolean acceptsShiftJis2004Pair(
             int first,
@@ -818,7 +819,8 @@ final class CpythonMultibyteTables {
             DecodeMap plane2Emp,
             DecodeMap pairMap
     ) {
-        if (!(between(first, 0x81, 0x9f) || between(first, 0xe0, 0xfc))
+        if (!((first >= 0x81 && first <= 0x9f)
+                || (first >= 0xe0 && first <= 0xfc))
                 || !isShiftJisTrail(second)) {
             return false;
         }
@@ -845,8 +847,8 @@ final class CpythonMultibyteTables {
 
     /// Tests one Johab double-byte sequence.
     ///
-    /// @param first first byte
-    /// @param second second byte
+    /// @param first   first byte
+    /// @param second  second byte
     /// @param indexes decoder lookup arrays and sentinels
     /// @param ksX1001 KS X 1001 map used by the non-Hangul branch
     /// @return whether CPython's decoder accepts the pair
@@ -873,9 +875,9 @@ final class CpythonMultibyteTables {
         if (first == 0xdf
                 || first > 0xf9
                 || second < 0x31
-                || between(second, 0x80, 0x90)
+                || (second >= 0x80 && second <= 0x90)
                 || (second & 0x7f) == 0x7f
-                || first == 0xda && between(second, 0xa1, 0xd3)) {
+                || (first == 0xda && second >= 0xa1 && second <= 0xd3)) {
             return false;
         }
         int row = first < 0xe0 ? 2 * (first - 0xd9) : 2 * first - 0x197;
@@ -887,7 +889,7 @@ final class CpythonMultibyteTables {
 
     /// Creates the EUC-JIS-2004 mask following an `0x8f` lead byte.
     ///
-    /// @param jisX0212 JIS X 0212 map
+    /// @param jisX0212  JIS X 0212 map
     /// @param plane2Bmp JIS X 0213 plane-two BMP map
     /// @param plane2Emp JIS X 0213 plane-two supplementary map
     /// @return packed pair mask indexed by the two raw trailing bytes
@@ -951,22 +953,13 @@ final class CpythonMultibyteTables {
     /// @param value byte value
     /// @return whether the value is a syntactically valid trail byte
     private static boolean isShiftJisTrail(int value) {
-        return between(value, 0x40, 0x7e) || between(value, 0x80, 0xfc);
-    }
-
-    /// Tests an inclusive integer range.
-    ///
-    /// @param value tested value
-    /// @param minimum inclusive minimum
-    /// @param maximum inclusive maximum
-    /// @return whether the value lies in the range
-    private static boolean between(int value, int minimum, int maximum) {
-        return value >= minimum && value <= maximum;
+        return (value >= 0x40 && value <= 0x7e)
+                || (value >= 0x80 && value <= 0xfc);
     }
 
     /// Packs a bit set using the runtime resource's little-bit-order convention.
     ///
-    /// @param bits set bit indexes
+    /// @param bits     set bit indexes
     /// @param bitCount exact meaningful bit count
     /// @return fixed-size packed mask
     private static byte[] toMask(BitSet bits, int bitCount) {
@@ -991,7 +984,7 @@ final class CpythonMultibyteTables {
     /// Creates a CPython source-format exception with a cause.
     ///
     /// @param detail failure detail
-    /// @param cause parsing cause
+    /// @param cause  parsing cause
     /// @return checked format exception
     private static IOException malformed(String detail, RuntimeException cause) {
         return new IOException("Malformed CPython CJK codec source: " + detail, cause);
@@ -1003,7 +996,7 @@ final class CpythonMultibyteTables {
     private interface DoubleByteDecoder {
         /// Returns whether the decoder consumes the supplied pair as one complete sequence.
         ///
-        /// @param first first byte
+        /// @param first  first byte
         /// @param second second byte
         /// @return whether the pair is accepted
         boolean accepts(int first, int second);
@@ -1020,7 +1013,7 @@ final class CpythonMultibyteTables {
 
         /// Returns whether one pair has a non-`U` mapping entry.
         ///
-        /// @param first first lookup byte
+        /// @param first  first lookup byte
         /// @param second second lookup byte
         /// @return whether a mapping exists
         private boolean contains(int first, int second) {
@@ -1033,11 +1026,11 @@ final class CpythonMultibyteTables {
 
     /// Stores the CPython Johab decoder's Hangul index arrays and sentinels.
     ///
-    /// @param choseong initial-consonant indexes
+    /// @param choseong  initial-consonant indexes
     /// @param jungseong vowel indexes
     /// @param jongseong final-consonant indexes
-    /// @param none invalid index sentinel
-    /// @param fill filler index sentinel
+    /// @param none      invalid index sentinel
+    /// @param fill      filler index sentinel
     @NotNullByDefault
     private record JohabIndexes(
             int @Unmodifiable [] choseong,
@@ -1053,7 +1046,7 @@ final class CpythonMultibyteTables {
 
     /// Stores all generated CPython-derived multibyte data.
     ///
-    /// @param tables eight tables in runtime resource order
+    /// @param tables  eight tables in runtime resource order
     /// @param hzPairs HZ shifted GB2312 pair mask
     @NotNullByDefault
     record Result(
@@ -1074,11 +1067,11 @@ final class CpythonMultibyteTables {
 
     /// Stores one generated KVM1 table.
     ///
-    /// @param name canonical codec name
-    /// @param singles standalone-byte mask
-    /// @param pairs complete two-byte input mask
-    /// @param kind extra-table format discriminator
-    /// @param extra optional sequence mask, empty for kind zero
+    /// @param name          canonical codec name
+    /// @param singles       standalone-byte mask
+    /// @param pairs         complete two-byte input mask
+    /// @param kind          extra-table format discriminator
+    /// @param extra         optional sequence mask, empty for kind zero
     /// @param extraBitCount number of meaningful extra bits
     @NotNullByDefault
     record MultibyteTable(

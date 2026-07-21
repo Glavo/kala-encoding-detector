@@ -389,7 +389,8 @@ final class MarkupDetector {
             String mimeType
     ) {
         @Nullable Encoding encoding = resolveAsciiName(data, nameStart, nameEnd);
-        if (encoding == null || !validPrefix(data, encoding)) {
+        if (encoding == null
+                || !ByteValidity.isValid(ByteBufferSupport.prefix(data, SCAN_LIMIT), encoding)) {
             return null;
         }
         return new PipelineResult(encoding, CONFIDENCE, null, mimeType);
@@ -697,15 +698,4 @@ final class MarkupDetector {
                 || (unsigned >= 0x1c && unsigned <= 0x1f);
     }
 
-    /// Strictly validates at most the first 4 KiB under an encoding.
-    ///
-    /// @param data     source bytes
-    /// @param encoding encoding identity
-    /// @return whether the prefix is valid
-    private static boolean validPrefix(
-            @UnmodifiableView ByteBuffer data,
-            Encoding encoding
-    ) {
-        return ByteValidity.isValid(ByteBufferSupport.prefix(data, SCAN_LIMIT), encoding);
-    }
 }

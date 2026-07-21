@@ -38,22 +38,22 @@ final class EscapeDetector {
             if (containsAscii(data, "\u001b$(O")
                     || containsAscii(data, "\u001b$(P")
                     || containsAscii(data, "\u001b$(Q")) {
-                return result(Encoding.ISO_2022_JP_2004, "ja");
+                return escapeResult(Encoding.ISO_2022_JP_2004, "ja");
             }
             if (containsAscii(data, "\u001b(I")) {
-                return result(Encoding.ISO_2022_JP_EXT, "ja");
+                return escapeResult(Encoding.ISO_2022_JP_EXT, "ja");
             }
             if (containsAscii(data, "\u001b$B")
                     || containsAscii(data, "\u001b$@")
                     || containsAscii(data, "\u001b(J")
                     || containsAscii(data, "\u001b$(D")) {
                 if (containsByte(data, 0x0e) && containsByte(data, 0x0f)) {
-                    return result(Encoding.ISO_2022_JP_EXT, "ja");
+                    return escapeResult(Encoding.ISO_2022_JP_EXT, "ja");
                 }
-                return result(Encoding.ISO_2022_JP_2, "ja");
+                return escapeResult(Encoding.ISO_2022_JP_2, "ja");
             }
             if (containsAscii(data, "\u001b$)C")) {
-                return result(Encoding.ISO_2022_KR, "ko");
+                return escapeResult(Encoding.ISO_2022_KR, "ko");
             }
         }
 
@@ -61,11 +61,11 @@ final class EscapeDetector {
                 && containsAscii(data, "~{")
                 && containsAscii(data, "~}")
                 && hasValidHzRegion(data)) {
-            return result(Encoding.HZ, "zh");
+            return escapeResult(Encoding.HZ, "zh");
         }
 
         if (hasPlus && isSevenBit(data) && hasValidUtf7Sequence(data)) {
-            return result(Encoding.UTF_7, null);
+            return escapeResult(Encoding.UTF_7, null);
         }
         return null;
     }
@@ -75,7 +75,7 @@ final class EscapeDetector {
     /// @param encoding detected encoding
     /// @param language fixed language, or `null`
     /// @return result
-    private static PipelineResult result(
+    private static PipelineResult escapeResult(
             Encoding encoding,
             @Nullable String language
     ) {
@@ -144,7 +144,11 @@ final class EscapeDetector {
             }
 
             int end = position;
-            while (end < data.remaining() && base64Value(data.get(end)) >= 0) {
+            while (end < data.remaining()) {
+                int sextet = Byte.toUnsignedInt(data.get(end));
+                if (Constants.UTF7_BASE64_VALUES[sextet] < 0) {
+                    break;
+                }
                 end++;
             }
             int length = end - position;
@@ -182,7 +186,7 @@ final class EscapeDetector {
         int totalBits = length * 6;
         int paddingBits = totalBits % 16;
         if (paddingBits > 0) {
-            int last = base64Value(data.get(end - 1));
+            int last = Constants.UTF7_BASE64_VALUES[Byte.toUnsignedInt(data.get(end - 1))];
             int mask = (1 << paddingBits) - 1;
             if ((last & mask) != 0) {
                 return false;
@@ -193,7 +197,8 @@ final class EscapeDetector {
         int bitCount = 0;
         boolean previousHigh = false;
         for (int index = start; index < end; index++) {
-            bitBuffer = (bitBuffer << 6) | base64Value(data.get(index));
+            bitBuffer = (bitBuffer << 6)
+                    | Constants.UTF7_BASE64_VALUES[Byte.toUnsignedInt(data.get(index))];
             bitCount += 6;
             if (bitCount >= 16) {
                 bitCount -= 16;
@@ -238,7 +243,8 @@ final class EscapeDetector {
             if (value == '\n' || value == '\r') {
                 continue;
             }
-            if (base64Value(data.get(index)) >= 0 || value == '=') {
+            if (Constants.UTF7_BASE64_VALUES[value] >= 0
+                    || value == '=') {
                 count++;
             } else {
                 break;
@@ -325,11 +331,4 @@ final class EscapeDetector {
         return -1;
     }
 
-    /// Returns a UTF-7 Base64 sextet value.
-    ///
-    /// @param value encoded byte
-    /// @return value in `[0, 63]`, or `-1`
-    private static int base64Value(byte value) {
-        return Constants.UTF7_BASE64_VALUES[Byte.toUnsignedInt(value)];
-    }
 }

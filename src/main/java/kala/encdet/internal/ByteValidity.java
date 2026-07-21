@@ -89,8 +89,7 @@ final class ByteValidity {
             case UTF_32_LE -> isValidUtf32(data, true, 0);
             case UTF_7 -> isValidUtf7(data);
             case HZ -> isValidHz(data);
-            case ISO_2022_JP_2, ISO_2022_JP_2004, ISO_2022_JP_EXT, ISO_2022_KR ->
-                    isValidIso2022(data);
+            case ISO_2022_JP_2, ISO_2022_JP_2004, ISO_2022_JP_EXT, ISO_2022_KR -> isValidIso2022(data);
             default -> {
                 @Nullable ByteSet singleMask = SingleByteValidity.lookup(encoding);
                 if (singleMask != null) {
@@ -134,27 +133,27 @@ final class ByteValidity {
                 continue;
             }
 
-            if (encoding == Encoding.GB18030
-                    && index + 1 < data.remaining()
-                    && between(Byte.toUnsignedInt(data.get(index + 1)), 0x30, 0x39)) {
-                if (index + 3 >= data.remaining() || table.extra() == null) {
-                    return false;
-                }
+            if (encoding == Encoding.GB18030 && index + 1 < data.remaining()) {
                 int second = Byte.toUnsignedInt(data.get(index + 1));
-                int third = Byte.toUnsignedInt(data.get(index + 2));
-                int fourth = Byte.toUnsignedInt(data.get(index + 3));
-                if (!between(first, 0x81, 0xfe)
-                        || !between(third, 0x81, 0xfe)
-                        || !between(fourth, 0x30, 0x39)) {
-                    return false;
+                if (second >= 0x30 && second <= 0x39) {
+                    if (index + 3 >= data.remaining() || table.extra() == null) {
+                        return false;
+                    }
+                    int third = Byte.toUnsignedInt(data.get(index + 2));
+                    int fourth = Byte.toUnsignedInt(data.get(index + 3));
+                    if (first < 0x81 || first > 0xfe
+                            || third < 0x81 || third > 0xfe
+                            || fourth < 0x30 || fourth > 0x39) {
+                        return false;
+                    }
+                    int pointer = (((first - 0x81) * 10 + (second - 0x30)) * 126
+                            + (third - 0x81)) * 10 + (fourth - 0x30);
+                    if (!contains(table.extra(), pointer)) {
+                        return false;
+                    }
+                    index += 4;
+                    continue;
                 }
-                int pointer = (((first - 0x81) * 10 + (second - 0x30)) * 126
-                        + (third - 0x81)) * 10 + (fourth - 0x30);
-                if (!contains(table.extra(), pointer)) {
-                    return false;
-                }
-                index += 4;
-                continue;
             }
 
             if (index + 1 >= data.remaining()) {
@@ -183,11 +182,11 @@ final class ByteValidity {
                 continue;
             }
             int length;
-            if (between(first, 0xc2, 0xdf)) {
+            if (first >= 0xc2 && first <= 0xdf) {
                 length = 2;
-            } else if (between(first, 0xe0, 0xef)) {
+            } else if (first >= 0xe0 && first <= 0xef) {
                 length = 3;
-            } else if (between(first, 0xf0, 0xf4)) {
+            } else if (first >= 0xf0 && first <= 0xf4) {
                 length = 4;
             } else {
                 return false;
@@ -196,7 +195,8 @@ final class ByteValidity {
                 return false;
             }
             for (int continuation = 1; continuation < length; continuation++) {
-                if (!between(Byte.toUnsignedInt(data.get(index + continuation)), 0x80, 0xbf)) {
+                int value = Byte.toUnsignedInt(data.get(index + continuation));
+                if (value < 0x80 || value > 0xbf) {
                     return false;
                 }
             }
@@ -247,12 +247,12 @@ final class ByteValidity {
                     | (Byte.toUnsignedInt(data.get(index + 1)) << 8)
                     : (Byte.toUnsignedInt(data.get(index)) << 8)
                     | Byte.toUnsignedInt(data.get(index + 1));
-            if (between(unit, 0xd800, 0xdbff)) {
+            if (Character.isHighSurrogate((char) unit)) {
                 if (pendingHigh) {
                     return false;
                 }
                 pendingHigh = true;
-            } else if (between(unit, 0xdc00, 0xdfff)) {
+            } else if (Character.isLowSurrogate((char) unit)) {
                 if (!pendingHigh) {
                     return false;
                 }
@@ -309,7 +309,9 @@ final class ByteValidity {
                                 | Byte.toUnsignedInt(data.get(index + 3))
                 );
             }
-            if (value > 0x10ffffL || between(value, 0xd800L, 0xdfffL)) {
+            if (value > 0x10ffffL
+                    || value >= Character.MIN_SURROGATE
+                    && value <= Character.MAX_SURROGATE) {
                 return false;
             }
         }
@@ -336,7 +338,11 @@ final class ByteValidity {
                 continue;
             }
             int start = ++index;
-            while (index < data.remaining() && base64Value(data.get(index)) >= 0) {
+            while (index < data.remaining()) {
+                int sextet = Byte.toUnsignedInt(data.get(index));
+                if (Constants.UTF7_BASE64_VALUES[sextet] < 0) {
+                    break;
+                }
                 index++;
             }
             if (index == start || !isValidUtf7Payload(data, start, index)) {
@@ -372,18 +378,19 @@ final class ByteValidity {
         int unitIndex = 0;
         boolean pendingHigh = false;
         for (int index = start; index < end; index++) {
-            accumulator = (accumulator << 6) | base64Value(data.get(index));
+            accumulator = (accumulator << 6)
+                    | Constants.UTF7_BASE64_VALUES[Byte.toUnsignedInt(data.get(index))];
             accumulated += 6;
             while (accumulated >= 16 && unitIndex < unitCount) {
                 accumulated -= 16;
                 int unit = (int) ((accumulator >>> accumulated) & 0xffffL);
                 unitIndex++;
-                if (between(unit, 0xd800, 0xdbff)) {
+                if (Character.isHighSurrogate((char) unit)) {
                     if (pendingHigh) {
                         return false;
                     }
                     pendingHigh = true;
-                } else if (between(unit, 0xdc00, 0xdfff)) {
+                } else if (Character.isLowSurrogate((char) unit)) {
                     if (!pendingHigh) {
                         return false;
                     }
@@ -442,7 +449,7 @@ final class ByteValidity {
                 index++;
                 continue;
             }
-            if (!between(value, 0x21, 0x7e)) {
+            if (value < 0x21 || value > 0x7e) {
                 return false;
             }
             if (pending < 0) {
@@ -478,7 +485,7 @@ final class ByteValidity {
 
     /// Tests whether every byte is present in a byte set.
     ///
-    /// @param data bytes to test
+    /// @param data   bytes to test
     /// @param values valid byte values
     /// @return whether all bytes are valid
     private static boolean allBytesInSet(
@@ -502,26 +509,6 @@ final class ByteValidity {
         return (Byte.toUnsignedInt(mask[value >>> 3]) & (1 << (value & 7))) != 0;
     }
 
-    /// Tests an inclusive integer range.
-    ///
-    /// @param value   value to test
-    /// @param minimum inclusive minimum
-    /// @param maximum inclusive maximum
-    /// @return whether the value lies in the range
-    private static boolean between(int value, int minimum, int maximum) {
-        return value >= minimum && value <= maximum;
-    }
-
-    /// Tests an inclusive long range.
-    ///
-    /// @param value   value to test
-    /// @param minimum inclusive minimum
-    /// @param maximum inclusive maximum
-    /// @return whether the value lies in the range
-    private static boolean between(long value, long minimum, long maximum) {
-        return value >= minimum && value <= maximum;
-    }
-
     /// Tests a byte-array prefix expressed as unsigned integers.
     ///
     /// @param data   bytes to inspect
@@ -540,14 +527,6 @@ final class ByteValidity {
             }
         }
         return true;
-    }
-
-    /// Returns a Base64 sextet value for a byte.
-    ///
-    /// @param value encoded byte
-    /// @return value in `[0, 63]`, or `-1`
-    private static int base64Value(byte value) {
-        return Constants.UTF7_BASE64_VALUES[Byte.toUnsignedInt(value)];
     }
 
     /// Loads exact stateless multibyte sequence maps.

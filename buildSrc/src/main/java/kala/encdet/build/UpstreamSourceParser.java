@@ -133,7 +133,7 @@ final class UpstreamSourceParser {
         ArrayList<SingleByteTable> tables = new ArrayList<>();
         try (ZipFile archive = new ZipFile(cpythonArchive.toFile())) {
             for (RegistryEntry entry : registry) {
-                if (entry.multibyte() || isUnicodeCodec(entry.name())) {
+                if (entry.multibyte() || entry.name().startsWith("utf-")) {
                     continue;
                 }
                 int[] mappings;
@@ -573,14 +573,6 @@ final class UpstreamSourceParser {
             mappings[value] = value < 128 ? value : -1;
         }
         return mappings;
-    }
-
-    /// Tests whether a non-multibyte registry entry uses a Unicode state machine.
-    ///
-    /// @param name canonical encoding name
-    /// @return whether the entry is not a single-byte charmap
-    private static boolean isUnicodeCodec(String name) {
-        return name.startsWith("utf-");
     }
 
     /// Extracts one keyword value from a restricted `EncodingInfo` call body.

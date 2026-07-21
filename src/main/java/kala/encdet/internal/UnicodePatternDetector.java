@@ -77,7 +77,7 @@ final class UnicodePatternDetector {
         if (firstNulls == units && (double) secondNulls / units > 0.5) {
             @Nullable String text = decodeStrict(sample, Encoding.UTF_32_BE);
             if (text != null && looksLikeText(text)) {
-                return result(Encoding.UTF_32_BE);
+                return unicodeResult(Encoding.UTF_32_BE);
             }
         }
 
@@ -90,7 +90,7 @@ final class UnicodePatternDetector {
         if (lastNulls == units && (double) thirdNulls / units > 0.5) {
             @Nullable String text = decodeStrict(sample, Encoding.UTF_32_LE);
             if (text != null && looksLikeText(text)) {
-                return result(Encoding.UTF_32_LE);
+                return unicodeResult(Encoding.UTF_32_LE);
             }
         }
         return null;
@@ -134,7 +134,7 @@ final class UnicodePatternDetector {
         if (candidates.size() == 1) {
             Encoding encoding = candidates.get(0).encoding();
             @Nullable String text = decodeStrict(sample, encoding);
-            return text != null && looksLikeText(text) ? result(encoding) : null;
+            return text != null && looksLikeText(text) ? unicodeResult(encoding) : null;
         }
 
         @Nullable Encoding bestEncoding = null;
@@ -151,7 +151,7 @@ final class UnicodePatternDetector {
             }
         }
         return bestEncoding != null && bestQuality >= MIN_TEXT_QUALITY
-                ? result(bestEncoding)
+                ? unicodeResult(bestEncoding)
                 : null;
     }
 
@@ -316,7 +316,7 @@ final class UnicodePatternDetector {
     ///
     /// @param encoding endian-specific encoding identity
     /// @return result
-    private static PipelineResult result(Encoding encoding) {
+    private static PipelineResult unicodeResult(Encoding encoding) {
         return new PipelineResult(encoding, CONFIDENCE, null, null);
     }
 

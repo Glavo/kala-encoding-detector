@@ -120,13 +120,13 @@ final class TextDecoder {
             }
             int length;
             int codePoint;
-            if (between(first, 0xc2, 0xdf)) {
+            if (first >= 0xc2 && first <= 0xdf) {
                 length = 2;
                 codePoint = first & 0x1f;
-            } else if (between(first, 0xe0, 0xef)) {
+            } else if (first >= 0xe0 && first <= 0xef) {
                 length = 3;
                 codePoint = first & 0x0f;
-            } else if (between(first, 0xf0, 0xf4)) {
+            } else if (first >= 0xf0 && first <= 0xf4) {
                 length = 4;
                 codePoint = first & 0x07;
             } else {
@@ -139,7 +139,7 @@ final class TextDecoder {
             boolean valid = true;
             for (int continuation = 1; continuation < length; continuation++) {
                 int value = Byte.toUnsignedInt(data.get(index + continuation));
-                if (!between(value, 0x80, 0xbf)) {
+                if (value < 0x80 || value > 0xbf) {
                     valid = false;
                     break;
                 }
@@ -188,17 +188,17 @@ final class TextDecoder {
         StringBuilder result = new StringBuilder((data.limit() - offset) / 2);
         for (int index = offset; index + 1 < data.limit(); index += 2) {
             int unit = readUnsignedShort(data, index, littleEndian);
-            if (between(unit, 0xd800, 0xdbff)) {
+            if (Character.isHighSurrogate((char) unit)) {
                 if (index + 3 < data.limit()) {
                     int low = readUnsignedShort(data, index + 2, littleEndian);
-                    if (between(low, 0xdc00, 0xdfff)) {
+                    if (Character.isLowSurrogate((char) low)) {
                         result.appendCodePoint(
                                 0x10000 + ((unit - 0xd800) << 10) + (low - 0xdc00)
                         );
                         index += 2;
                     }
                 }
-            } else if (!between(unit, 0xdc00, 0xdfff)) {
+            } else if (!Character.isLowSurrogate((char) unit)) {
                 result.append((char) unit);
             }
         }
@@ -233,7 +233,9 @@ final class TextDecoder {
         StringBuilder result = new StringBuilder((data.limit() - offset) / 4);
         for (int index = offset; index + 3 < data.limit(); index += 4) {
             long value = readUnsignedInt(data, index, littleEndian);
-            if (value <= 0x10ffffL && !between(value, 0xd800L, 0xdfffL)) {
+            if (value <= 0x10ffffL
+                    && (value < Character.MIN_SURROGATE
+                    || value > Character.MAX_SURROGATE)) {
                 result.appendCodePoint((int) value);
             }
         }
@@ -249,7 +251,7 @@ final class TextDecoder {
         int index = 0;
         while (index < data.limit()) {
             int value = Byte.toUnsignedInt(data.get(index));
-            if (value != '+' || value > 0x7f) {
+            if (value != '+') {
                 if (value <= 0x7f) {
                     result.append((char) value);
                 }
@@ -262,8 +264,11 @@ final class TextDecoder {
                 continue;
             }
             int start = ++index;
-            while (index < data.limit()
-                    && base64Value(Byte.toUnsignedInt(data.get(index))) >= 0) {
+            while (index < data.limit()) {
+                int sextet = Byte.toUnsignedInt(data.get(index));
+                if (Constants.UTF7_BASE64_VALUES[sextet] < 0) {
+                    break;
+                }
                 index++;
             }
             appendUtf7Payload(result, data, start, index);
@@ -291,14 +296,14 @@ final class TextDecoder {
         int pendingHigh = -1;
         for (int index = start; index < end; index++) {
             accumulator = (accumulator << 6)
-                    | base64Value(Byte.toUnsignedInt(data.get(index)));
+                    | Constants.UTF7_BASE64_VALUES[Byte.toUnsignedInt(data.get(index))];
             accumulated += 6;
             while (accumulated >= 16) {
                 accumulated -= 16;
                 int unit = (int) ((accumulator >>> accumulated) & 0xffffL);
-                if (between(unit, 0xd800, 0xdbff)) {
+                if (Character.isHighSurrogate((char) unit)) {
                     pendingHigh = unit;
-                } else if (between(unit, 0xdc00, 0xdfff)) {
+                } else if (Character.isLowSurrogate((char) unit)) {
                     if (pendingHigh >= 0) {
                         output.appendCodePoint(
                                 0x10000 + ((pendingHigh - 0xd800) << 10) + (unit - 0xdc00)
@@ -378,34 +383,6 @@ final class TextDecoder {
             }
         }
         return true;
-    }
-
-    /// Tests an inclusive integer range.
-    ///
-    /// @param value   value to test
-    /// @param minimum inclusive minimum
-    /// @param maximum inclusive maximum
-    /// @return whether the value lies in the range
-    private static boolean between(int value, int minimum, int maximum) {
-        return value >= minimum && value <= maximum;
-    }
-
-    /// Tests an inclusive long range.
-    ///
-    /// @param value   value to test
-    /// @param minimum inclusive minimum
-    /// @param maximum inclusive maximum
-    /// @return whether the value lies in the range
-    private static boolean between(long value, long minimum, long maximum) {
-        return value >= minimum && value <= maximum;
-    }
-
-    /// Returns a UTF-7 Base64 sextet value.
-    ///
-    /// @param value encoded byte
-    /// @return value in `[0, 63]`, or `-1`
-    private static int base64Value(int value) {
-        return Constants.UTF7_BASE64_VALUES[value];
     }
 
     /// Loads generated single-byte decode tables.

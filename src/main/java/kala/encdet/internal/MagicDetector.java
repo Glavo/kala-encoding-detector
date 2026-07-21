@@ -95,63 +95,63 @@ final class MagicDetector {
             if (boxSize >= 8 && boxSize <= data.remaining()) {
                 String brand = ByteBufferSupport.latin1String(data, 8, 4);
                 if (brand.equals("avif") || brand.equals("avis")) {
-                    return result("image/avif");
+                    return binaryResult("image/avif");
                 }
                 if (brand.equals("heic") || brand.equals("heix")) {
-                    return result("image/heic");
+                    return binaryResult("image/heic");
                 }
                 if (brand.equals("mif1") || brand.equals("msf1")) {
-                    return result("image/heif");
+                    return binaryResult("image/heif");
                 }
                 if (brand.equals("M4A ") || brand.equals("M4B ") || brand.equals("F4A ")) {
-                    return result("audio/mp4");
+                    return binaryResult("audio/mp4");
                 }
                 if (brand.equals("qt  ")) {
-                    return result("video/quicktime");
+                    return binaryResult("video/quicktime");
                 }
-                return result("video/mp4");
+                return binaryResult("video/mp4");
             }
         }
 
         if (data.remaining() >= 12 && matchesAscii(data, 0, "RIFF")) {
             if (matchesAscii(data, 8, "WEBP")) {
-                return result("image/webp");
+                return binaryResult("image/webp");
             }
             if (matchesAscii(data, 8, "WAVE")) {
-                return result("audio/wav");
+                return binaryResult("audio/wav");
             }
             if (matchesAscii(data, 8, "AVI ")) {
-                return result("video/x-msvideo");
+                return binaryResult("video/x-msvideo");
             }
         }
 
         if (data.remaining() >= 12 && matchesAscii(data, 0, "FORM")) {
             if (matchesAscii(data, 8, "AIFF") || matchesAscii(data, 8, "AIFC")) {
-                return result("audio/aiff");
+                return binaryResult("audio/aiff");
             }
         }
 
         if (startsWith(data, ZIP_SIGNATURE)) {
-            return result(classifyZip(ByteBufferSupport.prefix(data, ZIP_SCAN_LIMIT)));
+            return binaryResult(classifyZip(ByteBufferSupport.prefix(data, ZIP_SCAN_LIMIT)));
         }
 
         if (data.remaining() >= 8 && startsWith(data, hex("cafebabe"))) {
             long architectureCount = readUnsignedIntBigEndian(data, 4);
-            return result(architectureCount <= 20
+            return binaryResult(architectureCount <= 20
                     ? "application/x-mach-binary"
                     : "application/java-vm");
         }
 
         for (Signature signature : SIGNATURES) {
             if (startsWith(data, signature.prefix())) {
-                return result(signature.mimeType());
+                return binaryResult(signature.mimeType());
             }
         }
 
         if (data.remaining() >= TAR_OFFSET + 6
                 && (matchesAscii(data, TAR_OFFSET, "ustar\u0000")
                 || matchesAscii(data, TAR_OFFSET, "ustar "))) {
-            return result("application/x-tar");
+            return binaryResult("application/x-tar");
         }
         return null;
     }
@@ -164,7 +164,7 @@ final class MagicDetector {
         int scanLength = data.remaining();
         int offset = 0;
         while (true) {
-            int header = indexOf(data, ZIP_SIGNATURE, offset, scanLength);
+            int header = indexOfZipHeader(data, offset, scanLength);
             if (header < 0 || scanLength < header + 30) {
                 break;
             }
@@ -193,7 +193,7 @@ final class MagicDetector {
             if (equalsAscii(data, nameStart, nameLength, "META-INF/container.xml")) {
                 return "application/epub+zip";
             }
-            if (containsAscii(data, nameStart, nameLength, ".dist-info/")) {
+            if (containsDistInfoDirectory(data, nameStart, nameLength)) {
                 return "application/x-wheel+zip";
             }
 
@@ -230,7 +230,7 @@ final class MagicDetector {
     ///
     /// @param mimeType detected MIME type
     /// @return result with no encoding and confidence one
-    private static PipelineResult result(String mimeType) {
+    private static PipelineResult binaryResult(String mimeType) {
         return new PipelineResult(null, 1.0, null, mimeType);
     }
 
@@ -249,7 +249,7 @@ final class MagicDetector {
     /// @param mimeType MIME type
     /// @return signature
     private static Signature asciiSignature(String value, String mimeType) {
-        return new Signature(asciiBytes(value), mimeType);
+        return new Signature(value.getBytes(StandardCharsets.ISO_8859_1), mimeType);
     }
 
     /// Parses hexadecimal bytes.
@@ -258,14 +258,6 @@ final class MagicDetector {
     /// @return parsed bytes
     private static byte @Unmodifiable [] hex(String value) {
         return java.util.HexFormat.of().parseHex(value);
-    }
-
-    /// Encodes a byte-preserving ASCII constant.
-    ///
-    /// @param value constant text
-    /// @return encoded bytes
-    private static byte @Unmodifiable [] asciiBytes(String value) {
-        return value.getBytes(StandardCharsets.ISO_8859_1);
     }
 
     /// Tests an offset-zero byte prefix.
@@ -342,19 +334,18 @@ final class MagicDetector {
         return length == expected.length() && matchesAscii(data, offset, expected);
     }
 
-    /// Tests whether a bounded filename contains ASCII text.
+    /// Tests whether a bounded filename contains a Python wheel metadata directory.
     ///
-    /// @param data     source bytes
-    /// @param offset   filename offset
-    /// @param length   filename length
-    /// @param expected expected fragment
-    /// @return whether it occurs
-    private static boolean containsAscii(
+    /// @param data   source bytes
+    /// @param offset filename offset
+    /// @param length filename length
+    /// @return whether a `.dist-info/` component occurs
+    private static boolean containsDistInfoDirectory(
             @UnmodifiableView ByteBuffer data,
             int offset,
-            int length,
-            String expected
+            int length
     ) {
+        String expected = ".dist-info/";
         int limit = offset + length - expected.length();
         for (int index = offset; index <= limit; index++) {
             if (matchesAscii(data, index, expected)) {
@@ -364,24 +355,24 @@ final class MagicDetector {
         return false;
     }
 
-    /// Finds a byte pattern within a bounded source prefix.
+    /// Finds a ZIP local-header signature within a bounded source prefix.
     ///
-    /// @param data    source bytes
-    /// @param pattern pattern bytes
-    /// @param start   first candidate index
-    /// @param limit   exclusive source limit
+    /// @param data  source bytes
+    /// @param start first candidate index
+    /// @param limit exclusive source limit
     /// @return first index, or `-1`
-    private static int indexOf(
+    private static int indexOfZipHeader(
             @UnmodifiableView ByteBuffer data,
-            byte @Unmodifiable [] pattern,
             int start,
             int limit
     ) {
-        int last = limit - pattern.length;
+        int last = limit - ZIP_SIGNATURE.length;
         for (int index = Math.max(0, start); index <= last; index++) {
             boolean match = true;
-            for (int patternIndex = 0; patternIndex < pattern.length; patternIndex++) {
-                if (data.get(index + patternIndex) != pattern[patternIndex]) {
+            for (int patternIndex = 0;
+                 patternIndex < ZIP_SIGNATURE.length;
+                 patternIndex++) {
+                if (data.get(index + patternIndex) != ZIP_SIGNATURE[patternIndex]) {
                     match = false;
                     break;
                 }

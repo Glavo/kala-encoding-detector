@@ -58,9 +58,6 @@ public final class DetectionEngine {
             "application/octet-stream"
     );
 
-    /// Encoding identities in stable declaration order.
-    private static final @Unmodifiable List<Encoding> ENCODINGS = List.of(Encoding.values());
-
     /// Optional preferred-superset remapping applied to public enum identities.
     private static final @Unmodifiable Map<Encoding, Encoding> PREFERRED_SUPERSETS = Map.ofEntries(
             Map.entry(Encoding.ASCII, Encoding.CP1252),
@@ -263,15 +260,15 @@ public final class DetectionEngine {
         }
         int nulls = 0;
         for (int index = 0; index < data.remaining(); index++) {
-            int unsigned = unsigned(data, index);
-            boolean allowed = unsigned == '\t'
-                    || unsigned == '\n'
-                    || unsigned == '\r'
-                    || (unsigned >= 0x20 && unsigned <= 0x7e);
+            int value = Byte.toUnsignedInt(data.get(index));
+            boolean allowed = value == '\t'
+                    || value == '\n'
+                    || value == '\r'
+                    || (value >= 0x20 && value <= 0x7e);
             if (allowed) {
                 continue;
             }
-            if (unsigned != 0) {
+            if (value != 0) {
                 return null;
             }
             nulls++;
@@ -295,17 +292,17 @@ public final class DetectionEngine {
         int sequences = 0;
         int multibyteBytes = 0;
         for (int index = 0; index < data.remaining(); ) {
-            int first = unsigned(data, index);
+            int first = Byte.toUnsignedInt(data.get(index));
             if (first < 0x80) {
                 index++;
                 continue;
             }
             int length;
-            if (between(first, 0xc2, 0xdf)) {
+            if (first >= 0xc2 && first <= 0xdf) {
                 length = 2;
-            } else if (between(first, 0xe0, 0xef)) {
+            } else if (first >= 0xe0 && first <= 0xef) {
                 length = 3;
-            } else if (between(first, 0xf0, 0xf4)) {
+            } else if (first >= 0xf0 && first <= 0xf4) {
                 length = 4;
             } else {
                 return null;
@@ -314,11 +311,12 @@ public final class DetectionEngine {
                 break;
             }
             for (int continuation = 1; continuation < length; continuation++) {
-                if (!between(unsigned(data, index + continuation), 0x80, 0xbf)) {
+                int value = Byte.toUnsignedInt(data.get(index + continuation));
+                if (value < 0x80 || value > 0xbf) {
                     return null;
                 }
             }
-            int second = unsigned(data, index + 1);
+            int second = Byte.toUnsignedInt(data.get(index + 1));
             if ((first == 0xe0 && second < 0xa0)
                     || (first == 0xed && second > 0x9f)
                     || (first == 0xf0 && second < 0x90)
@@ -350,8 +348,8 @@ public final class DetectionEngine {
         }
         int controls = 0;
         for (int index = 0; index < data.remaining(); index++) {
-            int unsigned = unsigned(data, index);
-            if (unsigned <= 0x08 || between(unsigned, 0x0e, 0x1f)) {
+            int value = Byte.toUnsignedInt(data.get(index));
+            if (value <= 0x08 || (value >= 0x0e && value <= 0x1f)) {
                 controls++;
             }
         }
@@ -377,7 +375,11 @@ public final class DetectionEngine {
                         candidate,
                         context.analysisCache
                 );
-                double ratio = analysis == null ? 0.0 : analysis.pairRatio();
+                if (analysis == null) {
+                    context.multibyteScores.put(candidate, 0.0);
+                    continue;
+                }
+                double ratio = analysis.pairRatio();
                 context.multibyteScores.put(candidate, ratio);
                 if (ratio < CJK_MIN_MULTIBYTE_RATIO) {
                     continue;
@@ -388,17 +390,13 @@ public final class DetectionEngine {
                 if (context.nonAsciiCount < CJK_MIN_NON_ASCII) {
                     continue;
                 }
-                double coverage = analysis == null
-                        ? 0.0
-                        : (double) analysis.multibyteBytes() / context.nonAsciiCount;
+                double coverage = (double) analysis.multibyteBytes() / context.nonAsciiCount;
                 context.multibyteCoverage.put(candidate, coverage);
                 if (coverage < CJK_MIN_BYTE_COVERAGE) {
                     continue;
                 }
                 if (context.nonAsciiCount >= CJK_DIVERSITY_MIN_NON_ASCII
-                        && (analysis == null
-                        ? 256
-                        : analysis.leadDiversity()) < CJK_MIN_LEAD_DIVERSITY) {
+                        && analysis.leadDiversity() < CJK_MIN_LEAD_DIVERSITY) {
                     continue;
                 }
             }
@@ -568,16 +566,6 @@ public final class DetectionEngine {
         return count;
     }
 
-    /// Tests an inclusive integer range.
-    ///
-    /// @param value   value to test
-    /// @param minimum inclusive minimum
-    /// @param maximum inclusive maximum
-    /// @return whether the value lies in the range
-    private static boolean between(int value, int minimum, int maximum) {
-        return value >= minimum && value <= maximum;
-    }
-
     /// Tests an unsigned byte prefix.
     ///
     /// @param data   source bytes
@@ -591,20 +579,11 @@ public final class DetectionEngine {
             return false;
         }
         for (int index = 0; index < prefix.length; index++) {
-            if (unsigned(data, index) != prefix[index]) {
+            if (Byte.toUnsignedInt(data.get(index)) != prefix[index]) {
                 return false;
             }
         }
         return true;
-    }
-
-    /// Returns one byte as an unsigned integer.
-    ///
-    /// @param data  source buffer
-    /// @param index logical index in the normalized buffer
-    /// @return value in the range `0` through `255`
-    private static int unsigned(@UnmodifiableView ByteBuffer data, int index) {
-        return Byte.toUnsignedInt(data.get(index));
     }
 
     /// Stores per-invocation structural caches and counters.
