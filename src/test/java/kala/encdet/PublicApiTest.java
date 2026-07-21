@@ -168,20 +168,20 @@ final class PublicApiTest {
     @Test
     void registryResolvesCanonicalIanaWhatwgAndCodecAliases() {
         assertEquals(86, Encoding.values().length);
-        assertEquals(86, EncodingDetector.supportedEncodings().size());
-        assertEquals(Encoding.CP1252, EncodingDetector.lookupEncoding("WINDOWS-1252"));
-        assertEquals(Encoding.ISO_8859_1, EncodingDetector.lookupEncoding("latin_1"));
-        assertEquals(Encoding.GB18030, EncodingDetector.lookupEncoding("GB_2312-80"));
-        assertEquals(Encoding.TIS_620, EncodingDetector.lookupEncoding("iso_8859-11"));
-        assertEquals(Encoding.EUC_JIS_2004, EncodingDetector.lookupEncoding("x-euc-jp"));
+        assertEquals(86, Encoding.all().size());
+        assertEquals(Encoding.CP1252, Encoding.lookup("WINDOWS-1252"));
+        assertEquals(Encoding.ISO_8859_1, Encoding.lookup("latin_1"));
+        assertEquals(Encoding.GB18030, Encoding.lookup("GB_2312-80"));
+        assertEquals(Encoding.TIS_620, Encoding.lookup("iso_8859-11"));
+        assertEquals(Encoding.EUC_JIS_2004, Encoding.lookup("x-euc-jp"));
         assertEquals("cp1252", Encoding.CP1252.canonicalName());
         assertEquals("Windows-1252", Encoding.CP1252.displayName());
-        assertNull(EncodingDetector.lookupEncoding("not-a-real-encoding"));
-        assertNull(EncodingDetector.lookupEncoding("\0utf-8"));
-        assertNull(EncodingDetector.lookupEncoding("utf-8\0"));
+        assertNull(Encoding.lookup("not-a-real-encoding"));
+        assertNull(Encoding.lookup("\0utf-8"));
+        assertNull(Encoding.lookup("utf-8\0"));
         assertThrows(
                 UnsupportedOperationException.class,
-                () -> EncodingDetector.supportedEncodings().add(Encoding.ASCII)
+                () -> Encoding.all().add(Encoding.ASCII)
         );
     }
 
@@ -542,7 +542,7 @@ final class PublicApiTest {
         );
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withNoMatchEncoding(null));
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withEmptyInputEncoding(null));
-        assertThrows(NullPointerException.class, () -> EncodingDetector.lookupEncoding(null));
+        assertThrows(NullPointerException.class, () -> Encoding.lookup(null));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new Candidate(Encoding.ASCII, Double.NaN, null, null)

@@ -3,7 +3,6 @@
 
 package kala.encdet.internal;
 
-import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingDetector.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
@@ -427,7 +426,7 @@ final class MarkupDetector {
                 return null;
             }
         }
-        return EncodingDetector.lookupEncoding(
+        return Encoding.lookup(
                 ByteBufferSupport.latin1String(data, start, end - start)
         );
     }

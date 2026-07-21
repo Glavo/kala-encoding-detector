@@ -141,7 +141,7 @@ final class CorpusGoldenTest {
         if (value.equals("~")) {
             return null;
         }
-        @Nullable Encoding encoding = EncodingDetector.lookupEncoding(value);
+        @Nullable Encoding encoding = Encoding.lookup(value);
         if (encoding == null) {
             throw new IllegalArgumentException("Unknown oracle encoding: " + value);
         }

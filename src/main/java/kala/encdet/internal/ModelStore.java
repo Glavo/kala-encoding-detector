@@ -3,7 +3,6 @@
 
 package kala.encdet.internal;
 
-import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingDetector.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
@@ -202,7 +201,7 @@ final class ModelStore {
             }
             String language = name.substring(0, separator);
             String encodingName = name.substring(separator + 1);
-            @Nullable Encoding encoding = EncodingDetector.lookupEncoding(encodingName);
+            @Nullable Encoding encoding = Encoding.lookup(encodingName);
             if (encoding == null) {
                 throw new IllegalArgumentException(
                         "unknown encoding " + encodingName + " in model key " + name

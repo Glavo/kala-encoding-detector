@@ -406,7 +406,7 @@ public final class Main {
         /// @return resolved encoding identity
         /// @throws IllegalArgumentException when the name is unknown
         private static Encoding resolveEncoding(String value, String parameterName) {
-            @Nullable Encoding encoding = EncodingDetector.lookupEncoding(value);
+            @Nullable Encoding encoding = Encoding.lookup(value);
             if (encoding == null) {
                 throw new IllegalArgumentException(
                         "Unknown encoding '" + value + "' in " + parameterName

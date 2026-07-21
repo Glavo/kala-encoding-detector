@@ -3,7 +3,6 @@
 
 package kala.encdet.internal;
 
-import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingDetector.Encoding;
 import kala.encdet.EncodingDetector.Era;
 import org.jetbrains.annotations.NotNullByDefault;
@@ -37,22 +36,22 @@ final class RegistryCoverageTest {
         HashSet<String> languages = new HashSet<>();
         for (Encoding encoding : entries) {
             assertTrue(encodings.add(encoding), encoding.canonicalName());
-            assertEquals(encoding, EncodingDetector.lookupEncoding(encoding.canonicalName()));
+            assertEquals(encoding, Encoding.lookup(encoding.canonicalName()));
             aliases.add(encoding.canonicalName().toLowerCase(Locale.ROOT));
             languages.addAll(encoding.languages());
             for (String alias : encoding.aliases()) {
-                assertEquals(encoding, EncodingDetector.lookupEncoding(alias), alias);
+                assertEquals(encoding, Encoding.lookup(alias), alias);
                 assertEquals(
                         encoding,
-                        EncodingDetector.lookupEncoding(alias.toUpperCase(Locale.ROOT)),
+                        Encoding.lookup(alias.toUpperCase(Locale.ROOT)),
                         alias
                 );
                 aliases.add(alias.toLowerCase(Locale.ROOT));
             }
         }
 
-        assertEquals(EncodingDetector.supportedEncodings(), encodings);
-        assertEquals(entries, List.copyOf(EncodingDetector.supportedEncodings()));
+        assertEquals(Encoding.all(), encodings);
+        assertEquals(entries, List.copyOf(Encoding.all()));
         assertEquals(604, aliases.size());
         assertEquals(49, languages.size());
     }
@@ -91,17 +90,17 @@ final class RegistryCoverageTest {
     /// Verifies representative IANA, WHATWG, and Python punctuation variants.
     @Test
     void normalizedStandardsAliasesResolveWithoutCharsetProviders() {
-        assertEquals(Encoding.ASCII, EncodingDetector.lookupEncoding("ANSI X3.4 1986"));
-        assertEquals(Encoding.ISO_8859_1, EncodingDetector.lookupEncoding("ISO 8859 1:1987"));
-        assertEquals(Encoding.CP932, EncodingDetector.lookupEncoding("windows 31j"));
-        assertEquals(Encoding.GB18030, EncodingDetector.lookupEncoding("gb 2312-80"));
-        assertEquals(Encoding.MAC_CYRILLIC, EncodingDetector.lookupEncoding("x mac cyrillic"));
-        assertEquals(Encoding.SHIFT_JIS_2004, EncodingDetector.lookupEncoding("ms_kanji"));
-        assertEquals(Encoding.CP932, EncodingDetector.lookupEncoding("ms-kanji"));
-        assertEquals(Encoding.CP932, EncodingDetector.lookupEncoding("ms kanji"));
-        assertEquals(Encoding.EUC_KR, EncodingDetector.lookupEncoding("ks_c_5601_1987"));
-        assertEquals(Encoding.CP949, EncodingDetector.lookupEncoding("ks_c_5601-1987"));
-        assertEquals(Encoding.CP949, EncodingDetector.lookupEncoding("ks c 5601 1987"));
+        assertEquals(Encoding.ASCII, Encoding.lookup("ANSI X3.4 1986"));
+        assertEquals(Encoding.ISO_8859_1, Encoding.lookup("ISO 8859 1:1987"));
+        assertEquals(Encoding.CP932, Encoding.lookup("windows 31j"));
+        assertEquals(Encoding.GB18030, Encoding.lookup("gb 2312-80"));
+        assertEquals(Encoding.MAC_CYRILLIC, Encoding.lookup("x mac cyrillic"));
+        assertEquals(Encoding.SHIFT_JIS_2004, Encoding.lookup("ms_kanji"));
+        assertEquals(Encoding.CP932, Encoding.lookup("ms-kanji"));
+        assertEquals(Encoding.CP932, Encoding.lookup("ms kanji"));
+        assertEquals(Encoding.EUC_KR, Encoding.lookup("ks_c_5601_1987"));
+        assertEquals(Encoding.CP949, Encoding.lookup("ks_c_5601-1987"));
+        assertEquals(Encoding.CP949, Encoding.lookup("ks c 5601 1987"));
     }
 
     /// Computes the SHA-256 digest of UTF-8 text.

@@ -145,9 +145,9 @@ guaranteed to be accepted by `Charset.forName`, because Java 17's charset
 providers do not cover every target. A target is not always an exact decoder
 identity: lookup may fold related aliases such as `cp037` into
 `EncodingDetector.Encoding.CP1140`.
-`EncodingDetector.lookupEncoding` resolves canonical, IANA, WHATWG, and codec
-aliases to enum values without consulting a JDK charset provider;
-`supportedEncodings` returns the enum values in declaration order.
+`Encoding.lookup(String)` resolves canonical, IANA, WHATWG, and codec aliases
+without consulting a JDK charset provider. `Encoding.all()` returns every
+target as an immutable set in enum declaration order.
 
 ## Default behavior
 

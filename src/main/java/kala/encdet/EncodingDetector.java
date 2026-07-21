@@ -686,6 +686,10 @@ public final class EncodingDetector {
                 "CP273", "273", "csibm273", "ibm273"
         );
 
+        /// Immutable set containing every encoding target.
+        private static final @Unmodifiable Set<Encoding> ALL =
+                Collections.unmodifiableSet(EnumSet.allOf(Encoding.class));
+
         /// Canonical registry name.
         private final String canonicalName;
 
@@ -794,11 +798,22 @@ public final class EncodingDetector {
             return aliases;
         }
 
-        /// Resolves a canonical name or alias through the enum's private index.
+        /// Returns all supported encoding targets in enum declaration order.
+        ///
+        /// @return immutable ordered set containing every enum value
+        public static @Unmodifiable Set<Encoding> all() {
+            return ALL;
+        }
+
+        /// Resolves a canonical name or alias.
+        ///
+        /// Resolution is case-insensitive and does not consult installed Java
+        /// charset providers.
         ///
         /// @param name name to resolve
         /// @return matching encoding, or `null` if unknown
-        private static @Nullable Encoding resolve(String name) {
+        /// @throws NullPointerException if `name` is `null`
+        public static @Nullable Encoding lookup(String name) {
             if (name.indexOf('\0') >= 0) {
                 return null;
             }
@@ -1027,10 +1042,6 @@ public final class EncodingDetector {
     /// Default inclusive confidence threshold used by
     /// [Result#likelyCandidates()].
     public static final double DEFAULT_MINIMUM_CONFIDENCE = 0.20;
-
-    /// Immutable set containing every encoding target.
-    private static final @Unmodifiable Set<Encoding> ALL_ENCODINGS =
-            Collections.unmodifiableSet(EnumSet.allOf(Encoding.class));
 
     /// Default detector with every encoding target enabled.
     ///
@@ -1403,25 +1414,6 @@ public final class EncodingDetector {
                 ? candidates
                 : candidates.subList(0, likelyCount);
         return new Result(candidates, likelyCandidates);
-    }
-
-    /// Resolves an encoding from a canonical name or alias.
-    ///
-    /// Resolution is case-insensitive and does not consult installed Java
-    /// charset providers.
-    ///
-    /// @param name name to resolve
-    /// @return resolved encoding, or `null` if unknown
-    /// @throws NullPointerException if `name` is `null`
-    public static @Nullable Encoding lookupEncoding(String name) {
-        return Encoding.resolve(name);
-    }
-
-    /// Returns all supported encodings in enum declaration order.
-    ///
-    /// @return an immutable ordered set
-    public static @Unmodifiable Set<Encoding> supportedEncodings() {
-        return ALL_ENCODINGS;
     }
 
     /// Returns a detector using an already validated independent encoding set.
