@@ -51,6 +51,24 @@ public final class EncodingDetector {
     /// example, `cp037` resolves to [#CP1140] and `big5` resolves to
     /// [#BIG5_HKSCS]. The original alias cannot be recovered from the enum value.
     ///
+    /// ## Java charset support
+    ///
+    /// Java SE requires exact mappings for [#ASCII], [#UTF_8], [#UTF_16],
+    /// [#UTF_16_BE], [#UTF_16_LE], and [#ISO_8859_1]. OpenJDK 17's standard
+    /// charset providers supply exact mappings for every other constant except:
+    ///
+    /// - [#UTF_8_SIG], [#UTF_7], [#EUC_JIS_2004], [#HZ],
+    ///   [#ISO_2022_JP_2004], [#ISO_2022_JP_EXT], and [#SHIFT_JIS_2004];
+    /// - [#ISO_8859_10], [#ISO_8859_14], [#CP720], [#CP1125], [#KOI8_T],
+    ///   [#KZ1048], [#PTCP154], and [#HP_ROMAN8].
+    ///
+    /// [#UTF_8_SIG] has no exact mapping because consuming the signature is part
+    /// of its decoding semantics; plain UTF-8 is not an equivalent substitute.
+    /// Extended support is runtime-dependent: installed
+    /// [java.nio.charset.spi.CharsetProvider] implementations may add mappings,
+    /// while custom runtime images may omit extended providers. Call [#charset()]
+    /// to determine support in the current runtime.
+    ///
     /// @apiNote [#charset()] returns an exact `java.nio.charset.Charset`
     /// mapping when the current runtime provides one.
     @NotNullByDefault
