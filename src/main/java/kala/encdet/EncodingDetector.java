@@ -761,7 +761,7 @@ public final class EncodingDetector {
 
         /// Returns the historical or operational group assigned to this target.
         ///
-        /// @return encoding era used for candidate filtering
+        /// @return era used by era-based encoding selection
         public Era era() {
             return era;
         }
@@ -864,10 +864,10 @@ public final class EncodingDetector {
             /// Exact aliases preserve enum declaration priority. Normalized aliases
             /// preserve the first mapping, matching ordered codec lookup for collisions.
             ///
-            /// @param exactAliases exact alias map
+            /// @param exactAliases      exact alias map
             /// @param normalizedAliases normalized alias map
-            /// @param alias alias to add
-            /// @param encoding encoding identity
+            /// @param alias             alias to add
+            /// @param encoding          encoding identity
             private static void addAlias(
                     Map<String, Encoding> exactAliases,
                     Map<String, Encoding> normalizedAliases,
@@ -916,8 +916,9 @@ public final class EncodingDetector {
 
     /// Classifies a character encoding by its historical or operational group.
     ///
-    /// Each [Encoding] has one era. [#withEncodingEra(Era)] and
-    /// [#withEncodingEras(Set)] select all encodings in the requested groups.
+    /// Each [Encoding] has exactly one era. The era-selection methods on
+    /// [EncodingDetector] expand their arguments into the effective encoding
+    /// set.
     @NotNullByDefault
     public enum Era {
         /// Encodings commonly used by contemporary software and web content.
@@ -1002,9 +1003,6 @@ public final class EncodingDetector {
     /// Encoding targets permitted to participate in detection.
     private final @Unmodifiable EnumSet<Encoding> encodings;
 
-    /// Immutable public view of [#encodings].
-    private final @UnmodifiableView Set<Encoding> encodingsView;
-
     /// Low-confidence fallback used when no candidate survives.
     private final Encoding noMatchEncoding;
 
@@ -1031,7 +1029,6 @@ public final class EncodingDetector {
         this.minimumConfidence = minimumConfidence;
         this.preferSuperset = preferSuperset;
         this.encodings = encodings;
-        this.encodingsView = Collections.unmodifiableSet(encodings);
         this.noMatchEncoding = noMatchEncoding;
         this.emptyInputEncoding = emptyInputEncoding;
     }
@@ -1059,6 +1056,10 @@ public final class EncodingDetector {
 
     /// Returns the encoding targets permitted to participate in detection.
     ///
+    /// This is the complete effective selection. Any encoding- or era-selection
+    /// method replaces it rather than adding another filter. The returned view
+    /// cannot be modified.
+    ///
     /// An empty set permits no text encoding or configured fallback, but does
     /// not suppress binary classifications. Preferred-superset remapping may
     /// produce a result absent from this set.
@@ -1066,7 +1067,8 @@ public final class EncodingDetector {
     /// @return an immutable view of the permitted encodings in enum declaration
     /// order
     public @UnmodifiableView Set<Encoding> encodings() {
-        return encodingsView;
+        //noinspection RedundantUnmodifiable
+        return Collections.unmodifiableSet(encodings);
     }
 
     /// Returns the no-match fallback.
@@ -1083,27 +1085,75 @@ public final class EncodingDetector {
         return emptyInputEncoding;
     }
 
-    /// Returns a detector permitting every encoding in the supplied eras.
+    /// Returns a detector permitting every encoding in any supplied era.
     ///
-    /// This method replaces the same encoding set as [#withEncodings(Set)]. An
-    /// empty era set therefore permits no text encoding.
+    /// This method has the same selection semantics as
+    /// [#withEncodingEras(Collection)]. Argument order and duplicate eras have
+    /// no effect. The argument array is read during this invocation and is not
+    /// retained.
+    ///
+    /// @param value zero or more eras whose encodings are permitted
+    /// @return this detector if its effective encoding set is unchanged;
+    /// otherwise a new detector
+    /// @throws NullPointerException if `value` or an element is `null`
+    public EncodingDetector withEncodingEras(Era... value) {
+        if (value.length == 0) {
+            return withEncodingSet(EnumSet.noneOf(Encoding.class));
+        }
+
+        EnumSet<Era> eras = EnumSet.noneOf(Era.class);
+        Collections.addAll(eras, value);
+
+        EnumSet<Encoding> result = EnumSet.noneOf(Encoding.class);
+        for (Encoding encoding : Encoding.values()) {
+            if (eras.contains(encoding.era())) {
+                result.add(encoding);
+            }
+        }
+        return withEncodingSet(result);
+    }
+
+    /// Returns a detector permitting every encoding in any supplied era.
+    ///
+    /// This method replaces the same effective encoding set as
+    /// [#withEncodings(Collection)]. Argument order and duplicate eras have no
+    /// effect. An empty collection permits no text encoding. The collection is
+    /// copied and is not retained.
     ///
     /// @param value eras whose encodings are permitted; may be empty
-    /// @return this detector if unchanged; otherwise a new detector
+    /// @return this detector if its effective encoding set is unchanged;
+    /// otherwise a new detector
     /// @throws NullPointerException if `value` or an element is `null`
-    public EncodingDetector withEncodingEras(Set<Era> value) {
-        return withEncodingSet(encodingsForEras(value));
+    public EncodingDetector withEncodingEras(Collection<Era> value) {
+        EnumSet<Era> eras = EnumSet.noneOf(Era.class);
+        eras.addAll(value);
+
+        EnumSet<Encoding> result = EnumSet.noneOf(Encoding.class);
+        for (Encoding encoding : Encoding.values()) {
+            if (eras.contains(encoding.era())) {
+                result.add(encoding);
+            }
+        }
+        return withEncodingSet(result);
     }
 
     /// Returns a detector permitting every encoding in one era.
     ///
-    /// This method replaces the same encoding set as [#withEncodings(Set)].
+    /// This method replaces the same effective encoding set as
+    /// [#withEncodings(Collection)].
     ///
     /// @param value the sole eligible era
-    /// @return this detector if unchanged; otherwise a new detector
+    /// @return this detector if its effective encoding set is unchanged;
+    /// otherwise a new detector
     /// @throws NullPointerException if `value` is `null`
     public EncodingDetector withEncodingEra(Era value) {
-        return withEncodingSet(encodingsForEras(EnumSet.of(value)));
+        EnumSet<Encoding> result = EnumSet.noneOf(Encoding.class);
+        for (Encoding encoding : Encoding.values()) {
+            if (value.equals(encoding.era())) {
+                result.add(encoding);
+            }
+        }
+        return withEncodingSet(result);
     }
 
     /// Returns a detector with a new maximum input length.
@@ -1175,27 +1225,46 @@ public final class EncodingDetector {
         );
     }
 
-    /// Returns a detector using the supplied set of permitted encoding targets.
+    /// Returns a detector permitting exactly the supplied encoding targets.
     ///
-    /// This method replaces the same encoding set as
-    /// [#withEncodingEras(Set)]. An empty set permits no text encoding or
-    /// configured fallback, but does not suppress binary classifications.
+    /// This method has the same selection semantics as
+    /// [#withEncodings(Collection)]. Argument order and duplicate encodings have
+    /// no effect. The argument array is read during this invocation and is not
+    /// retained.
+    ///
+    /// @param value zero or more permitted encodings
+    /// @return this detector if its effective encoding set is unchanged;
+    /// otherwise a new detector
+    /// @throws NullPointerException if `value` or an element is `null`
+    public EncodingDetector withEncodings(Encoding... value) {
+        EnumSet<Encoding> encodings = EnumSet.noneOf(Encoding.class);
+        Collections.addAll(encodings, value);
+        return withEncodingSet(encodings);
+    }
+
+    /// Returns a detector permitting exactly the supplied encoding targets.
+    ///
+    /// This method replaces the same effective encoding set as
+    /// [#withEncodingEras(Collection)]. Argument order and duplicate encodings
+    /// have no effect. An empty collection permits no text encoding or
+    /// configured fallback, but does not suppress binary classifications. The
+    /// collection is copied and is not retained.
     ///
     /// @param value permitted encodings; may be empty
-    /// @return this detector if unchanged; otherwise a new detector
+    /// @return this detector if its effective encoding set is unchanged;
+    /// otherwise a new detector
     /// @throws NullPointerException if `value` or an element is `null`
-    public EncodingDetector withEncodings(Set<Encoding> value) {
-        if (encodings.equals(value)) {
-            return this;
-        }
-        return withEncodingSet(copyEncodings(value));
+    public EncodingDetector withEncodings(Collection<Encoding> value) {
+        EnumSet<Encoding> copy = EnumSet.noneOf(Encoding.class);
+        copy.addAll(value);
+        return withEncodingSet(copy);
     }
 
     /// Returns a detector using the supplied no-match fallback.
     ///
     /// @param value fallback encoding
     /// @return this detector if unchanged; otherwise a new detector
-    /// @throws NullPointerException     if `value` is `null`
+    /// @throws NullPointerException if `value` is `null`
     public EncodingDetector withNoMatchEncoding(Encoding value) {
         Objects.requireNonNull(value, "value");
         if (noMatchEncoding == value) {
@@ -1215,7 +1284,7 @@ public final class EncodingDetector {
     ///
     /// @param value fallback encoding
     /// @return this detector if unchanged; otherwise a new detector
-    /// @throws NullPointerException     if `value` is `null`
+    /// @throws NullPointerException if `value` is `null`
     public EncodingDetector withEmptyInputEncoding(Encoding value) {
         Objects.requireNonNull(value, "value");
         if (emptyInputEncoding == value) {
@@ -1368,33 +1437,6 @@ public final class EncodingDetector {
     /// @return an immutable ordered set
     public static @Unmodifiable Set<Encoding> supportedEncodings() {
         return ALL_ENCODINGS;
-    }
-
-    /// Selects encodings classified in at least one supplied era.
-    ///
-    /// @param eras eras to select; may be empty
-    /// @return an internally immutable encoding set
-    /// @throws NullPointerException if `eras` or an element is `null`
-    private static @Unmodifiable EnumSet<Encoding> encodingsForEras(Set<Era> eras) {
-        EnumSet<Era> eraCopy = EnumSet.noneOf(Era.class);
-        eraCopy.addAll(eras);
-        EnumSet<Encoding> result = EnumSet.noneOf(Encoding.class);
-        for (Encoding encoding : Encoding.values()) {
-            if (eraCopy.contains(encoding.era())) {
-                result.add(encoding);
-            }
-        }
-        return result;
-    }
-
-    /// Copies an encoding set while preserving enum declaration order.
-    ///
-    /// @param encodings supplied encodings
-    /// @return an internally immutable encoding set
-    private static @Unmodifiable EnumSet<Encoding> copyEncodings(Set<Encoding> encodings) {
-        EnumSet<Encoding> copy = EnumSet.noneOf(Encoding.class);
-        copy.addAll(encodings);
-        return copy;
     }
 
     /// Returns a detector using an already validated independent encoding set.

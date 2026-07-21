@@ -107,10 +107,8 @@ import kala.encdet.EncodingDetector.Encoding;
 import kala.encdet.EncodingDetector.Era;
 import kala.encdet.EncodingDetector.Result;
 
-import java.util.Set;
-
 EncodingDetector detector = EncodingDetector.DEFAULT
-        .withEncodingEras(Set.of(Era.MODERN_WEB))
+        .withEncodingEras(Era.MODERN_WEB)
         .withMaxBytes(100_000)
         .withMinimumConfidence(0.35)
         .withNoMatchEncoding(Encoding.CP1252)
@@ -126,7 +124,10 @@ instances can be reused safely across detection calls and threads.
 The detector stores one effective encoding set. `withEncodingEras` and
 `withEncodingEra` replace it with the encodings classified in the selected
 eras, while `withEncodings` replaces it with the supplied set; when these
-methods are chained, the last selector wins.
+methods are chained, the last selector wins. The plural methods accept either
+varargs or a `Collection`; they read their input during the call and do not
+retain it. Argument order and duplicates have no effect, and an empty selection
+permits no text encoding.
 
 The `EncodingDetector.Encoding` enum represents all 86 detection targets
 throughout the public API and owns their fixed registry metadata. Its

@@ -12,11 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -107,7 +103,7 @@ final class PublicApiTest {
         );
     }
 
-    /// Verifies era and explicit encoding selectors replace one shared state.
+    /// Verifies varargs and collection selectors replace one shared state.
     @Test
     void encodingSelectorsReplaceOneSharedState() {
         EncodingDetector eraLast = EncodingDetector.DEFAULT
@@ -117,7 +113,7 @@ final class PublicApiTest {
 
         EncodingDetector encodingsLast = EncodingDetector.DEFAULT
                 .withEncodingEra(Era.DOS)
-                .withEncodings(Set.of(Encoding.UTF_8));
+                .withEncodings(Encoding.UTF_8);
         assertEquals(Set.of(Encoding.UTF_8), encodingsLast.encodings());
 
         EnumSet<Encoding> expected = encodingsIn(Era.LEGACY_MAC);
@@ -125,10 +121,17 @@ final class PublicApiTest {
         assertEquals(
                 expected,
                 EncodingDetector.DEFAULT
-                        .withEncodingEras(Set.of(Era.LEGACY_MAC, Era.MAINFRAME))
+                        .withEncodingEras(Era.LEGACY_MAC, Era.MAINFRAME)
                         .encodings()
         );
-        assertTrue(EncodingDetector.DEFAULT.withEncodingEras(Set.of()).encodings().isEmpty());
+        assertEquals(
+                expected,
+                EncodingDetector.DEFAULT
+                        .withEncodingEras(List.of(Era.LEGACY_MAC, Era.MAINFRAME))
+                        .encodings()
+        );
+        assertTrue(EncodingDetector.DEFAULT.withEncodingEras().encodings().isEmpty());
+        assertTrue(EncodingDetector.DEFAULT.withEncodings().encodings().isEmpty());
     }
 
     /// Verifies invalid configuration states are rejected eagerly.
@@ -435,7 +438,11 @@ final class PublicApiTest {
                 NullPointerException.class,
                 () -> EncodingDetector.DEFAULT.detectAllUnfiltered((ByteBuffer) null)
         );
-        assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withEncodingEras(null));
+        assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withEncodingEras((Era[]) null));
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.withEncodingEras(Era.MODERN_WEB, null)
+        );
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withEncodingEra(null));
         assertThrows(
                 NullPointerException.class,
@@ -445,7 +452,15 @@ final class PublicApiTest {
         );
         assertThrows(
                 NullPointerException.class,
-                () -> EncodingDetector.DEFAULT.withEncodings(null)
+                () -> EncodingDetector.DEFAULT.withEncodings((Collection<Encoding>) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.withEncodings((Encoding[]) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.withEncodings(Encoding.UTF_8, null)
         );
         assertThrows(
                 NullPointerException.class,
