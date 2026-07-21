@@ -1082,38 +1082,58 @@ public final class EncodingDetector {
     /// recommendation carries no confidence, language, or MIME type. When a
     /// candidate is present, the recommendation is exactly the first candidate's
     /// encoding and may therefore be `null` for a non-text classification.
-    ///
-    /// @param candidates   qualifying candidates in descending-confidence order;
-    ///                     may be empty
-    /// @param bestEncoding recommended encoding, or `null` when no encoding is
-    ///                     recommended
     @NotNullByDefault
-    public record Result(
-            @Unmodifiable List<Candidate> candidates,
-            @Nullable Encoding bestEncoding
-    ) {
+    public static final class Result {
+        /// Qualifying candidates in descending-confidence order.
+        private final @Unmodifiable List<Candidate> candidates;
+
+        /// Recommended encoding, or `null` when no encoding is recommended.
+        private final @Nullable Encoding bestEncoding;
+
         /// Creates a result after copying and validating its candidates.
         ///
+        /// @param candidates   qualifying candidates in descending-confidence order;
+        ///                     may be empty
+        /// @param bestEncoding recommended encoding, or `null` when no encoding is
+        ///                     recommended
         /// @throws NullPointerException     if `candidates` or an element is `null`
         /// @throws IllegalArgumentException if candidates are not in
         /// descending-confidence order, or a nonempty list's first candidate
         /// does not have `bestEncoding`
-        public Result {
-            candidates = List.copyOf(candidates);
-            for (int index = 1; index < candidates.size(); index++) {
-                if (candidates.get(index - 1).confidence()
-                        < candidates.get(index).confidence()) {
+        public Result(
+                List<Candidate> candidates,
+                @Nullable Encoding bestEncoding
+        ) {
+            List<Candidate> copy = List.copyOf(candidates);
+            for (int index = 1; index < copy.size(); index++) {
+                if (copy.get(index - 1).confidence()
+                        < copy.get(index).confidence()) {
                     throw new IllegalArgumentException(
                             "candidates must be in descending-confidence order"
                     );
                 }
             }
-            if (!candidates.isEmpty()
-                    && candidates.get(0).encoding() != bestEncoding) {
+            if (!copy.isEmpty() && copy.get(0).encoding() != bestEncoding) {
                 throw new IllegalArgumentException(
                         "bestEncoding must match the highest-ranked candidate"
                 );
             }
+            this.candidates = copy;
+            this.bestEncoding = bestEncoding;
+        }
+
+        /// Returns the qualifying candidates.
+        ///
+        /// @return immutable candidates in descending-confidence order
+        public @Unmodifiable List<Candidate> candidates() {
+            return candidates;
+        }
+
+        /// Returns the recommended encoding.
+        ///
+        /// @return recommended encoding, or `null` when none is available
+        public @Nullable Encoding bestEncoding() {
+            return bestEncoding;
         }
 
         /// Returns the highest-ranked candidate, if present.
@@ -1121,6 +1141,39 @@ public final class EncodingDetector {
         /// @return first candidate, or `null` when `candidates` is empty
         public @Nullable Candidate bestCandidate() {
             return candidates.isEmpty() ? null : candidates.get(0);
+        }
+
+        /// Compares this result with another object by value.
+        ///
+        /// @param object object to compare
+        /// @return whether both objects contain equal candidates and the same
+        /// recommended encoding
+        @Override
+        public boolean equals(@Nullable Object object) {
+            if (this == object) {
+                return true;
+            }
+            return object instanceof Result other
+                    && candidates.equals(other.candidates)
+                    && bestEncoding == other.bestEncoding;
+        }
+
+        /// Returns a value-based hash code for this result.
+        ///
+        /// @return hash code derived from the candidates and recommended encoding
+        @Override
+        public int hashCode() {
+            return 31 * candidates.hashCode()
+                    + (bestEncoding == null ? 0 : bestEncoding.hashCode());
+        }
+
+        /// Returns a string representation of this result.
+        ///
+        /// @return string containing the candidates and recommended encoding
+        @Override
+        public String toString() {
+            return "Result[candidates=" + candidates
+                    + ", bestEncoding=" + bestEncoding + ']';
         }
     }
 

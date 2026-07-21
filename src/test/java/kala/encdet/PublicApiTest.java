@@ -552,9 +552,18 @@ final class PublicApiTest {
         Result binary = new Result(List.of(binaryCandidate), null);
 
         candidates.clear();
+        assertFalse(Result.class.isRecord());
         assertEquals(List.of(high, low), result.candidates());
         assertEquals(high, result.bestCandidate());
         assertEquals(Encoding.UTF_8, result.bestEncoding());
+        Result equalResult = new Result(List.of(high, low), Encoding.UTF_8);
+        assertEquals(result, equalResult);
+        assertEquals(result.hashCode(), equalResult.hashCode());
+        assertEquals(
+                "Result[candidates=" + List.of(high, low)
+                        + ", bestEncoding=UTF_8]",
+                result.toString()
+        );
         assertThrows(UnsupportedOperationException.class, () -> result.candidates().clear());
         assertTrue(empty.candidates().isEmpty());
         assertNull(empty.bestCandidate());
