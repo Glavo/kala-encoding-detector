@@ -126,6 +126,31 @@ final class MainTest {
         assertEquals("", result.error());
     }
 
+    /// Verifies no-match fallback is disabled by default and remains configurable.
+    @Test
+    void configuresOptionalNoMatchFallback() {
+        byte[] input = {(byte) 0xe9, (byte) 0xe9, (byte) 0xe9};
+        RunResult disabled = invoke(
+                new String[]{"--minimal", "--include-encodings", "ascii"},
+                input
+        );
+        assertEquals(0, disabled.status());
+        assertEquals("None" + System.lineSeparator(), disabled.output());
+        assertEquals("", disabled.error());
+
+        RunResult configured = invoke(
+                new String[]{
+                        "--minimal",
+                        "--include-encodings", "ascii",
+                        "--no-match-encoding", "ascii"
+                },
+                input
+        );
+        assertEquals(0, configured.status());
+        assertEquals("ascii" + System.lineSeparator(), configured.output());
+        assertEquals("", configured.error());
+    }
+
     /// Verifies CLI inclusion and exclusion produce one effective encoding set.
     @Test
     void combinesEncodingFilters() {
@@ -168,6 +193,7 @@ final class MainTest {
         RunResult help = invoke(new String[]{"--help"}, new byte[0]);
         assertEquals(0, help.status());
         assertTrue(help.output().startsWith("usage: kala-encdet"));
+        assertTrue(help.output().contains("no-match fallback (default: none)"));
         assertEquals("", help.error());
     }
 

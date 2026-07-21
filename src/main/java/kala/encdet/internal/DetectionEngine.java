@@ -240,17 +240,20 @@ public final class DetectionEngine {
         return result.encoding() != null && allowed.contains(result.encoding());
     }
 
-    /// Returns a fallback or the no-detection sentinel if it was filtered out.
+    /// Returns a fallback or the no-detection sentinel if absent or filtered out.
     ///
-    /// @param encoding   fallback encoding
+    /// @param encoding   fallback encoding, or `null` to report no encoding
     /// @param allowed    allowed encodings
     /// @param optionName option name used in a warning
     /// @return singleton internal result list
     private static List<PipelineResult> fallback(
-            Encoding encoding,
+            @Nullable Encoding encoding,
             Set<Encoding> allowed,
             String optionName
     ) {
+        if (encoding == null) {
+            return List.of(NONE_RESULT);
+        }
         if (!allowed.contains(encoding)) {
             LOGGER.log(
                     System.Logger.Level.WARNING,

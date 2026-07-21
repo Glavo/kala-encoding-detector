@@ -124,6 +124,9 @@ EncodingDetector detector = EncodingDetector.DEFAULT
 Result result = detector.detect(input);
 ```
 
+This example explicitly opts into CP1252 as the no-match fallback. Passing
+`null` to `withNoMatchEncoding` disables fallback guessing.
+
 `EncodingDetector` is immutable. Every `withXxx` method leaves its receiver
 unchanged. It returns that receiver when the requested value is already
 configured and otherwise returns an independent detector, so configured
@@ -157,13 +160,17 @@ target as an immutable set in enum declaration order.
 - `maxBytes = 200_000`
 - no preferred-superset remapping
 - every supported encoding in the effective encoding set
-- `EncodingDetector.Encoding.CP1252` when no candidate survives
+- no encoding when no candidate survives
 - `EncodingDetector.Encoding.UTF_8` for empty input
 
 The configured encoding set contains all supported targets by default; an
 empty set permits no text encoding. It also gates BOM, markup, escape, and
 fallback results. Binary classification is not filtered and is reported with a
 `null` encoding and an appropriate MIME type.
+
+When the text-detection pipeline produces no candidate, the default detector
+returns a candidate with a `null` encoding and zero confidence. Configure
+`withNoMatchEncoding` to opt into a specific low-confidence fallback.
 
 `EncodingDetector` instances are safe for concurrent use. Registry, validity,
 decode, model, and confusion data are immutable after thread-safe lazy
@@ -190,6 +197,9 @@ type document.txt | kala-encdet
 ```
 
 Use `kala-encdet --help` for the complete option summary.
+
+The CLI likewise has no no-match fallback by default;
+`--no-match-encoding` explicitly enables one for that invocation.
 
 The CLI accepts textual aliases and renders each detected enum value through
 `EncodingDetector.Encoding.displayName()` for chardet-compatible output. Its

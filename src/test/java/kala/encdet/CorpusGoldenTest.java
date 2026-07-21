@@ -31,6 +31,10 @@ final class CorpusGoldenTest {
     /// Corpus classpath prefix.
     private static final String CORPUS_PREFIX = "chardet-test-data/";
 
+    /// Detector configured with the pinned reference implementation's fallback.
+    private static final EncodingDetector REFERENCE_DETECTOR =
+            EncodingDetector.DEFAULT.withNoMatchEncoding(Encoding.CP1252);
+
     /// Maximum mismatch details retained in one assertion message.
     private static final int MAX_DETAILS = 40;
 
@@ -59,7 +63,7 @@ final class CorpusGoldenTest {
                     continue;
                 }
                 List<ExpectedResult> expected = parseResults(fields[2]);
-                List<Candidate> actual = EncodingDetector.DEFAULT.detect(data).candidates();
+                List<Candidate> actual = REFERENCE_DETECTOR.detect(data).candidates();
                 compareResults(path, expected, actual, mismatches);
                 samples++;
             }

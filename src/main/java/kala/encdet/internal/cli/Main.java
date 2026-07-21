@@ -208,7 +208,7 @@ public final class Main {
         output.println("                                legacy_regional, dos, mainframe, or all");
         output.println("  -i, --include-encodings LIST comma-separated encodings to consider");
         output.println("  -x, --exclude-encodings LIST comma-separated encodings to exclude");
-        output.println("  --no-match-encoding NAME     no-match fallback (default: cp1252)");
+        output.println("  --no-match-encoding NAME     no-match fallback (default: none)");
         output.println("  --empty-input-encoding NAME  empty-input fallback (default: utf-8)");
         output.println("  --version                    show version");
         output.println("  -h, --help                   show this help");
@@ -238,8 +238,8 @@ public final class Main {
         /// Optional raw exclude filter.
         private @Nullable Set<String> excludeNames;
 
-        /// Raw no-match fallback.
-        private String noMatchName = "cp1252";
+        /// Optional raw no-match fallback.
+        private @Nullable String noMatchName;
 
         /// Raw empty-input fallback.
         private String emptyInputName = "utf-8";
@@ -317,7 +317,9 @@ public final class Main {
         private EncodingDetector toDetector() {
             return EncodingDetector.DEFAULT
                     .withEncodings(resolveEncodings())
-                    .withNoMatchEncoding(resolveEncoding(noMatchName, "noMatchEncoding"))
+                    .withNoMatchEncoding(noMatchName == null
+                            ? null
+                            : resolveEncoding(noMatchName, "noMatchEncoding"))
                     .withEmptyInputEncoding(resolveEncoding(emptyInputName, "emptyInputEncoding"));
         }
 

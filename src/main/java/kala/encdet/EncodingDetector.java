@@ -27,9 +27,9 @@ import java.util.*;
 /// Candidate eligibility is defined by the configured encoding set. Era-based
 /// configuration methods replace that set with the encodings classified in the
 /// requested eras. The set also gates BOM, markup, escape, and fallback results;
-/// binary classifications have no encoding and are not filtered. If a
-/// configured fallback is ineligible, the detector returns a no-encoding result
-/// instead.
+/// binary classifications have no encoding and are not filtered. If no
+/// fallback is configured or the configured fallback is ineligible, the
+/// detector returns a no-encoding result instead.
 ///
 /// Preferred-superset remapping, when enabled, occurs after candidate
 /// filtering. A reported superset may therefore be absent from the configured
@@ -777,6 +777,8 @@ public final class EncodingDetector {
         /// @return matching charset, or `null` when no exact mapping is available
         public @Nullable Charset charset() {
             String preferredName = switch (this) {
+                case UTF_16_BE -> "UTF-16BE";
+                case UTF_16_LE -> "UTF-16LE";
                 case UTF_32_BE -> "UTF-32BE";
                 case UTF_32_LE -> "UTF-32LE";
                 case CP932 -> "windows-31j";
@@ -1109,14 +1111,14 @@ public final class EncodingDetector {
     ///
     /// It examines at most 200,000 bytes, reports candidates with confidence of
     /// at least `0.20` as likely, disables preferred-superset remapping, allows
-    /// every encoding target, uses [Encoding#CP1252] when no candidate survives,
+    /// every encoding target, reports no encoding when no candidate survives,
     /// and uses [Encoding#UTF_8] for empty input.
     public static final EncodingDetector DEFAULT = new EncodingDetector(
             200_000,
             DEFAULT_MINIMUM_CONFIDENCE,
             false,
             EnumSet.allOf(Encoding.class),
-            Encoding.CP1252,
+            null,
             Encoding.UTF_8
     );
 
@@ -1132,8 +1134,8 @@ public final class EncodingDetector {
     /// Encoding targets permitted to participate in detection.
     private final @Unmodifiable EnumSet<Encoding> encodings;
 
-    /// Low-confidence fallback used when no candidate survives.
-    private final Encoding noMatchEncoding;
+    /// Optional low-confidence fallback used when no candidate survives.
+    private final @Nullable Encoding noMatchEncoding;
 
     /// Low-confidence fallback used for empty input.
     private final Encoding emptyInputEncoding;
@@ -1144,14 +1146,14 @@ public final class EncodingDetector {
     /// @param minimumConfidence  inclusive likely-candidate confidence bound
     /// @param preferSuperset     whether to remap subset encodings
     /// @param encodings          immutable permitted encoding targets
-    /// @param noMatchEncoding    no-match fallback
+    /// @param noMatchEncoding    no-match fallback, or `null` to report no encoding
     /// @param emptyInputEncoding empty-input fallback
     private EncodingDetector(
             int maxBytes,
             double minimumConfidence,
             boolean preferSuperset,
             @Unmodifiable EnumSet<Encoding> encodings,
-            Encoding noMatchEncoding,
+            @Nullable Encoding noMatchEncoding,
             Encoding emptyInputEncoding
     ) {
         this.maxBytes = maxBytes;
@@ -1200,10 +1202,10 @@ public final class EncodingDetector {
         return Collections.unmodifiableSet(encodings);
     }
 
-    /// Returns the no-match fallback.
+    /// Returns the optional no-match fallback.
     ///
-    /// @return fallback encoding
-    public Encoding noMatchEncoding() {
+    /// @return fallback encoding, or `null` when no fallback is configured
+    public @Nullable Encoding noMatchEncoding() {
         return noMatchEncoding;
     }
 
@@ -1389,13 +1391,15 @@ public final class EncodingDetector {
         return withEncodingSet(copy);
     }
 
-    /// Returns a detector using the supplied no-match fallback.
+    /// Returns a detector using the supplied optional no-match fallback.
     ///
-    /// @param value fallback encoding
+    /// A `null` value disables fallback guessing. When the detection pipeline
+    /// produces no candidate, the resulting candidate then has a `null`
+    /// encoding and zero confidence.
+    ///
+    /// @param value fallback encoding, or `null` to disable the fallback
     /// @return this detector if unchanged; otherwise a new detector
-    /// @throws NullPointerException if `value` is `null`
-    public EncodingDetector withNoMatchEncoding(Encoding value) {
-        Objects.requireNonNull(value, "value");
+    public EncodingDetector withNoMatchEncoding(@Nullable Encoding value) {
         if (noMatchEncoding == value) {
             return this;
         }

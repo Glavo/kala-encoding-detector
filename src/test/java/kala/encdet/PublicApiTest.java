@@ -28,9 +28,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /// Verifies the public detector API and configuration contracts.
 @NotNullByDefault
 final class PublicApiTest {
-    /// Verifies all reference-compatible default configuration values.
+    /// Verifies all documented default configuration values.
     @Test
-    void defaultDetectorMatchesReference() {
+    void defaultDetectorUsesDocumentedConfiguration() {
         EncodingDetector detector = EncodingDetector.DEFAULT;
         assertEquals(200_000, detector.maxBytes());
         assertEquals(
@@ -39,7 +39,7 @@ final class PublicApiTest {
         );
         assertFalse(detector.preferSuperset());
         assertEquals(EnumSet.allOf(Encoding.class), detector.encodings());
-        assertEquals(Encoding.CP1252, detector.noMatchEncoding());
+        assertNull(detector.noMatchEncoding());
         assertEquals(Encoding.UTF_8, detector.emptyInputEncoding());
         assertThrows(
                 UnsupportedOperationException.class,
@@ -66,6 +66,10 @@ final class PublicApiTest {
         assertEquals(Set.of(Encoding.CP1252, Encoding.UTF_8), detector.encodings());
         assertEquals(Encoding.CP1252, detector.noMatchEncoding());
         assertEquals(Encoding.ASCII, detector.emptyInputEncoding());
+        EncodingDetector noFallback = detector.withNoMatchEncoding(null);
+        assertNotSame(detector, noFallback);
+        assertNull(noFallback.noMatchEncoding());
+        assertSame(noFallback, noFallback.withNoMatchEncoding(null));
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> detector.encodings().add(Encoding.ASCII)
@@ -100,6 +104,10 @@ final class PublicApiTest {
         assertSame(detector, detector.withEncodings(Set.of(Encoding.CP437)));
         assertSame(detector, detector.withNoMatchEncoding(Encoding.CP437));
         assertSame(detector, detector.withEmptyInputEncoding(Encoding.ASCII));
+        assertSame(
+                EncodingDetector.DEFAULT,
+                EncodingDetector.DEFAULT.withNoMatchEncoding(null)
+        );
         assertSame(
                 EncodingDetector.DEFAULT,
                 EncodingDetector.DEFAULT.withEncodings(EnumSet.allOf(Encoding.class))
@@ -356,6 +364,14 @@ final class PublicApiTest {
         assertEquals("application/octet-stream", none.mimeType());
         assertNull(noEncodings.detect(new byte[0]).bestCandidate().encoding());
 
+        EncodingDetector noFallback = EncodingDetector.DEFAULT
+                .withEncodings(Set.of(Encoding.ASCII));
+        Candidate noMatch = noFallback.detect(
+                new byte[]{(byte) 0x80, (byte) 0x81, (byte) 0x82}
+        ).bestCandidate();
+        assertNull(noMatch.encoding());
+        assertEquals(0.0, noMatch.confidence());
+
         EncodingDetector customFallbacks = EncodingDetector.DEFAULT
                 .withEncodings(Set.of(Encoding.ASCII))
                 .withNoMatchEncoding(Encoding.ASCII)
@@ -560,7 +576,6 @@ final class PublicApiTest {
                         Collections.singleton(null)
                 )
         );
-        assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withNoMatchEncoding(null));
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withEmptyInputEncoding(null));
         assertThrows(NullPointerException.class, () -> Encoding.lookup(null));
         assertThrows(
