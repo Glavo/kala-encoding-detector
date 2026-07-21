@@ -113,7 +113,6 @@ EncodingDetector detector = EncodingDetector.DEFAULT
         .withEncodingEras(Set.of(Era.MODERN_WEB))
         .withMaxBytes(100_000)
         .withMinimumConfidence(0.35)
-        .withEncodings(Set.of(Encoding.UTF_8, Encoding.CP1252))
         .withNoMatchEncoding(Encoding.CP1252)
         .withPreferredSuperset(false);
 
@@ -124,6 +123,10 @@ Result result = detector.detect(input);
 unchanged. It returns that receiver when the requested value is already
 configured and otherwise returns an independent detector, so configured
 instances can be reused safely across detection calls and threads.
+The detector stores one effective encoding set. `withEncodingEras` and
+`withEncodingEra` replace it with the encodings classified in the selected
+eras, while `withEncodings` replaces it with the supplied set; when these
+methods are chained, the last selector wins.
 
 The `EncodingDetector.Encoding` enum represents all 86 detection targets
 throughout the public API and owns their fixed registry metadata. Its
@@ -140,7 +143,7 @@ aliases to enum values without consulting a JDK charset provider;
 
 ## Default behavior
 
-`EncodingDetector.DEFAULT` selects all six eras and uses:
+`EncodingDetector.DEFAULT` permits all supported encodings and uses:
 
 - `maxBytes = 200_000`
 - no preferred-superset remapping
@@ -148,11 +151,10 @@ aliases to enum values without consulting a JDK charset provider;
 - `EncodingDetector.Encoding.CP1252` when no candidate survives
 - `EncodingDetector.Encoding.UTF_8` for empty input
 
-The configured encoding set is intersected with the selected eras. It contains
-all supported targets by default; an empty set permits no text encoding. The
-effective set also gates BOM, markup, escape, and fallback results. Binary
-classification is not filtered and is reported with a `null` encoding and an
-appropriate MIME type.
+The configured encoding set contains all supported targets by default; an
+empty set permits no text encoding. It also gates BOM, markup, escape, and
+fallback results. Binary classification is not filtered and is reported with a
+`null` encoding and an appropriate MIME type.
 
 `EncodingDetector` instances are safe for concurrent use. Registry, validity,
 decode, model, and confusion data are immutable after thread-safe lazy

@@ -21,11 +21,12 @@ import java.util.*;
 /// return it when the requested value is already configured and otherwise
 /// return an independently configured detector.
 ///
-/// Candidate eligibility is the intersection of the configured encoding and
-/// era sets. The resulting eligibility set also gates BOM, markup, escape, and
-/// fallback results; binary classifications have no encoding and are not
-/// filtered. If a configured fallback is ineligible, the detector returns a
-/// no-encoding result instead.
+/// Candidate eligibility is defined by the configured encoding set. Era-based
+/// configuration methods replace that set with the encodings classified in the
+/// requested eras. The set also gates BOM, markup, escape, and fallback results;
+/// binary classifications have no encoding and are not filtered. If a
+/// configured fallback is ineligible, the detector returns a no-encoding result
+/// instead.
 ///
 /// Preferred-superset remapping, when enabled, occurs after candidate
 /// filtering. A reported superset may therefore be absent from the configured
@@ -913,10 +914,10 @@ public final class EncodingDetector {
         }
     }
 
-    /// Identifies a historical or operational group of character encodings.
+    /// Classifies a character encoding by its historical or operational group.
     ///
-    /// Multiple eras are selected by placing values in a set. The default
-    /// detection options select every value.
+    /// Each [Encoding] has one era. [#withEncodingEra(Era)] and
+    /// [#withEncodingEras(Set)] select all encodings in the requested groups.
     @NotNullByDefault
     public enum Era {
         /// Encodings commonly used by contemporary software and web content.
@@ -974,24 +975,20 @@ public final class EncodingDetector {
     private static final @Unmodifiable Set<Encoding> ALL_ENCODINGS =
             Collections.unmodifiableSet(EnumSet.allOf(Encoding.class));
 
-    /// Default detector with every encoding era enabled.
+    /// Default detector with every encoding target enabled.
     ///
     /// It examines at most 200,000 bytes, retains candidates with confidence
     /// of at least `0.20`, disables preferred-superset remapping, allows every
     /// encoding target, uses [Encoding#CP1252] when no candidate survives, and
     /// uses [Encoding#UTF_8] for empty input.
     public static final EncodingDetector DEFAULT = new EncodingDetector(
-            Collections.unmodifiableSet(EnumSet.allOf(Era.class)),
             200_000,
             DEFAULT_MINIMUM_CONFIDENCE,
             false,
-            ALL_ENCODINGS,
+            EnumSet.allOf(Encoding.class),
             Encoding.CP1252,
             Encoding.UTF_8
     );
-
-    /// Eligible encoding eras in enum declaration order.
-    private final @Unmodifiable Set<Era> encodingEras;
 
     /// Maximum number of leading input bytes examined.
     private final int maxBytes;
@@ -1003,7 +1000,10 @@ public final class EncodingDetector {
     private final boolean preferSuperset;
 
     /// Encoding targets permitted to participate in detection.
-    private final @Unmodifiable Set<Encoding> encodings;
+    private final @Unmodifiable EnumSet<Encoding> encodings;
+
+    /// Immutable public view of [#encodings].
+    private final @UnmodifiableView Set<Encoding> encodingsView;
 
     /// Low-confidence fallback used when no candidate survives.
     private final Encoding noMatchEncoding;
@@ -1013,7 +1013,6 @@ public final class EncodingDetector {
 
     /// Creates a detector from validated immutable configuration state.
     ///
-    /// @param encodingEras       immutable eligible encoding eras
     /// @param maxBytes           maximum leading input bytes examined
     /// @param minimumConfidence  inclusive filtered-candidate confidence bound
     /// @param preferSuperset     whether to remap subset encodings
@@ -1021,28 +1020,20 @@ public final class EncodingDetector {
     /// @param noMatchEncoding    no-match fallback
     /// @param emptyInputEncoding empty-input fallback
     private EncodingDetector(
-            @Unmodifiable Set<Era> encodingEras,
             int maxBytes,
             double minimumConfidence,
             boolean preferSuperset,
-            @Unmodifiable Set<Encoding> encodings,
+            @Unmodifiable EnumSet<Encoding> encodings,
             Encoding noMatchEncoding,
             Encoding emptyInputEncoding
     ) {
-        this.encodingEras = encodingEras;
         this.maxBytes = maxBytes;
         this.minimumConfidence = minimumConfidence;
         this.preferSuperset = preferSuperset;
         this.encodings = encodings;
+        this.encodingsView = Collections.unmodifiableSet(encodings);
         this.noMatchEncoding = noMatchEncoding;
         this.emptyInputEncoding = emptyInputEncoding;
-    }
-
-    /// Returns the eligible encoding eras.
-    ///
-    /// @return an immutable set in enum declaration order
-    public @Unmodifiable Set<Era> encodingEras() {
-        return encodingEras;
     }
 
     /// Returns the maximum number of leading bytes examined.
@@ -1068,14 +1059,14 @@ public final class EncodingDetector {
 
     /// Returns the encoding targets permitted to participate in detection.
     ///
-    /// An encoding is eligible only when this set contains it and
-    /// [#encodingEras()] contains its era. An empty set permits no text encoding
-    /// or configured fallback, but does not suppress binary classifications.
-    /// Preferred-superset remapping may produce a result absent from this set.
+    /// An empty set permits no text encoding or configured fallback, but does
+    /// not suppress binary classifications. Preferred-superset remapping may
+    /// produce a result absent from this set.
     ///
-    /// @return immutable permitted encodings in enum declaration order
-    public @Unmodifiable Set<Encoding> encodings() {
-        return encodings;
+    /// @return an immutable view of the permitted encodings in enum declaration
+    /// order
+    public @UnmodifiableView Set<Encoding> encodings() {
+        return encodingsView;
     }
 
     /// Returns the no-match fallback.
@@ -1092,49 +1083,27 @@ public final class EncodingDetector {
         return emptyInputEncoding;
     }
 
-    /// Returns a detector restricted to the supplied encoding eras.
+    /// Returns a detector permitting every encoding in the supplied eras.
     ///
-    /// @param value a nonempty era set
+    /// This method replaces the same encoding set as [#withEncodings(Set)]. An
+    /// empty era set therefore permits no text encoding.
+    ///
+    /// @param value eras whose encodings are permitted; may be empty
     /// @return this detector if unchanged; otherwise a new detector
-    /// @throws NullPointerException     if `value` or an element is `null`
-    /// @throws IllegalArgumentException if `value` is empty
+    /// @throws NullPointerException if `value` or an element is `null`
     public EncodingDetector withEncodingEras(Set<Era> value) {
-        if (value.isEmpty()) {
-            throw new IllegalArgumentException("value must not be empty");
-        }
-        if (encodingEras.equals(value)) {
-            return this;
-        }
-        return new EncodingDetector(
-                immutableEras(value),
-                maxBytes,
-                minimumConfidence,
-                preferSuperset,
-                encodings,
-                noMatchEncoding,
-                emptyInputEncoding
-        );
+        return withEncodingSet(encodingsForEras(value));
     }
 
-    /// Returns a detector restricted to one encoding era.
+    /// Returns a detector permitting every encoding in one era.
+    ///
+    /// This method replaces the same encoding set as [#withEncodings(Set)].
     ///
     /// @param value the sole eligible era
     /// @return this detector if unchanged; otherwise a new detector
     /// @throws NullPointerException if `value` is `null`
     public EncodingDetector withEncodingEra(Era value) {
-        Objects.requireNonNull(value, "value");
-        if (encodingEras.size() == 1 && encodingEras.contains(value)) {
-            return this;
-        }
-        return new EncodingDetector(
-                Collections.unmodifiableSet(EnumSet.of(value)),
-                maxBytes,
-                minimumConfidence,
-                preferSuperset,
-                encodings,
-                noMatchEncoding,
-                emptyInputEncoding
-        );
+        return withEncodingSet(encodingsForEras(EnumSet.of(value)));
     }
 
     /// Returns a detector with a new maximum input length.
@@ -1150,7 +1119,6 @@ public final class EncodingDetector {
             return this;
         }
         return new EncodingDetector(
-                encodingEras,
                 value,
                 minimumConfidence,
                 preferSuperset,
@@ -1180,7 +1148,6 @@ public final class EncodingDetector {
             return this;
         }
         return new EncodingDetector(
-                encodingEras,
                 maxBytes,
                 value,
                 preferSuperset,
@@ -1199,7 +1166,6 @@ public final class EncodingDetector {
             return this;
         }
         return new EncodingDetector(
-                encodingEras,
                 maxBytes,
                 minimumConfidence,
                 value,
@@ -1211,9 +1177,9 @@ public final class EncodingDetector {
 
     /// Returns a detector using the supplied set of permitted encoding targets.
     ///
-    /// The supplied set is applied together with [#encodingEras()]. An empty set
-    /// permits no text encoding or configured fallback, but does not suppress
-    /// binary classifications.
+    /// This method replaces the same encoding set as
+    /// [#withEncodingEras(Set)]. An empty set permits no text encoding or
+    /// configured fallback, but does not suppress binary classifications.
     ///
     /// @param value permitted encodings; may be empty
     /// @return this detector if unchanged; otherwise a new detector
@@ -1222,15 +1188,7 @@ public final class EncodingDetector {
         if (encodings.equals(value)) {
             return this;
         }
-        return new EncodingDetector(
-                encodingEras,
-                maxBytes,
-                minimumConfidence,
-                preferSuperset,
-                immutableEncodings(value),
-                noMatchEncoding,
-                emptyInputEncoding
-        );
+        return withEncodingSet(copyEncodings(value));
     }
 
     /// Returns a detector using the supplied no-match fallback.
@@ -1244,7 +1202,6 @@ public final class EncodingDetector {
             return this;
         }
         return new EncodingDetector(
-                encodingEras,
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
@@ -1265,7 +1222,6 @@ public final class EncodingDetector {
             return this;
         }
         return new EncodingDetector(
-                encodingEras,
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
@@ -1414,22 +1370,48 @@ public final class EncodingDetector {
         return ALL_ENCODINGS;
     }
 
-    /// Copies an era set while preserving enum declaration order.
+    /// Selects encodings classified in at least one supplied era.
     ///
-    /// @param eras eras to copy
-    /// @return an immutable set
-    private static @Unmodifiable Set<Era> immutableEras(Set<Era> eras) {
-        EnumSet<Era> copy = EnumSet.copyOf(eras);
-        return Collections.unmodifiableSet(copy);
+    /// @param eras eras to select; may be empty
+    /// @return an internally immutable encoding set
+    /// @throws NullPointerException if `eras` or an element is `null`
+    private static @Unmodifiable EnumSet<Encoding> encodingsForEras(Set<Era> eras) {
+        EnumSet<Era> eraCopy = EnumSet.noneOf(Era.class);
+        eraCopy.addAll(eras);
+        EnumSet<Encoding> result = EnumSet.noneOf(Encoding.class);
+        for (Encoding encoding : Encoding.values()) {
+            if (eraCopy.contains(encoding.era())) {
+                result.add(encoding);
+            }
+        }
+        return result;
     }
 
     /// Copies an encoding set while preserving enum declaration order.
     ///
     /// @param encodings supplied encodings
-    /// @return immutable encoding set
-    private static @Unmodifiable Set<Encoding> immutableEncodings(Set<Encoding> encodings) {
+    /// @return an internally immutable encoding set
+    private static @Unmodifiable EnumSet<Encoding> copyEncodings(Set<Encoding> encodings) {
         EnumSet<Encoding> copy = EnumSet.noneOf(Encoding.class);
         copy.addAll(encodings);
-        return Collections.unmodifiableSet(copy);
+        return copy;
+    }
+
+    /// Returns a detector using an already validated independent encoding set.
+    ///
+    /// @param value internally immutable permitted encodings
+    /// @return this detector if unchanged; otherwise a new detector
+    private EncodingDetector withEncodingSet(@Unmodifiable EnumSet<Encoding> value) {
+        if (encodings.equals(value)) {
+            return this;
+        }
+        return new EncodingDetector(
+                maxBytes,
+                minimumConfidence,
+                preferSuperset,
+                value,
+                noMatchEncoding,
+                emptyInputEncoding
+        );
     }
 }

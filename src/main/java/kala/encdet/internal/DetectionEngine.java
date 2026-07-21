@@ -5,7 +5,6 @@ package kala.encdet.internal;
 
 import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingDetector.Encoding;
-import kala.encdet.EncodingDetector.Era;
 import kala.encdet.EncodingDetector.Result;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
@@ -14,7 +13,6 @@ import org.jetbrains.annotations.UnmodifiableView;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -132,10 +130,8 @@ public final class DetectionEngine {
             @UnmodifiableView ByteBuffer data,
             EncodingDetector detector
     ) {
-        List<Encoding> candidates = selectCandidates(detector);
-        EnumSet<Encoding> mutableAllowed = EnumSet.noneOf(Encoding.class);
-        mutableAllowed.addAll(candidates);
-        Set<Encoding> allowed = Collections.unmodifiableSet(mutableAllowed);
+        Set<Encoding> allowed = detector.encodings();
+        List<Encoding> candidates = List.copyOf(allowed);
 
         if (data.remaining() == 0) {
             return fallback(detector.emptyInputEncoding(), allowed, "emptyInputEncoding");
@@ -230,22 +226,6 @@ public final class DetectionEngine {
             return fallback(detector.noMatchEncoding(), allowed, "noMatchEncoding");
         }
         return PostProcessor.process(data, scored);
-    }
-
-    /// Returns candidates permitted by the detector's encoding and era sets.
-    ///
-    /// @param detector immutable detector configuration
-    /// @return immutable encodings in enum declaration order
-    private static @Unmodifiable List<Encoding> selectCandidates(EncodingDetector detector) {
-        Set<Era> eras = detector.encodingEras();
-        Set<Encoding> configuredEncodings = detector.encodings();
-        ArrayList<Encoding> result = new ArrayList<>(configuredEncodings.size());
-        for (Encoding encoding : ENCODINGS) {
-            if (eras.contains(encoding.era()) && configuredEncodings.contains(encoding)) {
-                result.add(encoding);
-            }
-        }
-        return List.copyOf(result);
     }
 
     /// Tests whether a text result's encoding is allowed.

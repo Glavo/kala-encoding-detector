@@ -226,7 +226,7 @@ public final class Main {
         private boolean version;
 
         /// Selected encoding eras.
-        private Set<Era> eras = EnumSet.allOf(Era.class);
+        private EnumSet<Era> eras = EnumSet.allOf(Era.class);
 
         /// Optional raw include filter.
         private @Nullable Set<String> includeNames;
@@ -312,7 +312,6 @@ public final class Main {
         /// @return configured detector
         private EncodingDetector toDetector() {
             return EncodingDetector.DEFAULT
-                    .withEncodingEras(eras)
                     .withEncodings(resolveEncodings())
                     .withNoMatchEncoding(resolveEncoding(noMatchName, "noMatchEncoding"))
                     .withEmptyInputEncoding(resolveEncoding(emptyInputName, "emptyInputEncoding"));
@@ -341,7 +340,7 @@ public final class Main {
         /// @param value lower-case CLI era name
         /// @return selected eras
         /// @throws CliException when the selector is unknown
-        private static Set<Era> parseEra(String value) throws CliException {
+        private static EnumSet<Era> parseEra(String value) throws CliException {
             if (value.equals("all")) {
                 return EnumSet.allOf(Era.class);
             }
@@ -368,20 +367,25 @@ public final class Main {
 
         /// Resolves the CLI filters into the effective permitted encoding set.
         ///
-        /// When no include filter was supplied, resolution starts with every
-        /// supported encoding. The exclude filter is then removed, so exclusion
-        /// wins for names present in both options.
+        /// Resolution starts with every encoding in the selected eras. An
+        /// include filter narrows that set, then the exclude filter is removed,
+        /// so exclusion wins for names present in both options.
         ///
         /// @return effective permitted encoding identities
         /// @throws IllegalArgumentException when a name is unknown
         private EnumSet<Encoding> resolveEncodings() {
-            EnumSet<Encoding> result = includeNames == null
-                    ? EnumSet.allOf(Encoding.class)
-                    : EnumSet.noneOf(Encoding.class);
-            if (includeNames != null) {
-                for (String value : includeNames) {
-                    result.add(resolveEncoding(value, "--include-encodings"));
+            EnumSet<Encoding> result = EnumSet.noneOf(Encoding.class);
+            for (Encoding encoding : Encoding.values()) {
+                if (eras.contains(encoding.era())) {
+                    result.add(encoding);
                 }
+            }
+            if (includeNames != null) {
+                EnumSet<Encoding> included = EnumSet.noneOf(Encoding.class);
+                for (String value : includeNames) {
+                    included.add(resolveEncoding(value, "--include-encodings"));
+                }
+                result.retainAll(included);
             }
             if (excludeNames != null) {
                 for (String value : excludeNames) {

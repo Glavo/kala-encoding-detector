@@ -33,7 +33,6 @@ final class PublicApiTest {
     @Test
     void defaultDetectorMatchesReference() {
         EncodingDetector detector = EncodingDetector.DEFAULT;
-        assertEquals(EnumSet.allOf(Era.class), detector.encodingEras());
         assertEquals(200_000, detector.maxBytes());
         assertEquals(
                 EncodingDetector.DEFAULT_MINIMUM_CONFIDENCE,
@@ -45,10 +44,6 @@ final class PublicApiTest {
         assertEquals(Encoding.UTF_8, detector.emptyInputEncoding());
         assertThrows(
                 UnsupportedOperationException.class,
-                () -> detector.encodingEras().add(Era.DOS)
-        );
-        assertThrows(
-                UnsupportedOperationException.class,
                 () -> detector.encodings().remove(Encoding.ASCII)
         );
     }
@@ -58,8 +53,8 @@ final class PublicApiTest {
     void configurationMethodsDefensivelyCopyCollections() {
         EnumSet<Era> eras = EnumSet.of(Era.MODERN_WEB);
         EnumSet<Encoding> encodings = EnumSet.of(Encoding.CP1252, Encoding.UTF_8);
-        EncodingDetector detector = EncodingDetector.DEFAULT
-                .withEncodingEras(eras)
+        EncodingDetector eraDetector = EncodingDetector.DEFAULT.withEncodingEras(eras);
+        EncodingDetector detector = eraDetector
                 .withMinimumConfidence(0.75)
                 .withEncodings(encodings)
                 .withNoMatchEncoding(Encoding.CP1252)
@@ -67,7 +62,7 @@ final class PublicApiTest {
 
         eras.add(Era.DOS);
         encodings.clear();
-        assertEquals(Set.of(Era.MODERN_WEB), detector.encodingEras());
+        assertEquals(encodingsIn(Era.MODERN_WEB), eraDetector.encodings());
         assertEquals(0.75, detector.minimumConfidence());
         assertEquals(Set.of(Encoding.CP1252, Encoding.UTF_8), detector.encodings());
         assertEquals(Encoding.CP1252, detector.noMatchEncoding());
@@ -82,15 +77,15 @@ final class PublicApiTest {
         assertEquals(200_000, detector.maxBytes());
         assertEquals(17, changed.maxBytes());
         assertEquals(0.75, changed.minimumConfidence());
-        assertEquals(Set.of(Era.MODERN_WEB), changed.encodingEras());
-        assertEquals(Set.of(Era.DOS), changed.withEncodingEra(Era.DOS).encodingEras());
+        assertEquals(Set.of(Encoding.CP1252, Encoding.UTF_8), changed.encodings());
+        assertEquals(encodingsIn(Era.DOS), changed.withEncodingEra(Era.DOS).encodings());
     }
 
     /// Verifies unchanged configuration operations preserve detector identity.
     @Test
     void unchangedConfigurationReturnsSameInstance() {
-        EncodingDetector detector = EncodingDetector.DEFAULT
-                .withEncodingEra(Era.DOS)
+        EncodingDetector dosDetector = EncodingDetector.DEFAULT.withEncodingEra(Era.DOS);
+        EncodingDetector detector = dosDetector
                 .withMaxBytes(12)
                 .withMinimumConfidence(0.4)
                 .withPreferredSuperset(true)
@@ -98,8 +93,8 @@ final class PublicApiTest {
                 .withNoMatchEncoding(Encoding.CP437)
                 .withEmptyInputEncoding(Encoding.ASCII);
 
-        assertSame(detector, detector.withEncodingEras(Set.of(Era.DOS)));
-        assertSame(detector, detector.withEncodingEra(Era.DOS));
+        assertSame(dosDetector, dosDetector.withEncodingEras(Set.of(Era.DOS)));
+        assertSame(dosDetector, dosDetector.withEncodingEra(Era.DOS));
         assertSame(detector, detector.withMaxBytes(12));
         assertSame(detector, detector.withMinimumConfidence(0.4));
         assertSame(detector, detector.withPreferredSuperset(true));
@@ -112,16 +107,36 @@ final class PublicApiTest {
         );
     }
 
+    /// Verifies era and explicit encoding selectors replace one shared state.
+    @Test
+    void encodingSelectorsReplaceOneSharedState() {
+        EncodingDetector eraLast = EncodingDetector.DEFAULT
+                .withEncodings(Set.of(Encoding.UTF_8))
+                .withEncodingEra(Era.DOS);
+        assertEquals(encodingsIn(Era.DOS), eraLast.encodings());
+
+        EncodingDetector encodingsLast = EncodingDetector.DEFAULT
+                .withEncodingEra(Era.DOS)
+                .withEncodings(Set.of(Encoding.UTF_8));
+        assertEquals(Set.of(Encoding.UTF_8), encodingsLast.encodings());
+
+        EnumSet<Encoding> expected = encodingsIn(Era.LEGACY_MAC);
+        expected.addAll(encodingsIn(Era.MAINFRAME));
+        assertEquals(
+                expected,
+                EncodingDetector.DEFAULT
+                        .withEncodingEras(Set.of(Era.LEGACY_MAC, Era.MAINFRAME))
+                        .encodings()
+        );
+        assertTrue(EncodingDetector.DEFAULT.withEncodingEras(Set.of()).encodings().isEmpty());
+    }
+
     /// Verifies invalid configuration states are rejected eagerly.
     @Test
     void configurationMethodsRejectInvalidValues() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> EncodingDetector.DEFAULT.withMaxBytes(0)
-        );
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> EncodingDetector.DEFAULT.withEncodingEras(Set.of())
         );
         for (double value : new double[]{
                 -0.01,
@@ -449,5 +464,19 @@ final class PublicApiTest {
                 IllegalArgumentException.class,
                 () -> new Result(Encoding.ASCII, 1.01, null, null)
         );
+    }
+
+    /// Returns all encodings classified in one era.
+    ///
+    /// @param era era to select
+    /// @return mutable encoding set in enum declaration order
+    private static EnumSet<Encoding> encodingsIn(Era era) {
+        EnumSet<Encoding> result = EnumSet.noneOf(Encoding.class);
+        for (Encoding encoding : Encoding.values()) {
+            if (encoding.era() == era) {
+                result.add(encoding);
+            }
+        }
+        return result;
     }
 }
