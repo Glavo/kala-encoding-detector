@@ -12,11 +12,13 @@ import org.jetbrains.annotations.NotNullByDefault;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -183,6 +185,24 @@ final class PublicApiTest {
                 UnsupportedOperationException.class,
                 () -> Encoding.all().add(Encoding.ASCII)
         );
+    }
+
+    /// Verifies exact Java charset mappings and rejects related substitutes.
+    @Test
+    void mapsEncodingTargetsToExactJavaCharsets() {
+        assertEquals(StandardCharsets.US_ASCII, Encoding.ASCII.charset());
+        assertEquals(StandardCharsets.UTF_8, Encoding.UTF_8.charset());
+        assertEquals(StandardCharsets.UTF_16, Encoding.UTF_16.charset());
+        assertEquals(StandardCharsets.UTF_16BE, Encoding.UTF_16_BE.charset());
+        assertEquals(StandardCharsets.UTF_16LE, Encoding.UTF_16_LE.charset());
+        assertEquals(Charset.forName("windows-31j"), Encoding.CP932.charset());
+        assertEquals(Charset.forName("x-windows-949"), Encoding.CP949.charset());
+        assertEquals(Charset.forName("x-windows-874"), Encoding.CP874.charset());
+        assertEquals(Charset.forName("IBM01140"), Encoding.CP1140.charset());
+        assertNotEquals(Charset.forName("IBM037"), Encoding.CP1140.charset());
+        assertNotEquals(StandardCharsets.UTF_8, Encoding.UTF_8_SIG.charset());
+        assertNotEquals(Charset.forName("EUC-JP"), Encoding.EUC_JIS_2004.charset());
+        assertNotEquals(Charset.forName("Shift_JIS"), Encoding.SHIFT_JIS_2004.charset());
     }
 
     /// Verifies every display name retained from the compatible string API.

@@ -6,8 +6,9 @@
 /// Detection results use [kala.encdet.EncodingDetector.Encoding] target
 /// identities rather than exact decoder identities. Textual aliases may be
 /// folded into a related detection target, and the target's names are intended
-/// for interchange and presentation. They are not guaranteed to be accepted by
-/// `java.nio.charset.Charset.forName(String)`.
+/// for interchange and presentation. Use
+/// [kala.encdet.EncodingDetector.Encoding#charset()] to obtain an exact
+/// `java.nio.charset.Charset` mapping when the current runtime provides one.
 @org.jetbrains.annotations.NotNullByDefault
 
 package kala.encdet;

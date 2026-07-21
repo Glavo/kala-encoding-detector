@@ -11,6 +11,9 @@ import org.jetbrains.annotations.Unmodifiable;
 import org.jetbrains.annotations.UnmodifiableView;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.*;
 
 /// Detects character encodings using immutable reusable configuration.
@@ -45,8 +48,8 @@ public final class EncodingDetector {
     /// example, `cp037` resolves to [#CP1140] and `big5` resolves to
     /// [#BIG5_HKSCS]. The original alias cannot be recovered from the enum value.
     ///
-    /// @apiNote An encoding target is not guaranteed to be available from
-    /// `java.nio.charset.Charset`.
+    /// @apiNote [#charset()] returns an exact `java.nio.charset.Charset`
+    /// mapping when the current runtime provides one.
     @NotNullByDefault
     public enum Encoding {
         /// Seven-bit US-ASCII.
@@ -763,6 +766,53 @@ public final class EncodingDetector {
             return displayName;
         }
 
+        /// Returns an exact Java charset mapping available in the current runtime.
+        ///
+        /// Availability depends on installed charset providers. This method
+        /// returns `null` instead of substituting a related but semantically
+        /// different charset. For example, [#UTF_8_SIG] is not mapped to plain
+        /// UTF-8, and the JIS-2004 targets are not mapped to their older JIS
+        /// counterparts.
+        ///
+        /// @return matching charset, or `null` when no exact mapping is available
+        public @Nullable Charset charset() {
+            String preferredName = switch (this) {
+                case UTF_32_BE -> "UTF-32BE";
+                case UTF_32_LE -> "UTF-32LE";
+                case CP932 -> "windows-31j";
+                case CP949 -> "x-windows-949";
+                case HZ -> "HZ-GB-2312";
+                case ISO_2022_JP_2 -> "ISO-2022-JP-2";
+                case ISO_2022_JP_2004 -> "ISO-2022-JP-2004";
+                case ISO_2022_JP_EXT -> "ISO-2022-JP-EXT";
+                case ISO_2022_KR -> "ISO-2022-KR";
+                case CP874 -> "x-windows-874";
+                case ISO_8859_10 -> "ISO-8859-10";
+                case ISO_8859_14 -> "ISO-8859-14";
+                case ISO_8859_16 -> "ISO-8859-16";
+                case MAC_CYRILLIC -> "x-MacCyrillic";
+                case MAC_GREEK -> "x-MacGreek";
+                case MAC_ICELAND -> "x-MacIceland";
+                case MAC_LATIN2 -> "x-MacCentralEurope";
+                case MAC_ROMAN -> "x-MacRoman";
+                case MAC_TURKISH -> "x-MacTurkish";
+                case CP720 -> "IBM720";
+                case CP1125 -> "IBM1125";
+                case KOI8_T -> "KOI8-T";
+                case KZ1048 -> "KZ-1048";
+                default -> canonicalName;
+            };
+            @Nullable Charset charset = findCharset(preferredName);
+            if (charset != null || preferredName.equals(canonicalName)) {
+                return charset;
+            }
+            // OpenJDK assigns these ambiguous numeric names to IBM variants.
+            if (this == CP932 || this == CP949 || this == CP874) {
+                return null;
+            }
+            return findCharset(canonicalName);
+        }
+
         /// Returns the historical or operational group assigned to this target.
         ///
         /// @return era used by era-based encoding selection
@@ -824,6 +874,18 @@ public final class EncodingDetector {
                 return exact;
             }
             return AliasIndex.NORMALIZED_ALIASES.get(AliasIndex.normalizeCodecName(name));
+        }
+
+        /// Resolves one fixed valid charset name without exposing lookup failure.
+        ///
+        /// @param name charset name to resolve
+        /// @return registered charset, or `null` when unsupported
+        private static @Nullable Charset findCharset(String name) {
+            try {
+                return Charset.forName(name);
+            } catch (UnsupportedCharsetException ignored) {
+                return null;
+            }
         }
 
         /// Holds alias indexes derived from the enum constants.
@@ -963,8 +1025,8 @@ public final class EncodingDetector {
     /// @param language   the ISO 639 language code, or `null` when undetermined
     /// @param mimeType   the detected or inferred MIME type, or `null` only for a
     ///                 candidate created directly by an application
-    /// @apiNote An [Encoding] value does not imply that the corresponding encoding
-    /// is available through `java.nio.charset.Charset`.
+    /// @apiNote [Encoding#charset()] returns an exact Java charset when one is
+    /// available in the current runtime.
     @NotNullByDefault
     public record Candidate(
             @Nullable Encoding encoding,

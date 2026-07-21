@@ -141,10 +141,11 @@ throughout the public API and owns their fixed registry metadata. Its
 `canonicalName()` and `displayName()` methods provide text only at interchange
 and presentation boundaries; `era()`, `isMultibyte()`, `languages()`, and
 `aliases()` expose the immutable detection metadata. Encoding names are not
-guaranteed to be accepted by `Charset.forName`, because Java 17's charset
-providers do not cover every target. A target is not always an exact decoder
-identity: lookup may fold related aliases such as `cp037` into
-`EncodingDetector.Encoding.CP1140`.
+guaranteed to be accepted by `Charset.forName`, and ambiguous numeric names may
+resolve to a different Java charset. `charset()` returns an exact mapping from
+the current runtime or `null` when none is available; it does not substitute a
+related encoding. A target is not always an exact decoder identity: lookup may
+fold related aliases such as `cp037` into `EncodingDetector.Encoding.CP1140`.
 `Encoding.lookup(String)` resolves canonical, IANA, WHATWG, and codec aliases
 without consulting a JDK charset provider. `Encoding.all()` returns every
 target as an immutable set in enum declaration order.
