@@ -1008,18 +1008,10 @@ public final class EncodingDetector {
         /// Canonical, standards, and codec aliases in lookup order.
         private final @Unmodifiable List<String> aliases;
 
-        /// Successfully resolved runtime charset cached for subsequent calls.
-        ///
-        /// A `null` value means that no successful lookup has been cached. Failed
-        /// lookups are not recorded. The cache is unsynchronized; a concurrent
-        /// stale read may only cause [#charset()] to repeat the provider lookup.
+        /// Successfully resolved exact runtime charset.
         private @Nullable Charset charsetCache;
 
         /// Successfully resolved approximate runtime charset.
-        ///
-        /// A `null` value means that no successful fallback lookup has been
-        /// cached. The cache is unsynchronized; a concurrent stale read may only
-        /// cause [#approximateCharset()] to repeat the provider lookup.
         private @Nullable Charset approximateCharsetCache;
 
         /// Creates an encoding whose display and canonical names are identical.
@@ -1141,25 +1133,12 @@ public final class EncodingDetector {
 
         /// Returns an available Java charset for this encoding.
         ///
-        /// This method returns [#charset()] when an exact payload mapping is
-        /// available. Otherwise, it may return a related charset that shares a
-        /// useful byte-compatible subset. An approximate charset can reject
-        /// valid source input or map some byte sequences to different
-        /// characters; callers requiring exact decoding must use [#charset()].
-        /// If neither the exact mapping nor a configured approximation is
-        /// available, this method returns [StandardCharsets#US_ASCII]. That
-        /// final fallback only handles ASCII byte values and need not share the
-        /// source encoding's byte representation. This method is safe for
-        /// concurrent invocation.
+        /// Returns [#charset()] when an exact mapping is available. Otherwise,
+        /// it returns a configured related charset, or
+        /// [StandardCharsets#US_ASCII] as the final fallback. A non-exact
+        /// charset may reject or decode source bytes differently.
         ///
-        /// The configured fallbacks are Big5-HKSCS to Big5, CP932 to Shift_JIS,
-        /// CP949 to EUC-KR, EUC-JIS-2004 to EUC-JP, GB18030 to GBK, the extended
-        /// ISO-2022-JP variants to ISO-2022-JP, Shift_JIS-2004 to Shift_JIS,
-        /// Windows-874 to TIS-620, KOI8-U and KOI8-T to KOI8-R, TIS-620 to
-        /// Windows-874, ISO-8859-15 to ISO-8859-1, CP1125 to IBM866, KZ-1048 and
-        /// PTCP154 to Windows-1251, CP858 to IBM850, and CP1140 to IBM037.
-        ///
-        /// @return exact, approximate, or US-ASCII fallback charset
+        /// @return available charset; never `null`
         public Charset approximateCharset() {
             @Nullable Charset charset = charset();
             if (charset != null) {
