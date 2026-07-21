@@ -27,6 +27,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -472,12 +473,14 @@ final class PublicApiTest {
     @Test
     void detectsDeterministicTextCases() {
         EncodingDetector detector = EncodingDetector.DEFAULT;
-        assertEquals(
-                new Candidate(Encoding.ASCII, 1.0, "pl", "text/plain"),
-                detector.detect(
-                        "Hello world".getBytes(StandardCharsets.US_ASCII)
-                ).bestCandidate()
-        );
+        Candidate ascii = detector.detect(
+                "Hello world".getBytes(StandardCharsets.US_ASCII)
+        ).bestCandidate();
+        assertNotNull(ascii);
+        assertEquals(Encoding.ASCII, ascii.encoding());
+        assertEquals(1.0, ascii.confidence());
+        assertEquals("pl", ascii.language());
+        assertEquals("text/plain", ascii.mimeType());
         Result empty = detector.detect(new byte[0]);
         assertTrue(empty.candidates().isEmpty());
         assertNull(empty.bestCandidate());
@@ -666,7 +669,7 @@ final class PublicApiTest {
         }
         assertThrows(
                 UnsupportedOperationException.class,
-                () -> all.add(new Candidate(Encoding.ASCII, 1.0, null, "text/plain"))
+                () -> all.add(all.get(0))
         );
         assertEquals(detector.detect(data), result);
     }
@@ -725,17 +728,29 @@ final class PublicApiTest {
         assertEquals(Encoding.ASCII, recommendation.bestEncoding());
     }
 
-    /// Verifies results retain immutable value-object behavior without being records.
+    /// Verifies candidates and results are immutable non-record value objects.
     @Test
-    void resultIsImmutableValueObject() {
+    void candidateAndResultAreImmutableValueObjects() {
         byte[] data = "Hello world".getBytes(StandardCharsets.US_ASCII);
         Result result = EncodingDetector.DEFAULT.detect(data);
         Result equalResult = EncodingDetector.DEFAULT.detect(data);
+        Candidate candidate = result.bestCandidate();
+        Candidate equalCandidate = equalResult.bestCandidate();
 
+        assertFalse(Candidate.class.isRecord());
+        assertEquals(0, Candidate.class.getConstructors().length);
         assertFalse(Result.class.isRecord());
         assertEquals(0, Result.class.getConstructors().length);
-        assertFalse(result.candidates().isEmpty());
-        assertEquals(result.candidates().get(0), result.bestCandidate());
+        assertNotNull(candidate);
+        assertNotNull(equalCandidate);
+        assertEquals(candidate, equalCandidate);
+        assertEquals(candidate.hashCode(), equalCandidate.hashCode());
+        assertEquals(
+                "Candidate[encoding=ASCII, confidence=1.0, language=pl, "
+                        + "mimeType=text/plain]",
+                candidate.toString()
+        );
+        assertEquals(result.candidates().get(0), candidate);
         assertEquals(Encoding.ASCII, result.bestEncoding());
         assertEquals(result, equalResult);
         assertEquals(result.hashCode(), equalResult.hashCode());
@@ -748,10 +763,10 @@ final class PublicApiTest {
         assertNotEquals(result, EncodingDetector.DEFAULT.detect(new byte[0]));
     }
 
-    /// Verifies public argument null checks and candidate confidence validation.
+    /// Verifies public argument null checks.
     @Test
     @SuppressWarnings("DataFlowIssue")
-    void rejectsNullArgumentsAndInvalidCandidates() {
+    void rejectsNullArguments() {
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect((byte[]) null));
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect((ByteBuffer) null));
         assertThrows(
@@ -794,14 +809,6 @@ final class PublicApiTest {
         );
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withEmptyInputEncoding(null));
         assertThrows(NullPointerException.class, () -> Encoding.lookup(null));
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new Candidate(Encoding.ASCII, Double.NaN, null, null)
-        );
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new Candidate(Encoding.ASCII, 1.01, null, null)
-        );
     }
 
     /// Reads every character from a reader.

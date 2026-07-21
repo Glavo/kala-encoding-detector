@@ -14,13 +14,13 @@ import org.jetbrains.annotations.Nullable;
 /// @param language   ISO 639 language code, or `null`
 /// @param mimeType   MIME type, or `null` before defaulting
 @NotNullByDefault
-record PipelineResult(
+public record PipelineResult(
         @Nullable Encoding encoding,
         double confidence,
         @Nullable String language,
         @Nullable String mimeType
 ) {
     /// Creates an internal result without clamping its ranking score.
-    PipelineResult {
+    public PipelineResult {
     }
 }

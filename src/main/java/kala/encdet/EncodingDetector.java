@@ -43,6 +43,21 @@ public final class EncodingDetector {
     /// Logger used when a configured recommendation is excluded by the encoding set.
     private static final System.Logger LOGGER = System.getLogger(EncodingDetector.class.getName());
 
+    /// Optional preferred-superset remapping applied to detected encodings.
+    private static final @Unmodifiable Map<Encoding, Encoding> PREFERRED_SUPERSETS = Map.ofEntries(
+            Map.entry(Encoding.ASCII, Encoding.CP1252),
+            Map.entry(Encoding.EUC_KR, Encoding.CP949),
+            Map.entry(Encoding.ISO_8859_1, Encoding.CP1252),
+            Map.entry(Encoding.ISO_8859_2, Encoding.CP1250),
+            Map.entry(Encoding.ISO_8859_5, Encoding.CP1251),
+            Map.entry(Encoding.ISO_8859_6, Encoding.CP1256),
+            Map.entry(Encoding.ISO_8859_7, Encoding.CP1253),
+            Map.entry(Encoding.ISO_8859_8, Encoding.CP1255),
+            Map.entry(Encoding.ISO_8859_9, Encoding.CP1254),
+            Map.entry(Encoding.ISO_8859_13, Encoding.CP1257),
+            Map.entry(Encoding.TIS_620, Encoding.CP874)
+    );
+
     /// Represents one ordered character-encoding detection target.
     ///
     /// Enum identity is the authoritative encoding representation used by the
@@ -1336,30 +1351,108 @@ public final class EncodingDetector {
 
     /// Describes one candidate classification produced by encoding detection.
     ///
-    /// @param encoding   the detected encoding, or `null` when the input is
-    ///                 classified as binary or another recognized non-text format
-    /// @param confidence the confidence in the range `[0.0, 1.0]`
-    /// @param language   the ISO 639 language code, or `null` when undetermined
-    /// @param mimeType   the detected or inferred MIME type, or `null` only for a
-    ///                 candidate created directly by an application
+    /// Instances are created by [#detect(byte[])] and [#detect(ByteBuffer)];
+    /// applications cannot construct arbitrary candidates.
+    ///
     /// @apiNote [Encoding#charset()] returns a Java charset for the encoded
     /// payload when one is available in the current runtime. External framing
     /// associated with an encoding is not represented by that charset.
     @NotNullByDefault
-    public record Candidate(
-            @Nullable Encoding encoding,
-            double confidence,
-            @Nullable String language,
-            @Nullable String mimeType
-    ) {
-        /// Creates a candidate after validating its confidence value.
+    public static final class Candidate {
+        /// Detected encoding, or `null` for a non-text classification.
+        private final @Nullable Encoding encoding;
+
+        /// Detection confidence in the range `[0.0, 1.0]`.
+        private final double confidence;
+
+        /// ISO 639 language code, or `null` when undetermined.
+        private final @Nullable String language;
+
+        /// Detected or inferred MIME type.
+        private final String mimeType;
+
+        /// Creates a complete candidate.
         ///
-        /// @throws IllegalArgumentException if `confidence` is not finite or is
-        /// outside `[0.0, 1.0]`
-        public Candidate {
-            if (!Double.isFinite(confidence) || confidence < 0.0 || confidence > 1.0) {
-                throw new IllegalArgumentException("confidence must be finite and in the range [0.0, 1.0]");
+        /// @param encoding detected encoding, or `null` for a non-text result
+        /// @param confidence confidence in the range `[0.0, 1.0]`
+        /// @param language ISO 639 language code, or `null` when undetermined
+        /// @param mimeType detected or inferred MIME type
+        private Candidate(
+                @Nullable Encoding encoding,
+                double confidence,
+                @Nullable String language,
+                String mimeType
+        ) {
+            this.encoding = encoding;
+            this.confidence = confidence;
+            this.language = language;
+            this.mimeType = mimeType;
+        }
+
+        /// Returns the detected encoding.
+        ///
+        /// @return detected encoding, or `null` for a non-text classification
+        public @Nullable Encoding encoding() {
+            return encoding;
+        }
+
+        /// Returns the detection confidence.
+        ///
+        /// @return confidence in the range `[0.0, 1.0]`
+        public double confidence() {
+            return confidence;
+        }
+
+        /// Returns the detected language.
+        ///
+        /// @return ISO 639 language code, or `null` when undetermined
+        public @Nullable String language() {
+            return language;
+        }
+
+        /// Returns the detected or inferred MIME type.
+        ///
+        /// @return MIME type
+        public String mimeType() {
+            return mimeType;
+        }
+
+        /// Compares this candidate with another object by value.
+        ///
+        /// @param object object to compare
+        /// @return whether both objects contain equal candidate properties
+        @Override
+        public boolean equals(@Nullable Object object) {
+            if (this == object) {
+                return true;
             }
+            return object instanceof Candidate other
+                    && encoding == other.encoding
+                    && Double.compare(confidence, other.confidence) == 0
+                    && Objects.equals(language, other.language)
+                    && mimeType.equals(other.mimeType);
+        }
+
+        /// Returns a value-based hash code for this candidate.
+        ///
+        /// @return hash code derived from all candidate properties
+        @Override
+        public int hashCode() {
+            int result = Objects.hashCode(encoding);
+            result = 31 * result + Double.hashCode(confidence);
+            result = 31 * result + Objects.hashCode(language);
+            return 31 * result + mimeType.hashCode();
+        }
+
+        /// Returns a string representation of this candidate.
+        ///
+        /// @return string containing all candidate properties
+        @Override
+        public String toString() {
+            return "Candidate[encoding=" + encoding
+                    + ", confidence=" + confidence
+                    + ", language=" + language
+                    + ", mimeType=" + mimeType + ']';
         }
     }
 
@@ -1903,6 +1996,28 @@ public final class EncodingDetector {
     /// @return immutable aggregate result
     private Result detectNormalized(@UnmodifiableView ByteBuffer input) {
         List<Candidate> detectedCandidates = DetectionEngine.detect(input, this).stream()
+                .map(result -> {
+                    @Nullable Encoding encoding = transformEncoding(result.encoding());
+                    double confidence = Math.max(
+                            0.0,
+                            Math.min(result.confidence(), 1.0)
+                    );
+                    @Nullable String detectedMimeType = result.mimeType();
+                    String mimeType;
+                    if (detectedMimeType != null) {
+                        mimeType = detectedMimeType;
+                    } else {
+                        mimeType = result.encoding() == null
+                                ? "application/octet-stream"
+                                : "text/plain";
+                    }
+                    return new Candidate(
+                            encoding,
+                            confidence,
+                            result.language(),
+                            mimeType
+                    );
+                })
                 .sorted(Comparator.comparingDouble(Candidate::confidence).reversed())
                 .toList();
         int candidateCount = 0;
@@ -1948,7 +2063,20 @@ public final class EncodingDetector {
             );
             return null;
         }
-        return DetectionEngine.transformEncoding(encoding, this);
+        return transformEncoding(encoding);
+    }
+
+    /// Applies preferred-superset transformation to an encoding.
+    ///
+    /// @param encoding encoding, or `null`
+    /// @return transformed encoding, or `null`
+    private @Nullable Encoding transformEncoding(@Nullable Encoding encoding) {
+        if (encoding == null) {
+            return null;
+        }
+        return preferSuperset
+                ? PREFERRED_SUPERSETS.getOrDefault(encoding, encoding)
+                : encoding;
     }
 
     /// Returns a detector using an already validated independent encoding set.
