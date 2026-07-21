@@ -18,11 +18,12 @@ import java.util.*;
 
 /// Detects character encodings using immutable reusable configuration.
 ///
-/// Instances are safe for concurrent use. Shared registry and model state is
-/// immutable after lazy initialization, and every detection invocation uses a
-/// separate context. Configuration methods never modify their receiver. They
-/// return it when the requested value is already configured and otherwise
-/// return an independently configured detector.
+/// Instances are safe for concurrent use. Shared registry metadata and model
+/// data are immutable after lazy initialization. Runtime charset mappings use
+/// a positive cache; concurrent cache misses may repeat the provider lookup.
+/// Every detection invocation uses a separate context. Configuration methods
+/// never modify their receiver. They return it when the requested value is
+/// already configured and otherwise return an independently configured detector.
 ///
 /// Candidate eligibility is defined by the configured encoding set. Era-based
 /// configuration methods replace that set with the encodings classified in the
@@ -711,6 +712,13 @@ public final class EncodingDetector {
         /// Canonical, standards, and codec aliases in lookup order.
         private final @Unmodifiable List<String> aliases;
 
+        /// Successfully resolved runtime charset cached for subsequent calls.
+        ///
+        /// A `null` value means that no successful lookup has been cached. Failed
+        /// lookups are not recorded. The cache is unsynchronized; a concurrent
+        /// stale read may only cause [#charset()] to repeat the provider lookup.
+        private @Nullable Charset charsetCache;
+
         /// Creates an encoding whose display and canonical names are identical.
         ///
         /// @param canonicalName canonical registry name
@@ -772,10 +780,18 @@ public final class EncodingDetector {
         /// returns `null` instead of substituting a related but semantically
         /// different charset. For example, [#UTF_8_SIG] is not mapped to plain
         /// UTF-8, and the JIS-2004 targets are not mapped to their older JIS
-        /// counterparts.
+        /// counterparts. This method is safe for concurrent invocation.
         ///
         /// @return matching charset, or `null` when no exact mapping is available
+        /// @implNote Successful provider lookups are cached per encoding. Cache
+        /// access is unsynchronized, so concurrent misses may repeat a lookup.
+        /// Failed lookups are retried by later invocations.
         public @Nullable Charset charset() {
+            @Nullable Charset charset = charsetCache;
+            if (charset != null) {
+                return charset;
+            }
+
             String preferredName = switch (this) {
                 case UTF_16_BE -> "UTF-16BE";
                 case UTF_16_LE -> "UTF-16LE";
@@ -804,15 +820,20 @@ public final class EncodingDetector {
                 case KZ1048 -> "KZ-1048";
                 default -> canonicalName;
             };
-            @Nullable Charset charset = findCharset(preferredName);
-            if (charset != null || preferredName.equals(canonicalName)) {
+            charset = findCharset(preferredName);
+            if (charset != null) {
+                charsetCache = charset;
                 return charset;
             }
             // OpenJDK assigns these ambiguous numeric names to IBM variants.
-            if (this == CP932 || this == CP949 || this == CP874) {
+            if (this == CP932 || this == CP949 || this == CP874 || preferredName.equals(canonicalName)) {
                 return null;
             }
-            return findCharset(canonicalName);
+            charset = findCharset(canonicalName);
+            if (charset != null) {
+                charsetCache = charset;
+            }
+            return charset;
         }
 
         /// Returns the historical or operational group assigned to this target.
