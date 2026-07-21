@@ -24,11 +24,9 @@ import java.util.*;
 
 /// Detects character encodings using immutable reusable configuration.
 ///
-/// Instances are safe for concurrent use. Shared registry metadata and model
-/// state are immutable after lazy initialization, and every detection invocation
-/// uses a separate context. Configuration methods never modify their receiver.
-/// They return it when the requested value is already configured and otherwise
-/// return an independently configured detector.
+/// Instances are safe for concurrent use. Configuration methods never modify
+/// their receiver. They return it when the requested value is already configured
+/// and otherwise return an independently configured detector.
 ///
 /// Candidate eligibility is defined by the configured encoding set. Era-based
 /// configuration methods replace that set with the encodings classified in the
@@ -1853,21 +1851,21 @@ public final class EncodingDetector {
         return detectNormalized(ByteBufferSupport.view(input));
     }
 
-    /// Creates a reader that lazily detects and decodes an input stream.
+    /// Creates a reader that detects and decodes an input stream.
     ///
     /// This method does not read from `input` or perform detection. The first
     /// read operation with a nonempty target blocks while the reader obtains up
-    /// to [#maxBytes()] leading bytes or reaches end of stream, then detects the
-    /// encoding and decodes those same bytes without making another copy. When
-    /// [Encoding#UTF_8_SIG] is selected, the reader consumes its leading
-    /// signature before decoding.
+    /// to [#maxBytes()] leading bytes or reaches end of stream before returning
+    /// decoded characters. A read operation with an empty target does not access
+    /// `input`. When [Encoding#UTF_8_SIG] is selected, the reader consumes its
+    /// leading signature before decoding.
     ///
     /// The selected encoding is [Result#bestEncoding()], including any eligible
     /// empty-input or no-match recommendation configured on this detector.
     /// Malformed and unmappable input is replaced with the selected charset's
     /// default replacement text. Detection, unsupported-charset, and source I/O
-    /// failures are reported by the reader's read operations. An initialization
-    /// failure is retained and rethrown by later reads; the reader remains open
+    /// failures are reported by read operations. If selecting the decoder fails,
+    /// later reads fail without consuming more input. The reader remains open
     /// until closed.
     ///
     /// The returned reader owns `input`; closing the reader, including before its
@@ -1876,13 +1874,13 @@ public final class EncodingDetector {
     /// closure follow the behavior of the channel that reads the stream.
     ///
     /// @param input byte stream to detect and decode
-    /// @return uninitialized reader positioned before the first decoded character
+    /// @return reader positioned before the first decoded character
     /// @throws NullPointerException if `input` is `null`
     public Reader newReader(InputStream input) {
         return newReader(Channels.newChannel(input));
     }
 
-    /// Creates a reader that lazily detects and decodes a byte channel.
+    /// Creates a reader that detects and decodes a byte channel.
     ///
     /// This method has the detection, decoding, blocking, and failure semantics
     /// of [#newReader(InputStream)]. It does not read from `channel`. The returned
@@ -1890,7 +1888,7 @@ public final class EncodingDetector {
     /// closed, including when no read has occurred.
     ///
     /// @param channel byte channel to detect and decode
-    /// @return uninitialized reader positioned before the first decoded character
+    /// @return reader positioned before the first decoded character
     /// @throws IllegalBlockingModeException if `channel` is a selectable channel
     ///                                      configured in non-blocking mode
     /// @throws NullPointerException if `channel` is `null`

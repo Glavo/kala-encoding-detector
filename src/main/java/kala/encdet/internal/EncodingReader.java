@@ -23,12 +23,10 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.Objects;
 
-/// Lazily detects and decodes bytes from a channel.
+/// Detects and decodes bytes from a channel.
 ///
-/// Construction does not read from the channel. The first read with a nonempty
-/// target obtains the detection prefix and initializes a decoder. Prefix bytes
-/// are then decoded directly from that buffer; only an incomplete sequence at
-/// its boundary may be transferred into the streaming byte buffer.
+/// Construction does not read from the channel. A read with a nonempty target
+/// obtains the detection prefix before producing characters.
 @NotNullByDefault
 public final class EncodingReader extends Reader {
     /// Capacity of the byte buffer used after the detection prefix.
@@ -40,10 +38,10 @@ public final class EncodingReader extends Reader {
     /// Owned source channel, or `null` after closure.
     private @Nullable ReadableByteChannel channel;
 
-    /// Stateful decoder, or `null` before successful lazy initialization.
+    /// Stateful decoder, or `null` until an encoding has been selected.
     private @Nullable CharsetDecoder decoder;
 
-    /// Retained detection prefix, or `null` before initialization and after use.
+    /// Retained detection prefix, or `null` before detection and after use.
     private @Nullable ByteBuffer prefix;
 
     /// Streaming input retained across decoder underflow.
@@ -52,7 +50,7 @@ public final class EncodingReader extends Reader {
     /// Decoded characters that did not fit in a caller's target.
     private CharBuffer pendingCharacters;
 
-    /// Retained lazy-initialization failure, or `null` before one occurs.
+    /// Retained decoder-selection failure, or `null` if none has occurred.
     private @Nullable IOException initializationFailure;
 
     /// Whether the source channel has reached end of input.
@@ -64,7 +62,7 @@ public final class EncodingReader extends Reader {
     /// Whether the decoder has been flushed completely.
     private boolean flushed;
 
-    /// Creates an uninitialized reader that takes ownership of a channel.
+    /// Creates a reader that takes ownership of a channel.
     ///
     /// This constructor does not read from `channel` or perform detection. The
     /// caller must not access the channel after this constructor returns.
@@ -102,7 +100,7 @@ public final class EncodingReader extends Reader {
     /// @throws UnsupportedEncodingException if detection selects an encoding
     ///                                      without a suitable charset
     /// @throws IOException             if detection selects no encoding, the
-    ///                                 channel cannot be read, initialization
+    ///                                 channel cannot be read, decoder selection
     ///                                 previously failed, or the reader is closed
     /// @throws NullPointerException     if `target` is `null`
     /// @throws ReadOnlyBufferException if `target` is read-only
@@ -133,7 +131,7 @@ public final class EncodingReader extends Reader {
     /// @throws UnsupportedEncodingException if detection selects an encoding
     ///                                      without a suitable charset
     /// @throws IOException               if detection selects no encoding, the
-    ///                                   channel cannot be read, initialization
+    ///                                   channel cannot be read, decoder selection
     ///                                   previously failed, or the reader is closed
     /// @throws NullPointerException       if `target` is `null`
     @Override
@@ -161,12 +159,12 @@ public final class EncodingReader extends Reader {
         }
     }
 
-    /// Obtains the detection prefix and creates the decoder when first needed.
+    /// Selects a decoder from the leading input bytes.
     ///
     /// A failure is retained so later reads fail without consuming more input.
     ///
     /// @param source open source channel
-    /// @return initialized decoder
+    /// @return selected decoder
     /// @throws IOException if input cannot be read, no encoding is selected, or
     ///                     the selected encoding has no suitable charset
     private CharsetDecoder initialize(ReadableByteChannel source) throws IOException {
