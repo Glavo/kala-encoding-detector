@@ -977,13 +977,13 @@ public final class EncodingDetector {
         /// Canonical registry name.
         private final String canonicalName;
 
-        /// Chardet-compatible display name.
+        /// Display name used by the command-line interface.
         private final String displayName;
 
         /// Historical or operational encoding group.
         private final Era era;
 
-        /// Whether chardet applies its multibyte detection stages.
+        /// Whether multibyte detection stages apply.
         private final boolean multibyte;
 
         /// Possible ISO 639 language codes.
@@ -1019,7 +1019,7 @@ public final class EncodingDetector {
         /// Creates an encoding with distinct canonical and display names.
         ///
         /// @param canonicalName canonical registry name
-        /// @param displayName   chardet-compatible display name
+        /// @param displayName   command-line display name
         /// @param era           historical or operational group
         /// @param multibyte     whether multibyte detection stages apply
         /// @param languages     possible ISO 639 language codes
@@ -1047,7 +1047,7 @@ public final class EncodingDetector {
             return canonicalName;
         }
 
-        /// Returns the chardet-compatible display name.
+        /// Returns the display name used by the command-line interface.
         ///
         /// @return name used by the command-line interface
         public String displayName() {
@@ -1064,9 +1064,6 @@ public final class EncodingDetector {
         /// EUC-JP. This method is safe for concurrent invocation.
         ///
         /// @return payload charset, or `null` when no suitable mapping is available
-        /// @implNote Successful provider lookups are cached per encoding. Cache
-        /// access is unsynchronized, so concurrent misses may repeat a lookup.
-        /// Failed lookups are retried by later invocations.
         public @Nullable Charset charset() {
             @Nullable Charset charset = charsetCache;
             if (charset != null) {
@@ -1140,7 +1137,7 @@ public final class EncodingDetector {
             return era;
         }
 
-        /// Reports whether chardet applies its multibyte detection stages.
+        /// Reports whether multibyte detection stages apply.
         ///
         /// This classification controls CJK-oriented validity and structural
         /// scoring. It is not a general statement about how many bytes an
@@ -1161,14 +1158,14 @@ public final class EncodingDetector {
         /// Returns the names recognized as aliases of this target.
         ///
         /// The canonical name returned by [#canonicalName()] may also occur in
-        /// this list when it was explicitly declared as an upstream alias.
+        /// this list when it is explicitly registered as an alias.
         ///
         /// @return immutable aliases in lookup order
         public @Unmodifiable List<String> aliases() {
             return aliases;
         }
 
-        /// Returns all supported encoding targets in enum declaration order.
+        /// Returns all registered encoding targets in enum declaration order.
         ///
         /// @return immutable ordered set containing every enum value
         public static @Unmodifiable Set<Encoding> all() {
@@ -1211,13 +1208,13 @@ public final class EncodingDetector {
         /// Holds alias indexes derived from the enum constants.
         @NotNullByDefault
         private static final class AliasIndex {
-            /// Number of canonical targets in the pinned upstream registry.
+            /// Required number of canonical targets.
             private static final int EXPECTED_ENCODING_COUNT = 86;
 
             /// Exact case-folded canonical names and aliases.
             private static final @Unmodifiable Map<String, Encoding> EXACT_ALIASES;
 
-            /// Python-codec-normalized canonical names and aliases.
+            /// Punctuation-normalized canonical names and aliases.
             private static final @Unmodifiable Map<String, Encoding> NORMALIZED_ALIASES;
 
             static {
@@ -1259,7 +1256,7 @@ public final class EncodingDetector {
             /// Adds exact and normalized forms of one alias.
             ///
             /// Exact aliases preserve enum declaration priority. Normalized aliases
-            /// preserve the first mapping, matching ordered codec lookup for collisions.
+            /// preserve the first mapping when normalized forms collide.
             ///
             /// @param exactAliases      exact alias map
             /// @param normalizedAliases normalized alias map
@@ -1278,7 +1275,7 @@ public final class EncodingDetector {
                 }
             }
 
-            /// Normalizes a name like Python's codec registry.
+            /// Normalizes a name for punctuation-insensitive alias lookup.
             ///
             /// Runs of non-ASCII-alphanumeric characters other than `.` become a
             /// single underscore between retained groups; leading and trailing runs
@@ -1863,10 +1860,11 @@ public final class EncodingDetector {
     /// The selected encoding is [Result#bestEncoding()], including any eligible
     /// empty-input or no-match recommendation configured on this detector.
     /// Malformed and unmappable input is replaced with the selected charset's
-    /// default replacement text. Detection, unsupported-charset, and source I/O
-    /// failures are reported by read operations. If selecting the decoder fails,
-    /// later reads fail without consuming more input. The reader remains open
-    /// until closed.
+    /// default replacement text. Detection and source I/O failures are reported
+    /// by read operations. If the selected encoding has no Java charset, reads
+    /// throw [java.io.UnsupportedEncodingException]. If selecting the decoder
+    /// fails, later reads fail without consuming more input. The reader remains
+    /// open until closed.
     ///
     /// The returned reader owns `input`; closing the reader, including before its
     /// first read, closes the stream. The caller must not access the stream
@@ -1896,7 +1894,7 @@ public final class EncodingDetector {
         return new EncodingReader(this, channel);
     }
 
-    /// Detects candidates for a normalized zero-copy buffer view.
+    /// Detects candidates for a normalized buffer view.
     ///
     /// @param input bytes to examine
     /// @return immutable aggregate result
@@ -1927,7 +1925,7 @@ public final class EncodingDetector {
         return new Result(candidates, bestEncoding);
     }
 
-    /// Returns an eligible configured recommendation after public-name remapping.
+    /// Returns an eligible configured recommendation after preferred-superset remapping.
     ///
     /// @param encoding   configured encoding, or `null`
     /// @param optionName option name used in an exclusion warning
@@ -1952,7 +1950,7 @@ public final class EncodingDetector {
 
     /// Returns a detector using an already validated independent encoding set.
     ///
-    /// @param value internally immutable permitted encodings
+    /// @param value independently owned permitted encodings
     /// @return this detector if unchanged; otherwise a new detector
     private EncodingDetector withEncodingSet(@Unmodifiable EnumSet<Encoding> value) {
         if (encodings.equals(value)) {

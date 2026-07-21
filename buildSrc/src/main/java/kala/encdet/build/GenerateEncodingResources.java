@@ -24,8 +24,8 @@ import java.io.IOException;
 
 /// Generates all runtime resources required by the detector.
 ///
-/// The task extracts the pinned upstream statistical files and builds the
-/// kala-specific multibyte validity and decode tables from pinned source archives.
+/// The task extracts the pinned statistical files and builds the multibyte
+/// validity and decoding tables from pinned source archives.
 @NotNullByDefault
 @CacheableTask
 public abstract class GenerateEncodingResources extends DefaultTask {

@@ -16,7 +16,7 @@ import java.util.Set;
 /// Detects binary MIME types from fixed and container-specific signatures.
 @NotNullByDefault
 final class MagicDetector {
-    /// Fixed offset-zero signatures in reference matching order.
+    /// Fixed offset-zero signatures in detection order.
     private static final @Unmodifiable List<Signature> SIGNATURES = List.of(
             signature("89504e470d0a1a0a", "image/png"),
             asciiSignature("GIF87a", "image/gif"),

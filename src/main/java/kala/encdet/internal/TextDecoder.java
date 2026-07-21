@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 
-/// Decodes model-language inputs without relying on installed charset providers.
+/// Decodes input for language scoring using bundled tables.
 @NotNullByDefault
 final class TextDecoder {
     /// Generated single-byte decode-map resource.
@@ -39,8 +39,7 @@ final class TextDecoder {
 
     /// Decodes bytes and re-encodes them as UTF-8 for language scoring.
     ///
-    /// Invalid residual sequences are ignored. UTF-8 input is returned as-is,
-    /// matching the reference language-scoring shortcut.
+    /// Invalid residual sequences are ignored. UTF-8 input is returned as-is.
     ///
     /// @param data     normalized read-only bytes to decode
     /// @param encoding source encoding
@@ -59,7 +58,7 @@ final class TextDecoder {
                 : ByteBufferSupport.wrap(text.getBytes(StandardCharsets.UTF_8));
     }
 
-    /// Decodes bytes to text without relying on installed charset providers.
+    /// Decodes bytes to text for language scoring.
     ///
     /// Invalid residual sequences are ignored. BOM-sensitive encodings decode
     /// to an empty string when their required byte-order mark is absent.
@@ -86,7 +85,7 @@ final class TextDecoder {
         };
     }
 
-    /// Decodes one provider-independent single-byte table.
+    /// Decodes one table-driven single-byte encoding.
     ///
     /// @param data  bytes to decode
     /// @param table byte-to-code-point map, using `-1` for undefined bytes
@@ -480,7 +479,7 @@ final class TextDecoder {
         return new IllegalStateException("Malformed single-byte decode resource: " + detail);
     }
 
-    /// Initialization-on-demand holder for generated decode maps.
+    /// Holds generated decode maps.
     @NotNullByDefault
     private static final class TablesHolder {
         /// Canonical single-byte decode tables.

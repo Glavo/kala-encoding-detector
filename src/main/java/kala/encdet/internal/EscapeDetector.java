@@ -167,7 +167,7 @@ final class EscapeDetector {
         }
     }
 
-    /// Validates a UTF-7 Base64 block using the reference padding semantics.
+    /// Validates UTF-7 Base64 padding bits and its UTF-16BE payload.
     ///
     /// @param data  containing bytes
     /// @param start first Base64 byte

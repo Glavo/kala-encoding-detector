@@ -7,8 +7,8 @@ import org.jetbrains.annotations.NotNullByDefault;
 
 /// Stores an immutable set of unsigned byte values in four 64-bit words.
 ///
-/// Membership tests do not allocate or box the queried value. Signed `byte`
-/// arguments are interpreted as their corresponding unsigned values in `0..255`.
+/// Signed `byte` arguments are interpreted as their corresponding unsigned
+/// values in `0..255`.
 @NotNullByDefault
 final class ByteSet {
     /// Membership bits for values from 0 through 63.

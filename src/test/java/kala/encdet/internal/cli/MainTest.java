@@ -114,7 +114,7 @@ final class MainTest {
         assertTrue(result.error().contains("stdin: detection failed: Unknown encoding 'not-real'"));
     }
 
-    /// Verifies aliases resolve to enum identities and use compatible display names.
+    /// Verifies aliases resolve to enum identities and use registered display names.
     @Test
     void resolvesEncodingAliasesAndPrintsDisplayNames() {
         RunResult result = invoke(

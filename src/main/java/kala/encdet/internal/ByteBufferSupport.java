@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
-/// Creates normalized zero-copy views over arrays and byte buffers.
+/// Creates normalized views over arrays and byte buffers.
 ///
 /// Every returned buffer has position zero, a limit equal to its logical
 /// length, and shared underlying storage. Returned views preserve the source's
@@ -22,7 +22,7 @@ public final class ByteBufferSupport {
     private ByteBufferSupport() {
     }
 
-    /// Returns a zero-copy view of a complete byte array.
+    /// Returns a buffer view over a complete byte array.
     ///
     /// The returned buffer is writable because the source array is writable,
     /// but internal callers must treat the annotated view as unmodifiable.
@@ -34,7 +34,7 @@ public final class ByteBufferSupport {
         return ByteBuffer.wrap(data);
     }
 
-    /// Returns a zero-copy view of a byte buffer's remaining bytes.
+    /// Returns a view of a byte buffer's remaining bytes.
     ///
     /// The source buffer's position, limit, and mark are not changed. The view
     /// captures the current position and limit but continues to share the same
@@ -47,7 +47,7 @@ public final class ByteBufferSupport {
         return buffer.slice();
     }
 
-    /// Returns a zero-copy subrange of a buffer's remaining bytes.
+    /// Returns a view of a subrange of a buffer's remaining bytes.
     ///
     /// @param buffer source buffer
     /// @param offset first logical index relative to the source position
@@ -65,7 +65,7 @@ public final class ByteBufferSupport {
         return buffer.slice(start, length);
     }
 
-    /// Returns a zero-copy leading view bounded by a maximum length.
+    /// Returns a leading view bounded by a maximum length.
     ///
     /// @param buffer source buffer
     /// @param maximumLength nonnegative maximum byte count
@@ -90,9 +90,6 @@ public final class ByteBufferSupport {
     /// @return ISO-8859-1-equivalent text
     /// @throws NullPointerException if `buffer` is `null`
     /// @throws IndexOutOfBoundsException if the range is outside the remaining bytes
-    /// @implNote Array-backed buffers are decoded directly from their exposed
-    /// array. Other buffers are copied into a temporary byte array without
-    /// changing the source buffer's position, limit, or mark.
     public static String latin1String(ByteBuffer buffer, int offset, int length) {
         Objects.checkFromIndexSize(offset, length, buffer.remaining());
         int start = buffer.position() + offset;

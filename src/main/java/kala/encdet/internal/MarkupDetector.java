@@ -111,7 +111,7 @@ final class MarkupDetector {
     /// Detects the first XML encoding declaration in a byte range.
     ///
     /// Attribute candidates are examined from right to left within each XML
-    /// declaration to preserve the greediness of the reference byte pattern.
+    /// declaration.
     ///
     /// @param data  source bytes
     /// @param start inclusive absolute scan index
@@ -171,8 +171,7 @@ final class MarkupDetector {
 
     /// Detects the first HTML `meta charset` declaration in a byte range.
     ///
-    /// Attribute candidates are examined from right to left within each tag to
-    /// preserve the greediness and backtracking of the reference byte pattern.
+    /// Attribute candidates are examined from right to left within each tag.
     ///
     /// @param data  source bytes
     /// @param start inclusive absolute scan index
@@ -229,7 +228,7 @@ final class MarkupDetector {
     /// Detects the first HTML content-type charset declaration in a byte range.
     ///
     /// Both content attributes and charset assignments are examined from right
-    /// to left to reproduce the two greedy reference pattern segments.
+    /// to left within each tag.
     ///
     /// @param data  source bytes
     /// @param start inclusive absolute scan index
@@ -398,9 +397,6 @@ final class MarkupDetector {
 
     /// Resolves an ASCII declaration name captured from the input buffer.
     ///
-    /// Only the trimmed captured name is materialized as a string for registry
-    /// lookup; the scanned input prefix remains in its original byte storage.
-    ///
     /// @param data  source bytes
     /// @param start inclusive absolute name index
     /// @param end   exclusive absolute name index
@@ -544,7 +540,7 @@ final class MarkupDetector {
         return true;
     }
 
-    /// Skips whitespace recognized by Python byte regular expressions.
+    /// Skips ASCII spaces and control whitespace from tab through carriage return.
     ///
     /// @param data  source bytes
     /// @param start inclusive absolute scan index
@@ -680,10 +676,11 @@ final class MarkupDetector {
         return value == '\'' || value == '"';
     }
 
-    /// Tests whether a byte is whitespace under Python byte-regex rules.
+    /// Tests whether a byte is an ASCII space or control whitespace from tab
+    /// through carriage return.
     ///
     /// @param value byte to test
-    /// @return whether `value` is ASCII regex whitespace
+    /// @return whether `value` is recognized as whitespace
     private static boolean isRegexWhitespace(byte value) {
         int unsigned = Byte.toUnsignedInt(value);
         return unsigned == ' ' || (unsigned >= '\t' && unsigned <= '\r');

@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /// Verifies pipeline ordering and regressions not represented by ordinary corpus files.
 @NotNullByDefault
 final class PipelineEdgeCaseTest {
-    /// Verifies overlapping UTF-32 and UTF-16 BOMs use the reference alignment rule.
+    /// Verifies overlapping UTF-32 and UTF-16 BOMs require aligned payload lengths.
     @Test
     void handlesOverlappingBomPrefixes() {
         assertEquals(

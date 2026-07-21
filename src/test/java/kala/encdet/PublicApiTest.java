@@ -375,7 +375,7 @@ final class PublicApiTest {
         assertTrue(input.isClosed());
     }
 
-    /// Verifies every display name retained from the compatible string API.
+    /// Verifies every registered display name.
     @Test
     void exposesCompatibleDisplayNames() {
         Map<Encoding, String> distinctNames = Map.ofEntries(

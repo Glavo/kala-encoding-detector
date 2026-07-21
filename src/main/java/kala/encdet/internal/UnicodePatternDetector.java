@@ -219,7 +219,7 @@ final class UnicodePatternDetector {
     /// Scores decoded text for endianness disambiguation.
     ///
     /// @param text decoded text
-    /// @return reference-compatible quality score
+    /// @return quality score used to compare byte orders
     private static double textQuality(String text) {
         int[] sample = text.codePoints().limit(500).toArray();
         if (sample.length == 0) {
@@ -259,10 +259,10 @@ final class UnicodePatternDetector {
         return score;
     }
 
-    /// Implements Python's single-character printability categories.
+    /// Tests whether a code point is printable for pattern-quality scoring.
     ///
     /// @param codePoint Unicode code point
-    /// @return whether Python `str.isprintable` accepts the character
+    /// @return whether the code point is treated as printable
     private static boolean isPythonPrintable(int codePoint) {
         if (codePoint == 0x20) {
             return true;

@@ -33,7 +33,7 @@ final class SingleByteValidity {
         return MASKS.get(encoding);
     }
 
-    /// Creates all CPython-derived valid-byte masks.
+    /// Creates all valid-byte masks.
     ///
     /// Each word stores 64 consecutive byte values in little-bit order.
     ///

@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /// Verifies normalized buffer views share storage without added read-only layers.
 @NotNullByDefault
 final class ByteBufferSupportTest {
-    /// Verifies array wrapping is normalized, writable, and zero-copy.
+    /// Verifies array wrapping is normalized, writable, and storage-sharing.
     @Test
     void arrayViewSharesStorage() {
         byte[] data = {1, 2, 3};
@@ -29,7 +29,7 @@ final class ByteBufferSupportTest {
         assertEquals(42, view.get(1));
     }
 
-    /// Verifies a direct-buffer view captures only the remaining region without copying.
+    /// Verifies a direct-buffer view shares only the remaining source region.
     @Test
     void directViewSharesRemainingStorageAndPreservesState() {
         ByteBuffer source = ByteBuffer.allocateDirect(6);
@@ -52,7 +52,7 @@ final class ByteBufferSupportTest {
         assertEquals(1, source.position());
     }
 
-    /// Verifies subranges are metadata-only views of normalized input.
+    /// Verifies subranges share normalized input storage.
     @Test
     void sliceAndPrefixShareStorage() {
         byte[] data = {0, 1, 2, 3, 4};
@@ -68,7 +68,7 @@ final class ByteBufferSupportTest {
         assertEquals(2, prefix.remaining());
     }
 
-    /// Verifies Latin-1 decoding uses an exposed array range without changing state.
+    /// Verifies Latin-1 decoding of an array-backed range preserves buffer state.
     @Test
     void latin1StringDecodesArrayRangeWithoutChangingState() {
         byte[] data = {0, 'A', (byte) 0xe9, 'Z', 0};
@@ -84,7 +84,7 @@ final class ByteBufferSupportTest {
         assertEquals(1, buffer.position());
     }
 
-    /// Verifies Latin-1 decoding bulk-copies direct bytes without changing state.
+    /// Verifies Latin-1 decoding of a direct-buffer range preserves buffer state.
     @Test
     void latin1StringDecodesDirectRangeWithoutChangingState() {
         ByteBuffer buffer = ByteBuffer.allocateDirect(4);

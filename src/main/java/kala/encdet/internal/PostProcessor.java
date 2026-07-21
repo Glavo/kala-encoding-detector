@@ -82,7 +82,7 @@ final class PostProcessor {
         return promoteKoi8T(data, resolved);
     }
 
-    /// Demotes an unsupported niche-Latin winner behind a common Western one.
+    /// Demotes a niche-Latin winner that lacks distinguishing-byte evidence.
     ///
     /// @param data    analyzed bytes
     /// @param results ranked candidates

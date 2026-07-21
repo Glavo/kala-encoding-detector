@@ -110,7 +110,7 @@ public final class DetectionEngine {
         return List.copyOf(publicCandidates);
     }
 
-    /// Runs all detection stages through post-processing in reference order.
+    /// Runs all detection stages through post-processing in their defined order.
     ///
     /// @param data     caller input already bounded by the configured maximum
     /// @param detector immutable detector configuration
@@ -491,7 +491,7 @@ public final class DetectionEngine {
 
     /// Fills absent languages through enum metadata, direct models, and UTF-8 models.
     ///
-    /// @param original complete original input
+    /// @param original bounded detection input
     /// @param results  pipeline results
     /// @return results with languages filled where possible
     private static List<PipelineResult> fillLanguages(
@@ -620,7 +620,7 @@ public final class DetectionEngine {
         /// Cached non-ASCII byte coverage ratios.
         private final Map<Encoding, Double> multibyteCoverage = new EnumMap<>(Encoding.class);
 
-        /// Lazily counted non-ASCII bytes.
+        /// Non-ASCII byte count, or `null` until computed.
         private @Nullable Integer nonAsciiCount;
 
         /// Creates an empty per-invocation context.

@@ -76,6 +76,8 @@ public final class Main {
 
     /// Runs the command-line workflow using supplied streams.
     ///
+    /// The supplied streams are not closed.
+    ///
     /// @param arguments command-line arguments
     /// @param input     standard input
     /// @param output    standard output
@@ -145,7 +147,7 @@ public final class Main {
         }
     }
 
-    /// Prints one detection outcome in reference-compatible detailed or minimal form.
+    /// Prints one detection outcome in detailed or minimal form.
     ///
     /// @param result          detection result
     /// @param label           file name or `stdin`

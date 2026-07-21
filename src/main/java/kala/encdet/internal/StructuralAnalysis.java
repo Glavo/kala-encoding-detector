@@ -12,7 +12,7 @@ import org.jetbrains.annotations.UnmodifiableView;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-/// Computes cached CJK multibyte structural metrics in one pass per encoding.
+/// Computes CJK multibyte structural metrics.
 @NotNullByDefault
 final class StructuralAnalysis {
     /// Prevents instantiation of this static stage.

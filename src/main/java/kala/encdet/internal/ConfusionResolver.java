@@ -326,10 +326,10 @@ final class ConfusionResolver {
         }
     }
 
-    /// Initialization-on-demand holder for confusion data.
+    /// Holds parsed confusion data.
     @NotNullByDefault
     private static final class Holder {
-        /// Lazily loaded immutable pair map.
+        /// Parsed immutable pair map.
         private static final @Unmodifiable Map<PairKey, PairData> DATA = load();
 
         /// Prevents holder instantiation.

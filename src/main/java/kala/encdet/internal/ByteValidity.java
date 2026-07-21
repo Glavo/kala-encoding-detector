@@ -20,7 +20,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-/// Reproduces strict codec byte-validity filtering without charset providers.
+/// Validates complete byte sequences against encoding-specific syntax.
 @NotNullByDefault
 final class ByteValidity {
     /// Stateless multibyte validity table resource.
@@ -659,7 +659,7 @@ final class ByteValidity {
         return new IllegalStateException("Malformed multibyte validity resource: " + detail);
     }
 
-    /// Initialization-on-demand holder for binary validity resources.
+    /// Holds decoded binary validity resources.
     @NotNullByDefault
     private static final class TablesHolder {
         /// Canonical stateless multibyte validity tables.

@@ -88,7 +88,7 @@ final class MarkupDetectorTest {
         ));
     }
 
-    /// Verifies the 4 KiB markup scan limit is applied without copying a prefix.
+    /// Verifies the 4 KiB markup scan limit.
     @Test
     void respectsMarkupScanLimit() {
         assertDeclaration(

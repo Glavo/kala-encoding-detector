@@ -25,10 +25,10 @@ import java.util.Map;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
-/// Lazily loads and scores the bundled IDF-weighted byte-bigram models.
+/// Loads and scores the bundled IDF-weighted byte-bigram models.
 @NotNullByDefault
 final class ModelStore {
-    /// Logger used for reference-compatible resource degradation warnings.
+    /// Logger used for resource degradation warnings.
     private static final System.Logger LOGGER = System.getLogger(ModelStore.class.getName());
 
     /// Model resource location.
@@ -43,7 +43,7 @@ final class ModelStore {
     /// Number of byte bigrams in one dense model.
     private static final int MODEL_SIZE = 65_536;
 
-    /// Maximum accepted profile count from the reference format.
+    /// Maximum accepted profile count in the model resource.
     private static final int MAX_MODELS = 10_000;
 
     /// Prevents instantiation of this static model store.
@@ -280,7 +280,7 @@ final class ModelStore {
         }
     }
 
-    /// Loads the IDF table or reference-compatible uniform fallback weights.
+    /// Loads the IDF table or uniform fallback weights.
     ///
     /// @return an immutable 65,536-byte table
     private static byte @Unmodifiable [] loadIdfWeights() {
@@ -325,10 +325,10 @@ final class ModelStore {
         }
     }
 
-    /// Initialization-on-demand holder for parsed models.
+    /// Holds parsed models.
     @NotNullByDefault
     private static final class ModelsHolder {
-        /// Lazily initialized immutable models.
+        /// Parsed immutable models.
         private static final Models MODELS = loadModels();
 
         /// Prevents holder instantiation.
@@ -336,10 +336,10 @@ final class ModelStore {
         }
     }
 
-    /// Initialization-on-demand holder for IDF weights.
+    /// Holds IDF weights.
     @NotNullByDefault
     private static final class IdfHolder {
-        /// Lazily initialized immutable weights.
+        /// Parsed immutable weights.
         private static final byte @Unmodifiable [] WEIGHTS = loadIdfWeights();
 
         /// Prevents holder instantiation.
