@@ -5,6 +5,7 @@ package kala.encdet.internal;
 
 import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingDetector.Encoding;
+import kala.encdet.EncodingDetector.Era;
 import kala.encdet.EncodingDetector.Result;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
@@ -68,6 +69,9 @@ public final class DetectionEngine {
             "application/octet-stream"
     );
 
+    /// Encoding identities in stable declaration order.
+    private static final @Unmodifiable List<Encoding> ENCODINGS = List.of(Encoding.values());
+
     /// Optional preferred-superset remapping applied to public enum identities.
     private static final @Unmodifiable Map<Encoding, Encoding> PREFERRED_SUPERSETS = Map.ofEntries(
             Map.entry(Encoding.ASCII, Encoding.CP1252),
@@ -128,11 +132,9 @@ public final class DetectionEngine {
             @UnmodifiableView ByteBuffer data,
             EncodingDetector detector
     ) {
-        List<EncodingRegistry.Info> candidates = EncodingRegistry.candidates(detector);
+        List<Encoding> candidates = selectCandidates(detector);
         EnumSet<Encoding> mutableAllowed = EnumSet.noneOf(Encoding.class);
-        for (EncodingRegistry.Info candidate : candidates) {
-            mutableAllowed.add(candidate.encoding());
-        }
+        mutableAllowed.addAll(candidates);
         Set<Encoding> allowed = Collections.unmodifiableSet(mutableAllowed);
 
         if (data.remaining() == 0) {
@@ -176,7 +178,7 @@ public final class DetectionEngine {
             return List.of(utf8);
         }
 
-        List<EncodingRegistry.Info> validCandidates = ByteValidity.filter(data, candidates);
+        List<Encoding> validCandidates = ByteValidity.filter(data, candidates);
         if (validCandidates.isEmpty()) {
             return fallback(detector.noMatchEncoding(), allowed, "noMatchEncoding");
         }
@@ -188,21 +190,21 @@ public final class DetectionEngine {
         }
 
         ArrayList<ScoredEncoding> structuralScores = new ArrayList<>();
-        for (EncodingRegistry.Info candidate : validCandidates) {
-            if (!candidate.multibyte()) {
+        for (Encoding candidate : validCandidates) {
+            if (!candidate.isMultibyte()) {
                 continue;
             }
-            @Nullable Double score = context.multibyteScores.get(candidate.encoding());
+            @Nullable Double score = context.multibyteScores.get(candidate);
             if (score == null) {
                 @Nullable StructuralAnalysis.Analysis analysis = StructuralAnalysis.get(
                         data,
-                        candidate.encoding(),
+                        candidate,
                         context.analysisCache
                 );
                 score = analysis == null ? 0.0 : analysis.pairRatio();
             }
             if (score > 0.0) {
-                structuralScores.add(new ScoredEncoding(candidate.encoding(), score));
+                structuralScores.add(new ScoredEncoding(candidate, score));
             }
         }
         structuralScores.sort(Comparator.comparingDouble(ScoredEncoding::score).reversed());
@@ -228,6 +230,22 @@ public final class DetectionEngine {
             return fallback(detector.noMatchEncoding(), allowed, "noMatchEncoding");
         }
         return PostProcessor.process(data, scored);
+    }
+
+    /// Returns candidates permitted by the detector's encoding and era sets.
+    ///
+    /// @param detector immutable detector configuration
+    /// @return immutable encodings in enum declaration order
+    private static @Unmodifiable List<Encoding> selectCandidates(EncodingDetector detector) {
+        Set<Era> eras = detector.encodingEras();
+        Set<Encoding> configuredEncodings = detector.encodings();
+        ArrayList<Encoding> result = new ArrayList<>(configuredEncodings.size());
+        for (Encoding encoding : ENCODINGS) {
+            if (eras.contains(encoding.era()) && configuredEncodings.contains(encoding)) {
+                result.add(encoding);
+            }
+        }
+        return List.copyOf(result);
     }
 
     /// Tests whether a text result's encoding is allowed.
@@ -399,21 +417,21 @@ public final class DetectionEngine {
     /// @param candidates byte-valid candidates
     /// @param context    per-run context
     /// @return immutable gated candidates
-    private static @Unmodifiable List<EncodingRegistry.Info> gateCjkCandidates(
+    private static @Unmodifiable List<Encoding> gateCjkCandidates(
             @UnmodifiableView ByteBuffer data,
-            List<EncodingRegistry.Info> candidates,
+            List<Encoding> candidates,
             PipelineContext context
     ) {
-        ArrayList<EncodingRegistry.Info> gated = new ArrayList<>(candidates.size());
-        for (EncodingRegistry.Info candidate : candidates) {
-            if (candidate.multibyte()) {
+        ArrayList<Encoding> gated = new ArrayList<>(candidates.size());
+        for (Encoding candidate : candidates) {
+            if (candidate.isMultibyte()) {
                 @Nullable StructuralAnalysis.Analysis analysis = StructuralAnalysis.get(
                         data,
-                        candidate.encoding(),
+                        candidate,
                         context.analysisCache
                 );
                 double ratio = analysis == null ? 0.0 : analysis.pairRatio();
-                context.multibyteScores.put(candidate.encoding(), ratio);
+                context.multibyteScores.put(candidate, ratio);
                 if (ratio < CJK_MIN_MULTIBYTE_RATIO) {
                     continue;
                 }
@@ -426,7 +444,7 @@ public final class DetectionEngine {
                 double coverage = analysis == null
                         ? 0.0
                         : (double) analysis.multibyteBytes() / context.nonAsciiCount;
-                context.multibyteCoverage.put(candidate.encoding(), coverage);
+                context.multibyteCoverage.put(candidate, coverage);
                 if (coverage < CJK_MIN_BYTE_COVERAGE) {
                     continue;
                 }
@@ -452,24 +470,23 @@ public final class DetectionEngine {
     private static List<PipelineResult> scoreStructuralCandidates(
             @UnmodifiableView ByteBuffer data,
             List<ScoredEncoding> structuralScores,
-            List<EncodingRegistry.Info> validCandidates,
+            List<Encoding> validCandidates,
             PipelineContext context
     ) {
-        EnumMap<Encoding, EncodingRegistry.Info> multibyte = new EnumMap<>(Encoding.class);
-        for (EncodingRegistry.Info candidate : validCandidates) {
-            if (candidate.multibyte()) {
-                multibyte.put(candidate.encoding(), candidate);
+        EnumSet<Encoding> multibyte = EnumSet.noneOf(Encoding.class);
+        for (Encoding candidate : validCandidates) {
+            if (candidate.isMultibyte()) {
+                multibyte.add(candidate);
             }
         }
-        ArrayList<EncodingRegistry.Info> ordered = new ArrayList<>(validCandidates.size());
+        ArrayList<Encoding> ordered = new ArrayList<>(validCandidates.size());
         for (ScoredEncoding scored : structuralScores) {
-            @Nullable EncodingRegistry.Info candidate = multibyte.get(scored.encoding());
-            if (candidate != null) {
-                ordered.add(candidate);
+            if (multibyte.contains(scored.encoding())) {
+                ordered.add(scored.encoding());
             }
         }
-        for (EncodingRegistry.Info candidate : validCandidates) {
-            if (!candidate.multibyte()) {
+        for (Encoding candidate : validCandidates) {
+            if (!candidate.isMultibyte()) {
                 ordered.add(candidate);
             }
         }
@@ -503,18 +520,18 @@ public final class DetectionEngine {
     /// @return stable descending positive-score results
     private static List<PipelineResult> scoreCandidates(
             @UnmodifiableView ByteBuffer data,
-            List<EncodingRegistry.Info> candidates
+            List<Encoding> candidates
     ) {
         if (data.remaining() == 0 || candidates.isEmpty()) {
             return List.of();
         }
         ModelStore.Profile profile = ModelStore.profile(data);
         ArrayList<PipelineResult> results = new ArrayList<>(candidates.size());
-        for (EncodingRegistry.Info candidate : candidates) {
-            ModelStore.Score score = ModelStore.scoreBestLanguage(candidate.encoding(), profile);
+        for (Encoding candidate : candidates) {
+            ModelStore.Score score = ModelStore.scoreBestLanguage(candidate, profile);
             if (score.score() > 0.0) {
                 results.add(new PipelineResult(
-                        candidate.encoding(),
+                        candidate,
                         score.score(),
                         score.language(),
                         null
@@ -525,7 +542,7 @@ public final class DetectionEngine {
         return results;
     }
 
-    /// Fills absent languages through registry, direct-model, and UTF-8-model tiers.
+    /// Fills absent languages through enum metadata, direct models, and UTF-8 models.
     ///
     /// @param original complete original input
     /// @param results  pipeline results

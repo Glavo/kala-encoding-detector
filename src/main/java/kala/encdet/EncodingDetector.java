@@ -5,7 +5,7 @@ package kala.encdet;
 
 import kala.encdet.internal.ByteBufferSupport;
 import kala.encdet.internal.DetectionEngine;
-import kala.encdet.internal.EncodingRegistry;
+import kala.encdet.internal.EncodingLookup;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -779,7 +779,7 @@ public final class EncodingDetector {
 
         /// Returns the possible languages associated with this target.
         ///
-        /// @return immutable ISO 639 language codes in registry order
+        /// @return immutable ISO 639 language codes in declared order
         public @Unmodifiable List<String> languages() {
             return languages;
         }
@@ -1286,14 +1286,14 @@ public final class EncodingDetector {
     /// @return resolved encoding, or `null` if unknown
     /// @throws NullPointerException if `name` is `null`
     public static @Nullable Encoding lookupEncoding(String name) {
-        return EncodingRegistry.lookup(name);
+        return EncodingLookup.lookup(name);
     }
 
-    /// Returns all supported encodings in registry order.
+    /// Returns all supported encodings in enum declaration order.
     ///
     /// @return an immutable ordered set
     public static @Unmodifiable Set<Encoding> supportedEncodings() {
-        return EncodingRegistry.supportedEncodings();
+        return ALL_ENCODINGS;
     }
 
     /// Copies an era set while preserving enum declaration order.

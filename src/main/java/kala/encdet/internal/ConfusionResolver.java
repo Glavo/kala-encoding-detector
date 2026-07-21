@@ -300,7 +300,7 @@ final class ConfusionResolver {
     /// @throws IllegalArgumentException if the encoded name is malformed or unknown
     private static Encoding readEncoding(ByteBuffer buffer) {
         String name = readName(buffer);
-        @Nullable Encoding encoding = EncodingRegistry.lookup(name);
+        @Nullable Encoding encoding = EncodingLookup.lookup(name);
         if (encoding == null) {
             throw new IllegalArgumentException("unknown encoding " + name + " in confusion data");
         }

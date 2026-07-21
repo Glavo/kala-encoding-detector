@@ -426,7 +426,7 @@ final class MarkupDetector {
                 return null;
             }
         }
-        return EncodingRegistry.lookup(ByteBufferSupport.latin1String(data, start, end - start));
+        return EncodingLookup.lookup(ByteBufferSupport.latin1String(data, start, end - start));
     }
 
     /// Finds one byte in an absolute buffer range.

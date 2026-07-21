@@ -440,7 +440,7 @@ final class TextDecoder {
             byte[] nameBytes = new byte[nameLength];
             buffer.get(nameBytes);
             String name = new String(nameBytes, StandardCharsets.US_ASCII);
-            @Nullable Encoding encoding = EncodingRegistry.lookup(name);
+            @Nullable Encoding encoding = EncodingLookup.lookup(name);
             if (encoding == null) {
                 throw corrupt("unknown encoding " + name);
             }

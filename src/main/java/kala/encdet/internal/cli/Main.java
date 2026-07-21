@@ -7,7 +7,6 @@ import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingDetector.Encoding;
 import kala.encdet.EncodingDetector.Era;
 import kala.encdet.EncodingDetector.Result;
-import kala.encdet.internal.EncodingRegistry;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -399,7 +398,7 @@ public final class Main {
         /// @return resolved encoding identity
         /// @throws IllegalArgumentException when the name is unknown
         private static Encoding resolveEncoding(String value, String parameterName) {
-            @Nullable Encoding encoding = EncodingRegistry.lookup(value);
+            @Nullable Encoding encoding = EncodingDetector.lookupEncoding(value);
             if (encoding == null) {
                 throw new IllegalArgumentException(
                         "Unknown encoding '" + value + "' in " + parameterName

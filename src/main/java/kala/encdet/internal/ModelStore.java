@@ -63,11 +63,11 @@ final class ModelStore {
     /// @param encoding encoding identity
     /// @return the sole language, or `null`
     static @Nullable String inferSingleLanguage(Encoding encoding) {
-        @Nullable EncodingRegistry.Info info = EncodingRegistry.get(encoding);
-        if (info == null || info.languages().size() != 1) {
+        List<String> languages = encoding.languages();
+        if (languages.size() != 1) {
             return null;
         }
-        return info.languages().get(0);
+        return languages.get(0);
     }
 
     /// Creates an IDF-weighted bigram profile for a byte sequence.
@@ -201,7 +201,7 @@ final class ModelStore {
             }
             String language = name.substring(0, separator);
             String encodingName = name.substring(separator + 1);
-            @Nullable Encoding encoding = EncodingRegistry.lookup(encodingName);
+            @Nullable Encoding encoding = EncodingLookup.lookup(encodingName);
             if (encoding == null) {
                 throw new IllegalArgumentException(
                         "unknown encoding " + encodingName + " in model key " + name

@@ -28,24 +28,19 @@ final class RegistryCoverageTest {
     /// Verifies all targets, aliases, eras, and languages from the pinned registry.
     @Test
     void registryHasCompletePinnedCoverage() {
-        List<EncodingRegistry.Info> entries = EncodingRegistry.candidates(EncodingDetector.DEFAULT);
+        List<Encoding> entries = List.of(Encoding.values());
         assertEquals(86, entries.size());
         assertEquals(6, Era.values().length);
 
         LinkedHashSet<Encoding> encodings = new LinkedHashSet<>();
         HashSet<String> aliases = new HashSet<>();
         HashSet<String> languages = new HashSet<>();
-        for (EncodingRegistry.Info entry : entries) {
-            Encoding encoding = entry.encoding();
+        for (Encoding encoding : entries) {
             assertTrue(encodings.add(encoding), encoding.canonicalName());
-            assertEquals(encoding.aliases(), entry.aliases());
-            assertEquals(encoding.era(), entry.era());
-            assertEquals(encoding.isMultibyte(), entry.multibyte());
-            assertEquals(encoding.languages(), entry.languages());
             assertEquals(encoding, EncodingDetector.lookupEncoding(encoding.canonicalName()));
             aliases.add(encoding.canonicalName().toLowerCase(Locale.ROOT));
-            languages.addAll(entry.languages());
-            for (String alias : entry.aliases()) {
+            languages.addAll(encoding.languages());
+            for (String alias : encoding.aliases()) {
                 assertEquals(encoding, EncodingDetector.lookupEncoding(alias), alias);
                 assertEquals(
                         encoding,
@@ -57,10 +52,7 @@ final class RegistryCoverageTest {
         }
 
         assertEquals(EncodingDetector.supportedEncodings(), encodings);
-        assertEquals(
-                List.of(Encoding.values()),
-                entries.stream().map(EncodingRegistry.Info::encoding).toList()
-        );
+        assertEquals(entries, List.copyOf(EncodingDetector.supportedEncodings()));
         assertEquals(604, aliases.size());
         assertEquals(49, languages.size());
     }

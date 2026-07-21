@@ -51,18 +51,18 @@ final class ByteValidity {
     /// Filters candidates to those that strictly accept the complete input.
     ///
     /// @param data       bytes to validate
-    /// @param candidates registry candidates in detection order
+    /// @param candidates encoding candidates in detection order
     /// @return immutable surviving candidates
-    static @Unmodifiable List<EncodingRegistry.Info> filter(
+    static @Unmodifiable List<Encoding> filter(
             @UnmodifiableView ByteBuffer data,
-            List<EncodingRegistry.Info> candidates
+            List<Encoding> candidates
     ) {
         if (!data.hasRemaining()) {
             return candidates;
         }
-        ArrayList<EncodingRegistry.Info> valid = new ArrayList<>(candidates.size());
-        for (EncodingRegistry.Info candidate : candidates) {
-            if (isValid(data, candidate.encoding())) {
+        ArrayList<Encoding> valid = new ArrayList<>(candidates.size());
+        for (Encoding candidate : candidates) {
+            if (isValid(data, candidate)) {
                 valid.add(candidate);
             }
         }
@@ -572,7 +572,7 @@ final class ByteValidity {
             byte[] encodedName = new byte[nameLength];
             buffer.get(encodedName);
             String name = new String(encodedName, StandardCharsets.US_ASCII);
-            @Nullable Encoding encoding = EncodingRegistry.lookup(name);
+            @Nullable Encoding encoding = EncodingLookup.lookup(name);
             if (encoding == null) {
                 throw corruptMultibyte("unknown encoding '" + name + "'");
             }
