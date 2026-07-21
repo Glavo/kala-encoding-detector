@@ -4,9 +4,9 @@
 package kala.encdet.internal.cli;
 
 import kala.encdet.EncodingDetector;
+import kala.encdet.EncodingDetector.Candidate;
 import kala.encdet.EncodingDetector.Encoding;
 import kala.encdet.EncodingDetector.Era;
-import kala.encdet.EncodingDetector.Result;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -118,8 +118,8 @@ public final class Main {
                     continue;
                 }
                 try {
-                    Result result = parsed.toDetector().detect(data);
-                    printResult(result, file, parsed.minimal, parsed.language, output);
+                    Candidate candidate = parsed.toDetector().detect(data).bestCandidate();
+                    printCandidate(candidate, file, parsed.minimal, parsed.language, output);
                 } catch (RuntimeException exception) {
                     error.println(
                             "kala-encdet: " + file + ": detection failed: " + exception.getMessage()
@@ -138,8 +138,8 @@ public final class Main {
             return 1;
         }
         try {
-            Result result = parsed.toDetector().detect(data);
-            printResult(result, "stdin", parsed.minimal, parsed.language, output);
+            Candidate candidate = parsed.toDetector().detect(data).bestCandidate();
+            printCandidate(candidate, "stdin", parsed.minimal, parsed.language, output);
             return 0;
         } catch (RuntimeException exception) {
             error.println("kala-encdet: stdin: detection failed: " + exception.getMessage());
@@ -147,48 +147,52 @@ public final class Main {
         }
     }
 
-    /// Prints one result in reference-compatible detailed or minimal form.
+    /// Prints one candidate in reference-compatible detailed or minimal form.
     ///
-    /// @param result          detection result
+    /// @param candidate       highest-ranked candidate
     /// @param label           file name or `stdin`
     /// @param minimal         whether only compact tokens are printed
     /// @param includeLanguage whether language information is printed
     /// @param output          destination stream
-    private static void printResult(
-            Result result,
+    private static void printCandidate(
+            Candidate candidate,
             String label,
             boolean minimal,
             boolean includeLanguage,
             PrintStream output
     ) {
-        String encodingText = result.encoding() == null ? "None" : result.encoding().displayName();
+        String encodingText = candidate.encoding() == null
+                ? "None"
+                : candidate.encoding().displayName();
         if (minimal) {
             output.println(includeLanguage
-                    ? encodingText + " " + languageCode(result)
+                    ? encodingText + " " + languageCode(candidate)
                     : encodingText);
             return;
         }
         if (includeLanguage) {
-            String code = languageCode(result);
+            String code = languageCode(candidate);
             String rawName = LANGUAGE_NAMES.getOrDefault(code, code);
             String name = rawName.isEmpty()
                     ? rawName
                     : rawName.substring(0, 1).toUpperCase(Locale.ROOT) + rawName.substring(1);
             output.println(
                     label + ": " + encodingText + " " + code + " (" + name
-                            + ") with confidence " + result.confidence()
+                            + ") with confidence " + candidate.confidence()
             );
         } else {
-            output.println(label + ": " + encodingText + " with confidence " + result.confidence());
+            output.println(
+                    label + ": " + encodingText + " with confidence " + candidate.confidence()
+            );
         }
     }
 
-    /// Returns a result language or the undetermined sentinel.
+    /// Returns a candidate language or the undetermined sentinel.
     ///
-    /// @param result detection result
+    /// @param candidate detection candidate
     /// @return ISO language code
-    private static String languageCode(Result result) {
-        return result.language() == null ? "und" : result.language();
+    private static String languageCode(Candidate candidate) {
+        return candidate.language() == null ? "und" : candidate.language();
     }
 
     /// Prints concise command help.

@@ -5,6 +5,7 @@ package kala.encdet;
 
 import kala.encdet.EncodingDetector.Encoding;
 import kala.encdet.EncodingDetector.Era;
+import kala.encdet.EncodingDetector.Candidate;
 import kala.encdet.EncodingDetector.Result;
 
 import org.jetbrains.annotations.NotNullByDefault;
@@ -237,20 +238,26 @@ final class PublicApiTest {
     void detectsDeterministicTextCases() {
         EncodingDetector detector = EncodingDetector.DEFAULT;
         assertEquals(
-                new Result(Encoding.ASCII, 1.0, "pl", "text/plain"),
-                detector.detect("Hello world".getBytes(StandardCharsets.US_ASCII))
+                new Candidate(Encoding.ASCII, 1.0, "pl", "text/plain"),
+                detector.detect(
+                        "Hello world".getBytes(StandardCharsets.US_ASCII)
+                ).bestCandidate()
         );
         assertEquals(
-                new Result(Encoding.UTF_8, 0.10, null, "text/plain"),
-                detector.detect(new byte[0])
+                new Candidate(Encoding.UTF_8, 0.10, null, "text/plain"),
+                detector.detect(new byte[0]).bestCandidate()
         );
         assertEquals(
                 Encoding.UTF_8_SIG,
-                detector.detect(new byte[]{(byte) 0xef, (byte) 0xbb, (byte) 0xbf, 'x'}).encoding()
+                detector.detect(
+                        new byte[]{(byte) 0xef, (byte) 0xbb, (byte) 0xbf, 'x'}
+                ).bestCandidate().encoding()
         );
         assertEquals(
                 Encoding.UTF_8,
-                detector.detect("Héllo 世界".getBytes(StandardCharsets.UTF_8)).encoding()
+                detector.detect(
+                        "Héllo 世界".getBytes(StandardCharsets.UTF_8)
+                ).bestCandidate().encoding()
         );
     }
 
@@ -260,7 +267,7 @@ final class PublicApiTest {
         byte[] data = "Héllo 世界 — Καλημέρα".getBytes(StandardCharsets.UTF_8);
         EncodingDetector detector = EncodingDetector.DEFAULT;
         Result expected = detector.detect(data);
-        List<Result> expectedAll = detector.detectAllUnfiltered(data);
+        List<Candidate> expectedCandidates = expected.candidates();
 
         ByteBuffer direct = ByteBuffer.allocateDirect(data.length + 4);
         direct.put((byte) 0x80);
@@ -272,7 +279,7 @@ final class PublicApiTest {
         direct.mark();
 
         assertEquals(expected, detector.detect(direct));
-        assertEquals(expectedAll, detector.detectAllUnfiltered(direct));
+        assertEquals(expectedCandidates, detector.detect(direct).candidates());
         assertEquals(start, direct.position());
         assertEquals(end, direct.limit());
         direct.reset();
@@ -286,7 +293,10 @@ final class PublicApiTest {
                 .slice()
                 .asReadOnlyBuffer();
         assertEquals(expected, detector.detect(readOnlySlice));
-        assertEquals(detector.detectAll(data), detector.detectAll(readOnlySlice));
+        assertEquals(
+                expected.likelyCandidates(),
+                detector.detect(readOnlySlice).likelyCandidates()
+        );
 
         ByteBuffer empty = ByteBuffer.allocateDirect(4);
         empty.position(2).limit(2);
@@ -298,8 +308,11 @@ final class PublicApiTest {
     void appliesPreferredSupersetTransform() {
         byte[] data = "Hello world".getBytes(StandardCharsets.US_ASCII);
         EncodingDetector preferred = EncodingDetector.DEFAULT.withPreferredSuperset(true);
-        assertEquals(Encoding.CP1252, preferred.detect(data).encoding());
-        assertEquals(Encoding.ASCII, EncodingDetector.DEFAULT.detect(data).encoding());
+        assertEquals(Encoding.CP1252, preferred.detect(data).bestCandidate().encoding());
+        assertEquals(
+                Encoding.ASCII,
+                EncodingDetector.DEFAULT.detect(data).bestCandidate().encoding()
+        );
     }
 
     /// Verifies encoding eligibility and fallback gating.
@@ -309,24 +322,33 @@ final class PublicApiTest {
                 .withEncodings(Set.of(Encoding.CP1252));
         assertEquals(
                 Encoding.CP1252,
-                includeCp1252.detect("Héllo café".getBytes(StandardCharsets.UTF_8)).encoding()
+                includeCp1252.detect(
+                        "Héllo café".getBytes(StandardCharsets.UTF_8)
+                ).bestCandidate().encoding()
         );
 
         EncodingDetector noEncodings = EncodingDetector.DEFAULT.withEncodings(Set.of());
-        Result none = noEncodings.detect("Hello".getBytes(StandardCharsets.US_ASCII));
+        Candidate none = noEncodings.detect(
+                "Hello".getBytes(StandardCharsets.US_ASCII)
+        ).bestCandidate();
         assertNull(none.encoding());
         assertEquals(0.0, none.confidence());
         assertEquals("application/octet-stream", none.mimeType());
-        assertNull(noEncodings.detect(new byte[0]).encoding());
+        assertNull(noEncodings.detect(new byte[0]).bestCandidate().encoding());
 
         EncodingDetector customFallbacks = EncodingDetector.DEFAULT
                 .withEncodings(Set.of(Encoding.ASCII))
                 .withNoMatchEncoding(Encoding.ASCII)
                 .withEmptyInputEncoding(Encoding.ASCII);
-        assertEquals(Encoding.ASCII, customFallbacks.detect(new byte[0]).encoding());
         assertEquals(
                 Encoding.ASCII,
-                customFallbacks.detect(new byte[]{(byte) 0x80, (byte) 0x81, (byte) 0x82}).encoding()
+                customFallbacks.detect(new byte[0]).bestCandidate().encoding()
+        );
+        assertEquals(
+                Encoding.ASCII,
+                customFallbacks.detect(
+                        new byte[]{(byte) 0x80, (byte) 0x81, (byte) 0x82}
+                ).bestCandidate().encoding()
         );
     }
 
@@ -338,8 +360,8 @@ final class PublicApiTest {
                 .withEncodings(EnumSet.complementOf(EnumSet.of(Encoding.UTF_8_SIG)));
         EncodingDetector included = EncodingDetector.DEFAULT
                 .withEncodings(Set.of(Encoding.CP1252));
-        assertEquals(Encoding.UTF_8, excluded.detect(data).encoding());
-        assertEquals(Encoding.CP1252, included.detect(data).encoding());
+        assertEquals(Encoding.UTF_8, excluded.detect(data).bestCandidate().encoding());
+        assertEquals(Encoding.CP1252, included.detect(data).bestCandidate().encoding());
     }
 
     /// Verifies scan bounding changes detection at the configured byte boundary.
@@ -354,27 +376,31 @@ final class PublicApiTest {
         Result boundedExpected = bounded.detect(ascii);
         assertEquals(boundedExpected, bounded.detect(data));
         assertEquals(boundedExpected, bounded.detect(ByteBuffer.wrap(data)));
-        assertEquals(Encoding.ASCII, boundedExpected.encoding());
-        assertEquals(Encoding.UTF_8, EncodingDetector.DEFAULT.detect(data).encoding());
+        assertEquals(Encoding.ASCII, boundedExpected.bestCandidate().encoding());
+        assertEquals(
+                Encoding.UTF_8,
+                EncodingDetector.DEFAULT.detect(data).bestCandidate().encoding()
+        );
     }
 
-    /// Verifies candidate filtering, stable ordering, and immutability.
+    /// Verifies aggregate candidate filtering, stable ordering, and immutability.
     @Test
-    void detectAllReturnsStableImmutableCandidates() {
+    void resultContainsStableImmutableCandidates() {
         byte[] data = {
                 (byte) 0xe9, (byte) 0xe8, (byte) 0xea, (byte) 0xeb,
                 (byte) 0xf6, (byte) 0xfc, (byte) 0xe4
         };
         EncodingDetector detector = EncodingDetector.DEFAULT;
-        List<Result> all = detector.detectAllUnfiltered(data);
-        List<Result> filtered = detector.detectAll(data);
+        Result result = detector.detect(data);
+        List<Candidate> all = result.candidates();
+        List<Candidate> filtered = result.likelyCandidates();
         assertFalse(all.isEmpty());
-        assertEquals(detector.detect(data), all.get(0));
+        assertEquals(result.bestCandidate(), all.get(0));
         double minimumConfidence = detector.minimumConfidence();
-        if (all.stream().anyMatch(result -> result.confidence() >= minimumConfidence)) {
+        if (all.stream().anyMatch(candidate -> candidate.confidence() >= minimumConfidence)) {
             assertTrue(
                     filtered.stream()
-                            .allMatch(result -> result.confidence() >= minimumConfidence)
+                            .allMatch(candidate -> candidate.confidence() >= minimumConfidence)
             );
         } else {
             assertEquals(all, filtered);
@@ -384,9 +410,13 @@ final class PublicApiTest {
         }
         assertThrows(
                 UnsupportedOperationException.class,
-                () -> all.add(new Result(Encoding.ASCII, 1.0, null, "text/plain"))
+                () -> all.add(new Candidate(Encoding.ASCII, 1.0, null, "text/plain"))
         );
-        assertEquals(detector.detectAllUnfiltered(data), all);
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> filtered.clear()
+        );
+        assertEquals(detector.detect(data), result);
     }
 
     /// Verifies the configured minimum filters both input forms inclusively.
@@ -396,48 +426,90 @@ final class PublicApiTest {
                 (byte) 0xe9, (byte) 0xe8, (byte) 0xea, (byte) 0xeb,
                 (byte) 0xf6, (byte) 0xfc, (byte) 0xe4
         };
-        List<Result> all = EncodingDetector.DEFAULT.detectAllUnfiltered(data);
+        Result defaultResult = EncodingDetector.DEFAULT.detect(data);
+        List<Candidate> all = defaultResult.candidates();
         double highest = all.get(0).confidence();
         double lowest = all.get(all.size() - 1).confidence();
         assertTrue(highest > lowest);
 
         double threshold = (highest + lowest) / 2.0;
-        List<Result> expected = all.stream()
-                .filter(result -> result.confidence() >= threshold)
+        List<Candidate> expected = all.stream()
+                .filter(candidate -> candidate.confidence() >= threshold)
                 .toList();
         assertFalse(expected.isEmpty());
         assertTrue(expected.size() < all.size());
 
         EncodingDetector detector = EncodingDetector.DEFAULT.withMinimumConfidence(threshold);
         assertEquals(threshold, detector.minimumConfidence());
-        assertEquals(expected, detector.detectAll(data));
-        assertEquals(expected, detector.detectAll(ByteBuffer.wrap(data)));
-        assertEquals(all, detector.detectAllUnfiltered(data));
-        assertEquals(EncodingDetector.DEFAULT.detect(data), detector.detect(data));
+        Result result = detector.detect(data);
+        assertEquals(expected, result.likelyCandidates());
+        assertEquals(result, detector.detect(ByteBuffer.wrap(data)));
+        assertEquals(all, result.candidates());
+        assertEquals(defaultResult.bestCandidate(), result.bestCandidate());
 
-        List<Result> boundary = all.stream()
-                .filter(result -> result.confidence() >= highest)
+        List<Candidate> boundary = all.stream()
+                .filter(candidate -> candidate.confidence() >= highest)
                 .toList();
         assertEquals(
                 boundary,
-                detector.withMinimumConfidence(highest).detectAll(data)
+                detector.withMinimumConfidence(highest)
+                        .detect(data)
+                        .likelyCandidates()
         );
 
         assertTrue(highest < 1.0);
-        assertEquals(all, detector.withMinimumConfidence(1.0).detectAll(data));
+        assertEquals(
+                all,
+                detector.withMinimumConfidence(1.0)
+                        .detect(data)
+                        .likelyCandidates()
+        );
     }
 
-    /// Verifies public argument null checks and result confidence validation.
+    /// Verifies aggregate results copy and validate their candidate lists.
+    @Test
+    void resultCopiesAndValidatesCandidateLists() {
+        Candidate high = new Candidate(Encoding.UTF_8, 0.9, null, "text/plain");
+        Candidate low = new Candidate(Encoding.CP1252, 0.4, "en", "text/plain");
+        ArrayList<Candidate> candidates = new ArrayList<>(List.of(high, low));
+        ArrayList<Candidate> likely = new ArrayList<>(List.of(high));
+        Result result = new Result(candidates, likely);
+
+        candidates.clear();
+        likely.clear();
+        assertEquals(List.of(high, low), result.candidates());
+        assertEquals(List.of(high), result.likelyCandidates());
+        assertEquals(high, result.bestCandidate());
+        assertThrows(UnsupportedOperationException.class, () -> result.candidates().clear());
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> result.likelyCandidates().clear()
+        );
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new Result(List.of(), List.of(high))
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new Result(List.of(high), List.of())
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new Result(List.of(low, high), List.of(low))
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new Result(List.of(high, low), List.of(low))
+        );
+    }
+
+    /// Verifies public argument null checks and candidate confidence validation.
     @Test
     @SuppressWarnings("DataFlowIssue")
     void rejectsNullArgumentsAndInvalidResults() {
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect((byte[]) null));
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect((ByteBuffer) null));
-        assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detectAll((ByteBuffer) null));
-        assertThrows(
-                NullPointerException.class,
-                () -> EncodingDetector.DEFAULT.detectAllUnfiltered((ByteBuffer) null)
-        );
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withEncodingEras((Era[]) null));
         assertThrows(
                 NullPointerException.class,
@@ -473,11 +545,20 @@ final class PublicApiTest {
         assertThrows(NullPointerException.class, () -> EncodingDetector.lookupEncoding(null));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new Result(Encoding.ASCII, Double.NaN, null, null)
+                () -> new Candidate(Encoding.ASCII, Double.NaN, null, null)
         );
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new Result(Encoding.ASCII, 1.01, null, null)
+                () -> new Candidate(Encoding.ASCII, 1.01, null, null)
+        );
+        Candidate candidate = new Candidate(Encoding.ASCII, 1.0, null, null);
+        assertThrows(
+                NullPointerException.class,
+                () -> new Result(null, List.of(candidate))
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> new Result(List.of(candidate), null)
         );
     }
 

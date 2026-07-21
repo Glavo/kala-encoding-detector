@@ -4,7 +4,7 @@
 package kala.encdet;
 
 import kala.encdet.EncodingDetector.Encoding;
-import kala.encdet.EncodingDetector.Result;
+import kala.encdet.EncodingDetector.Candidate;
 
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
@@ -59,7 +59,7 @@ final class CorpusGoldenTest {
                     continue;
                 }
                 List<ExpectedResult> expected = parseResults(fields[2]);
-                List<Result> actual = EncodingDetector.DEFAULT.detectAllUnfiltered(data);
+                List<Candidate> actual = EncodingDetector.DEFAULT.detect(data).candidates();
                 compareResults(path, expected, actual, mismatches);
                 samples++;
             }
@@ -81,7 +81,7 @@ final class CorpusGoldenTest {
     private static void compareResults(
             String path,
             List<ExpectedResult> expected,
-            List<Result> actual,
+            List<Candidate> actual,
             List<String> mismatches
     ) {
         if (expected.size() != actual.size()) {
@@ -95,14 +95,15 @@ final class CorpusGoldenTest {
         }
         for (int index = 0; index < expected.size(); index++) {
             ExpectedResult expectedResult = expected.get(index);
-            Result actualResult = actual.get(index);
-            if (!java.util.Objects.equals(expectedResult.encoding(), actualResult.encoding())
-                    || !java.util.Objects.equals(expectedResult.language(), actualResult.language())
-                    || !java.util.Objects.equals(expectedResult.mimeType(), actualResult.mimeType())
-                    || Math.abs(expectedResult.confidence() - actualResult.confidence()) > 1e-12) {
+            Candidate actualCandidate = actual.get(index);
+            if (!java.util.Objects.equals(expectedResult.encoding(), actualCandidate.encoding())
+                    || !java.util.Objects.equals(expectedResult.language(), actualCandidate.language())
+                    || !java.util.Objects.equals(expectedResult.mimeType(), actualCandidate.mimeType())
+                    || Math.abs(expectedResult.confidence() - actualCandidate.confidence()) > 1e-12) {
                 addMismatch(
                         mismatches,
-                        path + "[" + index + "]: expected " + expectedResult + " but was " + actualResult
+                        path + "[" + index + "]: expected " + expectedResult
+                                + " but was " + actualCandidate
                                 + "; expected=" + encodingNamesExpected(expected)
                                 + "; actual=" + encodingNamesActual(actual)
                 );
@@ -165,10 +166,10 @@ final class CorpusGoldenTest {
 
     /// Returns actual encodings for mismatch diagnostics.
     ///
-    /// @param results actual candidates
+    /// @param candidates actual candidates
     /// @return encoding list
-    private static List<@Nullable Encoding> encodingNamesActual(List<Result> results) {
-        return results.stream().map(Result::encoding).toList();
+    private static List<@Nullable Encoding> encodingNamesActual(List<Candidate> candidates) {
+        return candidates.stream().map(Candidate::encoding).toList();
     }
 
     /// Adds one diagnostic while enforcing the output cap.

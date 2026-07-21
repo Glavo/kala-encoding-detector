@@ -50,7 +50,7 @@ The generated launcher is `build/install/kala-encdet/bin/kala-encdet` (or
 JMH 1.37 benchmarks live in the independent `jmh` source set and do not add
 dependencies to the library or CLI runtime. The benchmark matrix compares
 `byte[]`, heap `ByteBuffer`, and direct `ByteBuffer` detection, plus complete
-candidate enumeration, using ASCII, UTF-8, and Windows-1252 inputs from 1 KiB
+candidate-list access, using ASCII, UTF-8, and Windows-1252 inputs from 1 KiB
 through the default 200,000-byte scan limit.
 
 Run the complete warmed benchmark matrix with:
@@ -70,6 +70,7 @@ Gradle task. For example, this command performs a short focused run:
 
 ```java
 import kala.encdet.EncodingDetector;
+import kala.encdet.EncodingDetector.Candidate;
 import kala.encdet.EncodingDetector.Result;
 
 import java.nio.file.Files;
@@ -77,29 +78,35 @@ import java.nio.file.Path;
 
 byte[] input = Files.readAllBytes(Path.of("document.txt"));
 Result result = EncodingDetector.DEFAULT.detect(input);
+Candidate candidate = result.bestCandidate();
 
 System.out.println(
-        result.encoding() == null ? null : result.encoding().canonicalName()
+        candidate.encoding() == null ? null : candidate.encoding().canonicalName()
 );
-System.out.println(result.confidence());
-System.out.println(result.language());
-System.out.println(result.mimeType());
+System.out.println(candidate.confidence());
+System.out.println(candidate.language());
+System.out.println(candidate.mimeType());
 ```
 
-`detect`, `detectAll`, and `detectAllUnfiltered` accept either a `byte[]` or a
-`ByteBuffer`. Buffer overloads inspect the bytes between `position` and
-`limit`, including direct and read-only buffers, without changing the buffer's
-content, position, limit, or mark. Both input forms use the same zero-copy
-`ByteBuffer` pipeline: arrays are wrapped, while buffers are sliced over their
-current remaining region. Callers must not modify the underlying bytes while a
+`detect` accepts either a `byte[]` or a `ByteBuffer` and returns one immutable
+`Result`. Buffer inputs are inspected between `position` and `limit`,
+including direct and read-only buffers, without changing the buffer's content,
+position, limit, or mark. Both input forms use the same zero-copy `ByteBuffer`
+pipeline: arrays are wrapped, while buffers are sliced over their current
+remaining region. Callers must not modify the underlying bytes while a
 detection call is in progress.
 
-`detectAll` keeps candidates whose confidence is greater than or equal to the
-detector's configured minimum confidence, which defaults to `0.20`. Configure
-it with `withMinimumConfidence`. If filtering would remove every candidate,
-`detectAll` returns the unfiltered list. `detectAllUnfiltered` always returns
-every candidate. Both lists are immutable and use stable
-descending-confidence order.
+`Result.candidates()` contains every candidate in stable
+descending-confidence order, while `Result.likelyCandidates()` contains the
+prefix whose confidence is greater than or equal to the detector's configured
+minimum, which defaults to `0.20`. If no candidate reaches the threshold, the
+likely list contains every candidate. Both lists are immutable and nonempty;
+`Result.bestCandidate()` returns their first candidate.
+
+Each `Candidate` carries an encoding, confidence, language, and MIME type. A
+candidate returned by the detector may have a `null` encoding for binary input
+or when no permitted fallback exists, and may have a `null` language when it
+cannot be determined.
 
 ```java
 import kala.encdet.EncodingDetector;
@@ -148,7 +155,7 @@ aliases to enum values without consulting a JDK charset provider;
 
 - `maxBytes = 200_000`
 - no preferred-superset remapping
-- no include or exclude filter
+- every supported encoding in the effective encoding set
 - `EncodingDetector.Encoding.CP1252` when no candidate survives
 - `EncodingDetector.Encoding.UTF_8` for empty input
 

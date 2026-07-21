@@ -4,8 +4,8 @@
 package kala.encdet.internal;
 
 import kala.encdet.EncodingDetector;
+import kala.encdet.EncodingDetector.Candidate;
 import kala.encdet.EncodingDetector.Encoding;
-import kala.encdet.EncodingDetector.Result;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -89,36 +89,36 @@ public final class DetectionEngine {
     private DetectionEngine() {
     }
 
-    /// Runs detection and converts internal candidates to public results.
+    /// Runs detection and converts internal candidates to public candidates.
     ///
     /// @param input    caller-owned bytes, which are never modified or retained
     /// @param detector immutable detector configuration
     /// @return immutable public candidates in stable ranking order
-    public static @Unmodifiable List<Result> detect(
+    public static @Unmodifiable List<Candidate> detect(
             @UnmodifiableView ByteBuffer input,
             EncodingDetector detector
     ) {
         @UnmodifiableView ByteBuffer data = ByteBufferSupport.prefix(input, detector.maxBytes());
         List<PipelineResult> results = runCore(data, detector);
         results = fillLanguages(data, results);
-        ArrayList<Result> publicResults = new ArrayList<>(results.size());
+        ArrayList<Candidate> publicCandidates = new ArrayList<>(results.size());
         for (PipelineResult result : results) {
             String mimeType = result.mimeType() != null
                     ? result.mimeType()
                     : result.encoding() == null ? "application/octet-stream" : "text/plain";
             @Nullable Encoding encoding = transformEncoding(result.encoding(), detector);
             double confidence = Math.max(0.0, Math.min(result.confidence(), 1.0));
-            publicResults.add(new Result(
+            publicCandidates.add(new Candidate(
                     encoding,
                     confidence,
                     result.language(),
                     mimeType
             ));
         }
-        if (publicResults.isEmpty()) {
+        if (publicCandidates.isEmpty()) {
             throw new IllegalStateException("The detection pipeline returned no result");
         }
-        return List.copyOf(publicResults);
+        return List.copyOf(publicCandidates);
     }
 
     /// Runs all detection stages through post-processing in reference order.

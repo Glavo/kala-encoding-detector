@@ -940,36 +940,92 @@ public final class EncodingDetector {
         MAINFRAME
     }
 
-    /// Describes one character-encoding detection candidate.
+    /// Describes one candidate classification produced by encoding detection.
     ///
     /// @param encoding   the detected encoding, or `null` when the input is
     ///                 classified as binary or no permitted fallback exists
     /// @param confidence the confidence in the range `[0.0, 1.0]`
     /// @param language   the ISO 639 language code, or `null` when undetermined
     /// @param mimeType   the detected or inferred MIME type, or `null` only for a
-    ///                 result created directly by an application
+    ///                 candidate created directly by an application
     /// @apiNote An [Encoding] value does not imply that the corresponding encoding
     /// is available through `java.nio.charset.Charset`.
     @NotNullByDefault
-    public record Result(
+    public record Candidate(
             @Nullable Encoding encoding,
             double confidence,
             @Nullable String language,
             @Nullable String mimeType
     ) {
-        /// Creates a detection result after validating its confidence value.
+        /// Creates a candidate after validating its confidence value.
         ///
         /// @throws IllegalArgumentException if `confidence` is not finite or is
         /// outside `[0.0, 1.0]`
-        public Result {
+        public Candidate {
             if (!Double.isFinite(confidence) || confidence < 0.0 || confidence > 1.0) {
                 throw new IllegalArgumentException("confidence must be finite and in the range [0.0, 1.0]");
             }
         }
     }
 
-    /// Default minimum confidence used by [#detectAll(byte[])] and
-    /// [#detectAll(ByteBuffer)].
+    /// Contains the complete and likely candidate lists for one detection outcome.
+    ///
+    /// Both lists are immutable snapshots. The complete list is nonempty and
+    /// sorted by descending confidence, and the likely list is a nonempty prefix
+    /// of it. Results returned by [#detect(byte[])] and [#detect(ByteBuffer)] use
+    /// stable ordering for equal confidences and select the likely prefix using
+    /// the detector's [#minimumConfidence()] value. When no candidate reaches
+    /// that threshold, the likely list contains every candidate.
+    ///
+    /// @param candidates       all candidates in descending-confidence order
+    /// @param likelyCandidates a nonempty prefix of `candidates`
+    @NotNullByDefault
+    public record Result(
+            @Unmodifiable List<Candidate> candidates,
+            @Unmodifiable List<Candidate> likelyCandidates
+    ) {
+        /// Creates a result after copying and validating its candidate lists.
+        ///
+        /// @throws NullPointerException if either list or an element is `null`
+        /// @throws IllegalArgumentException if either list is empty, the complete
+        /// list is not in descending-confidence order, or the likely list is not
+        /// a prefix of the complete list
+        public Result {
+            candidates = List.copyOf(candidates);
+            likelyCandidates = List.copyOf(likelyCandidates);
+            if (candidates.isEmpty()) {
+                throw new IllegalArgumentException("candidates must not be empty");
+            }
+            if (likelyCandidates.isEmpty()) {
+                throw new IllegalArgumentException("likelyCandidates must not be empty");
+            }
+            for (int index = 1; index < candidates.size(); index++) {
+                if (candidates.get(index - 1).confidence()
+                        < candidates.get(index).confidence()) {
+                    throw new IllegalArgumentException(
+                            "candidates must be in descending-confidence order"
+                    );
+                }
+            }
+            if (likelyCandidates.size() > candidates.size()
+                    || !candidates.subList(0, likelyCandidates.size())
+                    .equals(likelyCandidates)) {
+                throw new IllegalArgumentException(
+                        "likelyCandidates must be a prefix of candidates"
+                );
+            }
+        }
+
+        /// Returns the highest-ranked candidate.
+        ///
+        /// @return first candidate in the complete list
+        public Candidate bestCandidate() {
+            return candidates.get(0);
+        }
+    }
+
+    /// Default inclusive confidence threshold used by
+    /// [Result#likelyCandidates()].
     public static final double DEFAULT_MINIMUM_CONFIDENCE = 0.20;
 
     /// Immutable set containing every encoding target.
@@ -978,10 +1034,10 @@ public final class EncodingDetector {
 
     /// Default detector with every encoding target enabled.
     ///
-    /// It examines at most 200,000 bytes, retains candidates with confidence
-    /// of at least `0.20`, disables preferred-superset remapping, allows every
-    /// encoding target, uses [Encoding#CP1252] when no candidate survives, and
-    /// uses [Encoding#UTF_8] for empty input.
+    /// It examines at most 200,000 bytes, reports candidates with confidence of
+    /// at least `0.20` as likely, disables preferred-superset remapping, allows
+    /// every encoding target, uses [Encoding#CP1252] when no candidate survives,
+    /// and uses [Encoding#UTF_8] for empty input.
     public static final EncodingDetector DEFAULT = new EncodingDetector(
             200_000,
             DEFAULT_MINIMUM_CONFIDENCE,
@@ -994,7 +1050,7 @@ public final class EncodingDetector {
     /// Maximum number of leading input bytes examined.
     private final int maxBytes;
 
-    /// Inclusive lower confidence bound applied to filtered candidate lists.
+    /// Inclusive lower confidence bound applied to likely candidate lists.
     private final double minimumConfidence;
 
     /// Whether subset encodings are remapped to preferred supersets.
@@ -1012,7 +1068,7 @@ public final class EncodingDetector {
     /// Creates a detector from validated immutable configuration state.
     ///
     /// @param maxBytes           maximum leading input bytes examined
-    /// @param minimumConfidence  inclusive filtered-candidate confidence bound
+    /// @param minimumConfidence  inclusive likely-candidate confidence bound
     /// @param preferSuperset     whether to remap subset encodings
     /// @param encodings          immutable permitted encoding targets
     /// @param noMatchEncoding    no-match fallback
@@ -1178,11 +1234,11 @@ public final class EncodingDetector {
         );
     }
 
-    /// Returns a detector with a new filtered-candidate confidence threshold.
+    /// Returns a detector with a new likely-candidate confidence threshold.
     ///
-    /// [#detectAll(byte[])] and [#detectAll(ByteBuffer)] retain candidates
-    /// whose confidence is greater than or equal to this value. If none
-    /// qualify, they return the unfiltered candidates.
+    /// [Result#likelyCandidates()] contains candidates whose confidence is
+    /// greater than or equal to this value. If none qualify, it contains every
+    /// candidate.
     ///
     /// @param value a finite value in `[0.0, 1.0]`
     /// @return this detector if unchanged; otherwise a new detector
@@ -1300,20 +1356,21 @@ public final class EncodingDetector {
         );
     }
 
-    /// Returns the highest-ranked result.
+    /// Detects the candidate classifications for an input array.
     ///
     /// Only the first [#maxBytes()] bytes are examined. The input array is read
     /// directly without copying, is not retained after this method returns, and
     /// is never modified. Its contents must not be changed during detection.
     ///
     /// @param input bytes to examine
-    /// @return highest-ranked result
+    /// @return immutable result containing every candidate and the likely
+    /// candidate prefix
     /// @throws NullPointerException if `input` is `null`
     public Result detect(byte[] input) {
         return detectNormalized(ByteBufferSupport.wrap(input));
     }
 
-    /// Returns the highest-ranked result for the remaining buffer bytes.
+    /// Detects the candidate classifications for the remaining buffer bytes.
     ///
     /// Only the first [#maxBytes()] bytes between the buffer's position and
     /// limit are examined. The buffer's content, position, limit, and mark are
@@ -1321,103 +1378,31 @@ public final class EncodingDetector {
     /// read directly without copying and must not change during detection.
     ///
     /// @param input buffer whose remaining bytes are examined
-    /// @return highest-ranked result
+    /// @return immutable result containing every candidate and the likely
+    /// candidate prefix
     /// @throws NullPointerException if `input` is `null`
     public Result detect(ByteBuffer input) {
         return detectNormalized(ByteBufferSupport.view(input));
     }
 
-    /// Returns candidates above the configured confidence threshold.
-    ///
-    /// If no candidate has confidence greater than or equal to
-    /// [#minimumConfidence()], the unfiltered candidates are returned. The
-    /// result is sorted stably by descending confidence and cannot be modified.
-    /// Only the first [#maxBytes()] input bytes are examined. The input array is
-    /// read directly without copying, is not retained, and must not change
-    /// during detection.
+    /// Detects candidates for a normalized zero-copy buffer view.
     ///
     /// @param input bytes to examine
-    /// @return immutable filtered candidates
-    /// @throws NullPointerException if `input` is `null`
-    public @Unmodifiable List<Result> detectAll(byte[] input) {
-        List<Result> all = detectAllUnfiltered(input);
-        List<Result> filtered = all.stream()
-                .filter(result -> result.confidence() >= minimumConfidence)
-                .toList();
-        return filtered.isEmpty() ? all : filtered;
-    }
-
-    /// Returns candidates above the configured confidence threshold for a buffer.
-    ///
-    /// Only the first [#maxBytes()] remaining bytes are examined. The buffer's
-    /// content, position, limit, and mark are not modified, and its underlying
-    /// bytes are read directly without copying. If no candidate has confidence
-    /// greater than or equal to [#minimumConfidence()], the unfiltered
-    /// candidates are returned. The result is sorted stably by descending
-    /// confidence and cannot be modified. The underlying bytes must not change
-    /// during detection.
-    ///
-    /// @param input buffer whose remaining bytes are examined
-    /// @return immutable filtered candidates
-    /// @throws NullPointerException if `input` is `null`
-    public @Unmodifiable List<Result> detectAll(ByteBuffer input) {
-        List<Result> all = detectAllUnfiltered(input);
-        List<Result> filtered = all.stream()
-                .filter(result -> result.confidence() >= minimumConfidence)
-                .toList();
-        return filtered.isEmpty() ? all : filtered;
-    }
-
-    /// Returns every detection candidate.
-    ///
-    /// The result is sorted stably by descending confidence and cannot be
-    /// modified. Only the first [#maxBytes()] bytes are examined, and the
-    /// input array is read directly without copying or modification, is not
-    /// retained, and must not change during detection.
-    ///
-    /// @param input bytes to examine
-    /// @return immutable unfiltered candidates
-    /// @throws NullPointerException if `input` is `null`
-    public @Unmodifiable List<Result> detectAllUnfiltered(byte[] input) {
-        return detectAllUnfilteredNormalized(
-                ByteBufferSupport.wrap(input)
-        );
-    }
-
-    /// Returns every detection candidate for the remaining buffer bytes.
-    ///
-    /// The result is sorted stably by descending confidence and cannot be
-    /// modified. Only the first [#maxBytes()] bytes between the buffer's
-    /// position and limit are examined. The buffer's content, position, limit,
-    /// and mark are not modified, and the buffer is not retained. Its
-    /// underlying bytes are read directly without copying and must not change
-    /// during detection.
-    ///
-    /// @param input buffer whose remaining bytes are examined
-    /// @return immutable unfiltered candidates
-    /// @throws NullPointerException if `input` is `null`
-    public @Unmodifiable List<Result> detectAllUnfiltered(ByteBuffer input) {
-        return detectAllUnfilteredNormalized(ByteBufferSupport.view(input));
-    }
-
-    /// Returns the highest-ranked result for a normalized zero-copy buffer view.
-    ///
-    /// @param input bytes to examine
-    /// @return highest-ranked result
+    /// @return immutable aggregate result
     private Result detectNormalized(@UnmodifiableView ByteBuffer input) {
-        return DetectionEngine.detect(input, this).get(0);
-    }
-
-    /// Returns every candidate for a normalized zero-copy buffer view.
-    ///
-    /// @param input bytes to examine
-    /// @return immutable unfiltered candidates
-    private @Unmodifiable List<Result> detectAllUnfilteredNormalized(
-            @UnmodifiableView ByteBuffer input
-    ) {
-        return DetectionEngine.detect(input, this).stream()
-                .sorted(Comparator.comparingDouble(Result::confidence).reversed())
+        List<Candidate> candidates = DetectionEngine.detect(input, this).stream()
+                .sorted(Comparator.comparingDouble(Candidate::confidence).reversed())
                 .toList();
+        int likelyCount = 0;
+        while (likelyCount < candidates.size()
+                && candidates.get(likelyCount).confidence() >= minimumConfidence) {
+            likelyCount++;
+        }
+        List<Candidate> likelyCandidates = likelyCount == 0
+                || likelyCount == candidates.size()
+                ? candidates
+                : candidates.subList(0, likelyCount);
+        return new Result(candidates, likelyCandidates);
     }
 
     /// Resolves an encoding from a canonical name or alias.

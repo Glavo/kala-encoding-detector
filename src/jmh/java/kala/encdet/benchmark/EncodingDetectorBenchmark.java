@@ -4,6 +4,7 @@
 package kala.encdet.benchmark;
 
 import kala.encdet.EncodingDetector;
+import kala.encdet.EncodingDetector.Candidate;
 import kala.encdet.EncodingDetector.Result;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Unmodifiable;
@@ -69,7 +70,7 @@ public class EncodingDetectorBenchmark {
     /// Detects one array-backed input through the `byte[]` API.
     ///
     /// @param state prepared benchmark input
-    /// @return highest-ranked detection result
+    /// @return aggregate detection result
     @Benchmark
     public Result detectByteArray(InputState state) {
         return DETECTOR.detect(state.data);
@@ -78,7 +79,7 @@ public class EncodingDetectorBenchmark {
     /// Detects one array-backed input through the heap [ByteBuffer] API.
     ///
     /// @param state prepared benchmark input
-    /// @return highest-ranked detection result
+    /// @return aggregate detection result
     @Benchmark
     public Result detectHeapByteBuffer(InputState state) {
         return DETECTOR.detect(state.heapBuffer);
@@ -87,19 +88,19 @@ public class EncodingDetectorBenchmark {
     /// Detects one off-heap input through the direct [ByteBuffer] API.
     ///
     /// @param state prepared benchmark input
-    /// @return highest-ranked detection result
+    /// @return aggregate detection result
     @Benchmark
     public Result detectDirectByteBuffer(InputState state) {
         return DETECTOR.detect(state.directBuffer);
     }
 
-    /// Produces the complete candidate list through the `byte[]` API.
+    /// Produces and accesses the complete candidate list through the `byte[]` API.
     ///
     /// @param state prepared benchmark input
     /// @return immutable ordered detection candidates
     @Benchmark
-    public @Unmodifiable List<Result> detectAllUnfilteredByteArray(InputState state) {
-        return DETECTOR.detectAllUnfiltered(state.data);
+    public @Unmodifiable List<Candidate> detectCandidatesByteArray(InputState state) {
+        return DETECTOR.detect(state.data).candidates();
     }
 
     /// Returns the fixed byte pattern selected by one JMH parameter.
