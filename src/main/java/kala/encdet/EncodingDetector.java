@@ -1149,7 +1149,8 @@ public final class EncodingDetector {
 
             List<String> approximateNames = switch (this) {
                 case BIG5_HKSCS -> List.of("Big5");
-                case CP932, SHIFT_JIS_2004 -> List.of("Shift_JIS");
+                case CP932 -> List.of("x-MS932_0213", "Shift_JIS");
+                case SHIFT_JIS_2004 -> List.of("Shift_JIS");
                 case CP949 -> List.of("EUC-KR");
                 case EUC_JIS_2004 -> List.of("EUC-JP");
                 case GB18030 -> List.of("GBK", "GB2312");
