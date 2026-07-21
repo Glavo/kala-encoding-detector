@@ -38,9 +38,6 @@ import java.util.*;
 /// encoding set.
 @NotNullByDefault
 public final class EncodingDetector {
-    /// Logger used when a configured recommendation is excluded by the encoding set.
-    private static final System.Logger LOGGER = System.getLogger(EncodingDetector.class.getName());
-
     /// Optional preferred-superset remapping applied to detected encodings.
     private static final @Unmodifiable Map<Encoding, Encoding> PREFERRED_SUPERSETS = Map.ofEntries(
             Map.entry(Encoding.ASCII, Encoding.CP1252),
@@ -2080,37 +2077,19 @@ public final class EncodingDetector {
         if (!candidates.isEmpty()) {
             bestEncoding = candidates.get(0).encoding();
         } else if (input.remaining() == 0) {
-            bestEncoding = recommendation(emptyInputEncoding, "emptyInputEncoding");
+            bestEncoding = encodings.contains(emptyInputEncoding)
+                    ? transformEncoding(emptyInputEncoding)
+                    : null;
         } else if (!detectedCandidates.isEmpty()
                 && detectedCandidates.get(0).encoding() == null) {
             bestEncoding = null;
         } else {
-            bestEncoding = recommendation(noMatchEncoding, "noMatchEncoding");
+            @Nullable Encoding fallback = noMatchEncoding;
+            bestEncoding = fallback != null && encodings.contains(fallback)
+                    ? transformEncoding(fallback)
+                    : null;
         }
         return new Result(candidates, bestEncoding);
-    }
-
-    /// Returns an eligible configured recommendation after preferred-superset remapping.
-    ///
-    /// @param encoding   configured encoding, or `null`
-    /// @param optionName option name used in an exclusion warning
-    /// @return recommended encoding, or `null` when absent or excluded
-    private @Nullable Encoding recommendation(
-            @Nullable Encoding encoding,
-            String optionName
-    ) {
-        if (encoding == null) {
-            return null;
-        }
-        if (!encodings.contains(encoding)) {
-            LOGGER.log(
-                    System.Logger.Level.WARNING,
-                    optionName + " '" + encoding.canonicalName()
-                            + "' is not in the configured encoding set; returning no encoding"
-            );
-            return null;
-        }
-        return transformEncoding(encoding);
     }
 
     /// Applies preferred-superset transformation to an encoding.
