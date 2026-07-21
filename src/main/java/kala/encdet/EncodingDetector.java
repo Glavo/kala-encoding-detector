@@ -81,7 +81,8 @@ public final class EncodingDetector {
     /// character mappings. [#UTF_8_SIG] is the framing-only exception: its
     /// payload uses UTF-8, while its signature remains outside the returned
     /// charset. [#approximateCharset()] additionally permits predefined related
-    /// mappings when an exact mapping is unavailable.
+    /// mappings and an ultimate US-ASCII fallback when an exact mapping is
+    /// unavailable.
     ///
     /// @apiNote [#charset()] does not consume or emit external framing such as
     /// the signature associated with [#UTF_8_SIG].
@@ -1138,16 +1139,18 @@ public final class EncodingDetector {
             return charset;
         }
 
-        /// Returns the closest configured Java charset available for this
-        /// encoding.
+        /// Returns an available Java charset for this encoding.
         ///
         /// This method returns [#charset()] when an exact payload mapping is
         /// available. Otherwise, it may return a related charset that shares a
         /// useful byte-compatible subset. An approximate charset can reject
         /// valid source input or map some byte sequences to different
         /// characters; callers requiring exact decoding must use [#charset()].
-        /// No approximation is made for encodings without a useful configured
-        /// fallback. This method is safe for concurrent invocation.
+        /// If neither the exact mapping nor a configured approximation is
+        /// available, this method returns [StandardCharsets#US_ASCII]. That
+        /// final fallback only handles ASCII byte values and need not share the
+        /// source encoding's byte representation. This method is safe for
+        /// concurrent invocation.
         ///
         /// The configured fallbacks are Big5-HKSCS to Big5, CP932 to Shift_JIS,
         /// CP949 to EUC-KR, EUC-JIS-2004 to EUC-JP, GB18030 to GBK, the extended
@@ -1156,9 +1159,8 @@ public final class EncodingDetector {
         /// Windows-874, ISO-8859-15 to ISO-8859-1, CP1125 to IBM866, KZ-1048 and
         /// PTCP154 to Windows-1251, CP858 to IBM850, and CP1140 to IBM037.
         ///
-        /// @return exact or approximate payload charset, or `null` when neither
-        /// is available
-        public @Nullable Charset approximateCharset() {
+        /// @return exact, approximate, or US-ASCII fallback charset
+        public Charset approximateCharset() {
             @Nullable Charset charset = charset();
             if (charset != null) {
                 return charset;
@@ -1185,14 +1187,14 @@ public final class EncodingDetector {
                 case CP1140 -> "IBM037";
                 default -> null;
             };
-            if (approximateName == null) {
-                return null;
+            if (approximateName != null) {
+                charset = findCharset(approximateName);
+                if (charset != null) {
+                    approximateCharsetCache = charset;
+                    return charset;
+                }
             }
-            charset = findCharset(approximateName);
-            if (charset != null) {
-                approximateCharsetCache = charset;
-            }
-            return charset;
+            return StandardCharsets.US_ASCII;
         }
 
         /// Returns whether [#charset()] supplies a Java charset for this

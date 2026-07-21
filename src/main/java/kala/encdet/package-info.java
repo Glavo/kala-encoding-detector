@@ -10,7 +10,7 @@
 /// [kala.encdet.EncodingDetector.Encoding#charset()] to obtain an exact
 /// `java.nio.charset.Charset` mapping when the current runtime provides one, or
 /// [kala.encdet.EncodingDetector.Encoding#approximateCharset()] to permit a
-/// configured related mapping.
+/// configured related mapping and an ultimate US-ASCII fallback.
 @org.jetbrains.annotations.NotNullByDefault
 
 package kala.encdet;
