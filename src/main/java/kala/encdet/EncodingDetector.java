@@ -17,9 +17,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.IllegalBlockingModeException;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.charset.UnsupportedCharsetException;
+import java.nio.charset.*;
 import java.util.*;
 
 /// Detects character encodings using immutable reusable configuration.
@@ -1134,9 +1132,9 @@ public final class EncodingDetector {
         /// Returns an available Java charset for this encoding.
         ///
         /// Returns [#charset()] when an exact mapping is available. Otherwise,
-        /// it returns a configured related charset, or
-        /// [StandardCharsets#US_ASCII] as the final fallback. A non-exact
-        /// charset may reject or decode source bytes differently.
+        /// it returns a configured related charset.
+        ///
+        /// A non-exact charset may reject or decode source bytes differently.
         ///
         /// @return available charset; never `null`
         public Charset approximateCharset() {
@@ -1149,30 +1147,33 @@ public final class EncodingDetector {
                 return charset;
             }
 
-            @Nullable String approximateName = switch (this) {
-                case BIG5_HKSCS -> "Big5";
-                case CP932, SHIFT_JIS_2004 -> "Shift_JIS";
-                case CP949 -> "EUC-KR";
-                case EUC_JIS_2004 -> "EUC-JP";
-                case GB18030 -> "GBK";
-                case ISO_2022_JP_2, ISO_2022_JP_2004, ISO_2022_JP_EXT -> "ISO-2022-JP";
-                case CP874 -> "TIS-620";
-                case KOI8_U, KOI8_T -> "KOI8-R";
-                case TIS_620 -> "x-windows-874";
-                case ISO_8859_15 -> "ISO-8859-1";
-                case CP1125 -> "IBM866";
-                case KZ1048, PTCP154 -> "windows-1251";
-                case CP858 -> "IBM850";
-                case CP1140 -> "IBM037";
-                default -> null;
+            List<String> approximateNames = switch (this) {
+                case BIG5_HKSCS -> List.of("Big5");
+                case CP932, SHIFT_JIS_2004 -> List.of("Shift_JIS");
+                case CP949 -> List.of("EUC-KR");
+                case EUC_JIS_2004 -> List.of("EUC-JP");
+                case GB18030 -> List.of("GBK", "GB2312");
+                case ISO_2022_JP_2, ISO_2022_JP_2004, ISO_2022_JP_EXT -> List.of("ISO-2022-JP");
+                case CP874 -> List.of("TIS-620");
+                case KOI8_U, KOI8_T -> List.of("KOI8-R");
+                case TIS_620 -> List.of("x-windows-874");
+                case ISO_8859_15 -> List.of("ISO-8859-1");
+                case CP1125 -> List.of("IBM866");
+                case KZ1048, PTCP154 -> List.of("windows-1251");
+                case CP858 -> List.of("IBM850");
+                case CP1140 -> List.of("IBM037");
+                default -> List.of();
             };
-            if (approximateName != null) {
+
+            for (String approximateName : approximateNames) {
                 charset = findCharset(approximateName);
                 if (charset != null) {
                     approximateCharsetCache = charset;
                     return charset;
                 }
             }
+
+            approximateCharsetCache = StandardCharsets.US_ASCII;
             return StandardCharsets.US_ASCII;
         }
 
