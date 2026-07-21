@@ -76,8 +76,7 @@ public final class EncodingDetector {
     /// character mappings. [#UTF_8_SIG] is the framing-only exception: its
     /// payload uses UTF-8, while its signature remains outside the returned
     /// charset. [#approximateCharset()] additionally permits predefined related
-    /// mappings and an ultimate US-ASCII fallback when an exact mapping is
-    /// unavailable.
+    /// mappings when an exact mapping is unavailable.
     ///
     /// @apiNote [#charset()] does not consume or emit external framing such as
     /// the signature associated with [#UTF_8_SIG].
@@ -1126,15 +1125,15 @@ public final class EncodingDetector {
             return charset;
         }
 
-        /// Returns an available Java charset for this encoding.
+        /// Returns an exact or approximate Java charset for this encoding.
         ///
         /// Returns [#charset()] when an exact mapping is available. Otherwise,
         /// it returns a configured related charset.
         ///
         /// A non-exact charset may reject or decode source bytes differently.
         ///
-        /// @return available charset; never `null`
-        public Charset approximateCharset() {
+        /// @return available charset, or `null` when no mapping is available
+        public @Nullable Charset approximateCharset() {
             @Nullable Charset charset = charset();
             if (charset != null) {
                 return charset;
@@ -1171,8 +1170,7 @@ public final class EncodingDetector {
                 }
             }
 
-            approximateCharsetCache = StandardCharsets.US_ASCII;
-            return StandardCharsets.US_ASCII;
+            return null;
         }
 
         /// Returns whether [#charset()] supplies a Java charset for this

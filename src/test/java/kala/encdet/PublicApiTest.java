@@ -247,7 +247,6 @@ final class PublicApiTest {
     void mapsEncodingTargetsToApproximateJavaCharsets() {
         for (Encoding encoding : Encoding.values()) {
             @Nullable Charset exact = encoding.charset();
-            assertNotNull(encoding.approximateCharset(), encoding.name());
             if (exact != null) {
                 assertSame(exact, encoding.approximateCharset(), encoding.name());
             }
@@ -259,7 +258,7 @@ final class PublicApiTest {
                 Charset.forName("EUC-JP"),
                 Encoding.EUC_JIS_2004.approximateCharset()
         );
-        assertEquals(StandardCharsets.US_ASCII, Encoding.UTF_7.approximateCharset());
+        assertNull(Encoding.UTF_7.approximateCharset());
     }
 
     /// Verifies charset availability reporting against runtime lookup.
