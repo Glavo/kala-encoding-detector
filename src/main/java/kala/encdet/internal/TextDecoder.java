@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingDetector.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
@@ -440,7 +441,7 @@ final class TextDecoder {
             byte[] nameBytes = new byte[nameLength];
             buffer.get(nameBytes);
             String name = new String(nameBytes, StandardCharsets.US_ASCII);
-            @Nullable Encoding encoding = EncodingLookup.lookup(name);
+            @Nullable Encoding encoding = EncodingDetector.lookupEncoding(name);
             if (encoding == null) {
                 throw corrupt("unknown encoding " + name);
             }

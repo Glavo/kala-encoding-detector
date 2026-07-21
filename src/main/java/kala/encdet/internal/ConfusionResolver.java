@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingDetector.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
@@ -300,7 +301,7 @@ final class ConfusionResolver {
     /// @throws IllegalArgumentException if the encoded name is malformed or unknown
     private static Encoding readEncoding(ByteBuffer buffer) {
         String name = readName(buffer);
-        @Nullable Encoding encoding = EncodingLookup.lookup(name);
+        @Nullable Encoding encoding = EncodingDetector.lookupEncoding(name);
         if (encoding == null) {
             throw new IllegalArgumentException("unknown encoding " + name + " in confusion data");
         }

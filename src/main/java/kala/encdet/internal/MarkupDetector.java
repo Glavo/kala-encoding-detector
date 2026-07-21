@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingDetector.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
@@ -426,7 +427,9 @@ final class MarkupDetector {
                 return null;
             }
         }
-        return EncodingLookup.lookup(ByteBufferSupport.latin1String(data, start, end - start));
+        return EncodingDetector.lookupEncoding(
+                ByteBufferSupport.latin1String(data, start, end - start)
+        );
     }
 
     /// Finds one byte in an absolute buffer range.

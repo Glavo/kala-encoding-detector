@@ -3,6 +3,7 @@
 
 package kala.encdet.internal;
 
+import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingDetector.Encoding;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
@@ -572,7 +573,7 @@ final class ByteValidity {
             byte[] encodedName = new byte[nameLength];
             buffer.get(encodedName);
             String name = new String(encodedName, StandardCharsets.US_ASCII);
-            @Nullable Encoding encoding = EncodingLookup.lookup(name);
+            @Nullable Encoding encoding = EncodingDetector.lookupEncoding(name);
             if (encoding == null) {
                 throw corruptMultibyte("unknown encoding '" + name + "'");
             }

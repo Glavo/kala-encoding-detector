@@ -5,7 +5,6 @@ package kala.encdet;
 
 import kala.encdet.internal.ByteBufferSupport;
 import kala.encdet.internal.DetectionEngine;
-import kala.encdet.internal.EncodingLookup;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -793,6 +792,125 @@ public final class EncodingDetector {
         public @Unmodifiable List<String> aliases() {
             return aliases;
         }
+
+        /// Resolves a canonical name or alias through the enum's private index.
+        ///
+        /// @param name name to resolve
+        /// @return matching encoding, or `null` if unknown
+        private static @Nullable Encoding resolve(String name) {
+            if (name.indexOf('\0') >= 0) {
+                return null;
+            }
+            @Nullable Encoding exact = AliasIndex.EXACT_ALIASES.get(
+                    name.toLowerCase(Locale.ROOT)
+            );
+            if (exact != null) {
+                return exact;
+            }
+            return AliasIndex.NORMALIZED_ALIASES.get(AliasIndex.normalizeCodecName(name));
+        }
+
+        /// Holds alias indexes derived from the enum constants.
+        @NotNullByDefault
+        private static final class AliasIndex {
+            /// Number of canonical targets in the pinned upstream registry.
+            private static final int EXPECTED_ENCODING_COUNT = 86;
+
+            /// Exact case-folded canonical names and aliases.
+            private static final @Unmodifiable Map<String, Encoding> EXACT_ALIASES;
+
+            /// Python-codec-normalized canonical names and aliases.
+            private static final @Unmodifiable Map<String, Encoding> NORMALIZED_ALIASES;
+
+            static {
+                Encoding[] encodings = Encoding.values();
+                if (encodings.length != EXPECTED_ENCODING_COUNT) {
+                    throw new IllegalStateException(
+                            "Expected " + EXPECTED_ENCODING_COUNT + " Encoding values but found "
+                                    + encodings.length
+                    );
+                }
+
+                LinkedHashMap<String, Encoding> exactAliases = new LinkedHashMap<>();
+                LinkedHashMap<String, Encoding> normalizedAliases = new LinkedHashMap<>();
+                HashSet<String> canonicalNames = new HashSet<>(EXPECTED_ENCODING_COUNT);
+                for (Encoding encoding : encodings) {
+                    if (!canonicalNames.add(encoding.canonicalName())) {
+                        throw new IllegalStateException(
+                                "Duplicate Encoding canonical name: " + encoding.canonicalName()
+                        );
+                    }
+                    addAlias(
+                            exactAliases,
+                            normalizedAliases,
+                            encoding.canonicalName(),
+                            encoding
+                    );
+                    for (String alias : encoding.aliases()) {
+                        addAlias(exactAliases, normalizedAliases, alias, encoding);
+                    }
+                }
+                EXACT_ALIASES = Collections.unmodifiableMap(exactAliases);
+                NORMALIZED_ALIASES = Collections.unmodifiableMap(normalizedAliases);
+            }
+
+            /// Prevents instantiation of this static index.
+            private AliasIndex() {
+            }
+
+            /// Adds exact and normalized forms of one alias.
+            ///
+            /// Exact aliases preserve enum declaration priority. Normalized aliases
+            /// preserve the first mapping, matching ordered codec lookup for collisions.
+            ///
+            /// @param exactAliases exact alias map
+            /// @param normalizedAliases normalized alias map
+            /// @param alias alias to add
+            /// @param encoding encoding identity
+            private static void addAlias(
+                    Map<String, Encoding> exactAliases,
+                    Map<String, Encoding> normalizedAliases,
+                    String alias,
+                    Encoding encoding
+            ) {
+                exactAliases.putIfAbsent(alias.toLowerCase(Locale.ROOT), encoding);
+                String normalized = normalizeCodecName(alias);
+                if (!normalized.isEmpty()) {
+                    normalizedAliases.putIfAbsent(normalized, encoding);
+                }
+            }
+
+            /// Normalizes a name like Python's codec registry.
+            ///
+            /// Runs of non-ASCII-alphanumeric characters other than `.` become a
+            /// single underscore between retained groups; leading and trailing runs
+            /// are discarded.
+            ///
+            /// @param name supplied name
+            /// @return normalized lower-case lookup key
+            private static String normalizeCodecName(String name) {
+                StringBuilder result = new StringBuilder(name.length());
+                boolean punctuation = false;
+                for (int index = 0; index < name.length(); index++) {
+                    char value = name.charAt(index);
+                    boolean retained = value <= 0x7f
+                            && ((value >= 'a' && value <= 'z')
+                            || (value >= 'A' && value <= 'Z')
+                            || (value >= '0' && value <= '9')
+                            || value == '.');
+                    if (retained) {
+                        if (punctuation && !result.isEmpty()) {
+                            result.append('_');
+                        }
+                        result.append(Character.toLowerCase(value));
+                        punctuation = false;
+                    } else {
+                        punctuation = true;
+                    }
+                }
+                return result.toString();
+            }
+        }
     }
 
     /// Identifies a historical or operational group of character encodings.
@@ -1286,7 +1404,7 @@ public final class EncodingDetector {
     /// @return resolved encoding, or `null` if unknown
     /// @throws NullPointerException if `name` is `null`
     public static @Nullable Encoding lookupEncoding(String name) {
-        return EncodingLookup.lookup(name);
+        return Encoding.resolve(name);
     }
 
     /// Returns all supported encodings in enum declaration order.
