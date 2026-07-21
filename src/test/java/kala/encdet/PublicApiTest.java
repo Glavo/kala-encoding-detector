@@ -534,60 +534,33 @@ final class PublicApiTest {
         assertEquals(Encoding.ASCII, recommendation.bestEncoding());
     }
 
-    /// Verifies aggregate results copy and validate their candidates and recommendation.
+    /// Verifies results retain immutable value-object behavior without being records.
     @Test
-    void resultCopiesAndValidatesCandidateLists() {
-        Candidate high = new Candidate(Encoding.UTF_8, 0.9, null, "text/plain");
-        Candidate low = new Candidate(Encoding.CP1252, 0.4, "en", "text/plain");
-        ArrayList<Candidate> candidates = new ArrayList<>(List.of(high, low));
-        Result result = new Result(candidates, Encoding.UTF_8);
-        Result empty = new Result(List.of(), null);
-        Result recommendation = new Result(List.of(), Encoding.CP1252);
-        Candidate binaryCandidate = new Candidate(
-                null,
-                0.95,
-                null,
-                "application/octet-stream"
-        );
-        Result binary = new Result(List.of(binaryCandidate), null);
+    void resultIsImmutableValueObject() {
+        byte[] data = "Hello world".getBytes(StandardCharsets.US_ASCII);
+        Result result = EncodingDetector.DEFAULT.detect(data);
+        Result equalResult = EncodingDetector.DEFAULT.detect(data);
 
-        candidates.clear();
         assertFalse(Result.class.isRecord());
-        assertEquals(List.of(high, low), result.candidates());
-        assertEquals(high, result.bestCandidate());
-        assertEquals(Encoding.UTF_8, result.bestEncoding());
-        Result equalResult = new Result(List.of(high, low), Encoding.UTF_8);
+        assertEquals(0, Result.class.getConstructors().length);
+        assertFalse(result.candidates().isEmpty());
+        assertEquals(result.candidates().get(0), result.bestCandidate());
+        assertEquals(Encoding.ASCII, result.bestEncoding());
         assertEquals(result, equalResult);
         assertEquals(result.hashCode(), equalResult.hashCode());
         assertEquals(
-                "Result[candidates=" + List.of(high, low)
-                        + ", bestEncoding=UTF_8]",
+                "Result[candidates=" + result.candidates()
+                        + ", bestEncoding=ASCII]",
                 result.toString()
         );
         assertThrows(UnsupportedOperationException.class, () -> result.candidates().clear());
-        assertTrue(empty.candidates().isEmpty());
-        assertNull(empty.bestCandidate());
-        assertNull(empty.bestEncoding());
-        assertTrue(recommendation.candidates().isEmpty());
-        assertNull(recommendation.bestCandidate());
-        assertEquals(Encoding.CP1252, recommendation.bestEncoding());
-        assertEquals(binaryCandidate, binary.bestCandidate());
-        assertNull(binary.bestEncoding());
-
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new Result(List.of(low, high), Encoding.CP1252)
-        );
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new Result(List.of(high, low), Encoding.CP1252)
-        );
+        assertNotEquals(result, EncodingDetector.DEFAULT.detect(new byte[0]));
     }
 
     /// Verifies public argument null checks and candidate confidence validation.
     @Test
     @SuppressWarnings("DataFlowIssue")
-    void rejectsNullArgumentsAndInvalidResults() {
+    void rejectsNullArgumentsAndInvalidCandidates() {
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect((byte[]) null));
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect((ByteBuffer) null));
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withEncodingEras((Era[]) null));
@@ -629,15 +602,6 @@ final class PublicApiTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new Candidate(Encoding.ASCII, 1.01, null, null)
-        );
-        Candidate candidate = new Candidate(Encoding.ASCII, 1.0, null, null);
-        assertThrows(
-                NullPointerException.class,
-                () -> new Result(null, null)
-        );
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new Result(List.of(candidate), null)
         );
     }
 

@@ -1077,6 +1077,9 @@ public final class EncodingDetector {
     /// contain only candidates whose confidence meets the detector's inclusive
     /// [#minimumConfidence()] value, with stable ordering for equal confidences.
     ///
+    /// Instances are created by [#detect(byte[])] and [#detect(ByteBuffer)];
+    /// applications cannot construct arbitrary results.
+    ///
     /// A recommendation can exist without a candidate. This occurs when the
     /// detector applies its configured empty-input or no-match policy. Such a
     /// recommendation carries no confidence, language, or MIME type. When a
@@ -1100,7 +1103,7 @@ public final class EncodingDetector {
         /// @throws IllegalArgumentException if candidates are not in
         /// descending-confidence order, or a nonempty list's first candidate
         /// does not have `bestEncoding`
-        public Result(
+        private Result(
                 List<Candidate> candidates,
                 @Nullable Encoding bestEncoding
         ) {
