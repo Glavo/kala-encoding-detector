@@ -259,10 +259,12 @@ final class PublicApiTest {
         byte[] data = "abcdef".getBytes(StandardCharsets.US_ASCII);
         CloseTrackingInputStream input = new CloseTrackingInputStream(data);
         EncodingDetector detector = EncodingDetector.DEFAULT.withMaxBytes(3);
+        Reader reader = detector.newReader(input);
 
-        try (Reader reader = detector.newReader(input)) {
-            assertEquals(3, input.available());
+        assertEquals(data.length, input.available());
+        try (reader) {
             assertEquals("abcdef", readAll(reader));
+            assertEquals(0, input.available());
         }
         assertTrue(input.isClosed());
     }
@@ -278,8 +280,10 @@ final class PublicApiTest {
         };
         CloseTrackingInputStream input = new CloseTrackingInputStream(data);
         ReadableByteChannel channel = Channels.newChannel(input);
+        Reader reader = EncodingDetector.DEFAULT.newReader(channel);
 
-        try (Reader reader = EncodingDetector.DEFAULT.newReader(channel)) {
+        assertEquals(data.length, input.available());
+        try (reader) {
             assertTrue(channel.isOpen());
             assertEquals("hello", readAll(reader));
         }
@@ -334,17 +338,41 @@ final class PublicApiTest {
     }
 
     /// Verifies that failure retains consumed progress without closing the source.
+    ///
+    /// @throws IOException if closing the failed reader fails
     @Test
-    void readerCreationFailureLeavesInputOpen() {
+    void readerInitializationFailureLeavesInputOpen() throws IOException {
         CloseTrackingInputStream input = new CloseTrackingInputStream(
                 "text".getBytes(StandardCharsets.US_ASCII)
         );
         EncodingDetector detector = EncodingDetector.DEFAULT.withEncodings(Set.of());
+        Reader reader = detector.newReader(input);
 
-        IOException exception = assertThrows(IOException.class, () -> detector.newReader(input));
+        assertEquals(4, input.available());
+        IOException exception = assertThrows(IOException.class, reader::read);
         assertEquals("No character encoding could be selected", exception.getMessage());
         assertEquals(0, input.available());
         assertFalse(input.isClosed());
+        assertSame(exception, assertThrows(IOException.class, reader::read));
+
+        reader.close();
+        assertTrue(input.isClosed());
+    }
+
+    /// Verifies that closing or performing an empty read does not initialize the reader.
+    ///
+    /// @throws IOException if the empty read or closure fails
+    @Test
+    void unreadReaderDoesNotConsumeInput() throws IOException {
+        byte[] data = "text".getBytes(StandardCharsets.US_ASCII);
+        CloseTrackingInputStream input = new CloseTrackingInputStream(data);
+        Reader reader = EncodingDetector.DEFAULT.newReader(input);
+
+        assertEquals(0, reader.read(new char[1], 0, 0));
+        assertEquals(data.length, input.available());
+        reader.close();
+        assertEquals(data.length, input.available());
+        assertTrue(input.isClosed());
     }
 
     /// Verifies every display name retained from the compatible string API.

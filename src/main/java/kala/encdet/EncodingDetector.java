@@ -11,15 +11,12 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jetbrains.annotations.UnmodifiableView;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.IllegalBlockingModeException;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.SelectableChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
@@ -1856,90 +1853,49 @@ public final class EncodingDetector {
         return detectNormalized(ByteBufferSupport.view(input));
     }
 
-    /// Creates a reader after detecting the encoding of an input stream.
+    /// Creates a reader that lazily detects and decodes an input stream.
     ///
-    /// This method blocks while reading up to [#maxBytes()] leading bytes or
-    /// until end of stream. The bytes read for detection are retained without an
-    /// additional copy and replayed through the returned reader. When
-    /// [Encoding#UTF_8_SIG] is selected, its leading signature is consumed
-    /// before decoding.
+    /// This method does not read from `input` or perform detection. The first
+    /// read operation with a nonempty target blocks while the reader obtains up
+    /// to [#maxBytes()] leading bytes or reaches end of stream, then detects the
+    /// encoding and decodes those same bytes without making another copy. When
+    /// [Encoding#UTF_8_SIG] is selected, the reader consumes its leading
+    /// signature before decoding.
     ///
     /// The selected encoding is [Result#bestEncoding()], including any eligible
     /// empty-input or no-match recommendation configured on this detector.
     /// Malformed and unmappable input is replaced with the selected charset's
-    /// default replacement text.
+    /// default replacement text. Detection, unsupported-charset, and source I/O
+    /// failures are reported by the reader's read operations. An initialization
+    /// failure is retained and rethrown by later reads; the reader remains open
+    /// until closed.
     ///
-    /// On successful return, the reader owns `input`; closing the reader closes
-    /// the stream, and the caller must not access the stream independently. If
-    /// this method throws, it does not itself close the stream, but bytes already
-    /// read for detection remain consumed. Interruption and asynchronous closure
-    /// follow the behavior of the channel that reads the stream and may close it.
+    /// The returned reader owns `input`; closing the reader, including before its
+    /// first read, closes the stream. The caller must not access the stream
+    /// independently after this method returns. Interruption and asynchronous
+    /// closure follow the behavior of the channel that reads the stream.
     ///
     /// @param input byte stream to detect and decode
-    /// @return reader positioned before the first decoded character
-    /// @throws UnsupportedEncodingException if the selected encoding has no
-    ///                                      suitable charset in the current runtime
-    /// @throws IOException                  if reading fails or detection does not
-    ///                                      select an encoding
-    /// @throws NullPointerException          if `input` is `null`
-    public Reader newReader(InputStream input) throws IOException {
+    /// @return uninitialized reader positioned before the first decoded character
+    /// @throws NullPointerException if `input` is `null`
+    public Reader newReader(InputStream input) {
         return newReader(Channels.newChannel(input));
     }
 
-    /// Creates a reader after detecting the encoding of a byte channel.
+    /// Creates a reader that lazily detects and decodes a byte channel.
     ///
     /// This method has the detection, decoding, blocking, and failure semantics
-    /// of [#newReader(InputStream)]. On successful return, closing the reader
-    /// closes `channel`. If this method throws, it does not itself close the
-    /// channel, but bytes already read for detection remain consumed.
-    /// Interruption and asynchronous closure follow `channel`'s behavior and may
-    /// close it.
+    /// of [#newReader(InputStream)]. It does not read from `channel`. The returned
+    /// reader owns the channel immediately and closes it when the reader is
+    /// closed, including when no read has occurred.
     ///
     /// @param channel byte channel to detect and decode
-    /// @return reader positioned before the first decoded character
-    /// @throws UnsupportedEncodingException if the selected encoding has no
-    ///                                      suitable charset in the current runtime
-    /// @throws IOException                  if reading fails or detection does not
-    ///                                      select an encoding
+    /// @return uninitialized reader positioned before the first decoded character
     /// @throws IllegalBlockingModeException if `channel` is a selectable channel
     ///                                      configured in non-blocking mode
-    /// @throws NullPointerException          if `channel` is `null`
-    public Reader newReader(ReadableByteChannel channel) throws IOException {
-        if (channel instanceof SelectableChannel selectableChannel
-                && !selectableChannel.isBlocking()) {
-            throw new IllegalBlockingModeException();
-        }
-
-        ByteBuffer prefix = ByteBuffer.allocate(maxBytes);
-        while (prefix.hasRemaining()) {
-            int count = channel.read(prefix);
-            if (count < 0) {
-                break;
-            }
-            if (count == 0) {
-                Thread.onSpinWait();
-            }
-        }
-        prefix.flip();
-
-        @Nullable Encoding encoding = detect(prefix).bestEncoding();
-        if (encoding == null) {
-            throw new IOException("No character encoding could be selected");
-        }
-
-        @Nullable Charset charset = encoding.charset();
-        if (charset == null) {
-            throw new UnsupportedEncodingException(encoding.canonicalName());
-        }
-
-        if (encoding == Encoding.UTF_8_SIG
-                && prefix.remaining() >= 3
-                && prefix.get(0) == (byte) 0xef
-                && prefix.get(1) == (byte) 0xbb
-                && prefix.get(2) == (byte) 0xbf) {
-            prefix.position(3);
-        }
-        return new EncodingReader(channel, prefix, charset);
+    /// @throws NullPointerException if `channel` is `null`
+    public Reader newReader(ReadableByteChannel channel) {
+        return new EncodingReader(this, channel);
     }
 
     /// Detects candidates for a normalized zero-copy buffer view.
