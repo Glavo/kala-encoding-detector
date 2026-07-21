@@ -314,8 +314,7 @@ public final class Main {
         private EncodingDetector toDetector() {
             return EncodingDetector.DEFAULT
                     .withEncodingEras(eras)
-                    .withIncludedEncodings(resolveEncodingSet(includeNames, "includeEncodings"))
-                    .withExcludedEncodings(resolveEncodingSet(excludeNames, "excludeEncodings"))
+                    .withEncodings(resolveEncodings())
                     .withNoMatchEncoding(resolveEncoding(noMatchName, "noMatchEncoding"))
                     .withEmptyInputEncoding(resolveEncoding(emptyInputName, "emptyInputEncoding"));
         }
@@ -368,22 +367,27 @@ public final class Main {
             return result;
         }
 
-        /// Resolves an optional set of canonical encoding names or aliases.
+        /// Resolves the CLI filters into the effective permitted encoding set.
         ///
-        /// @param values        names to resolve, or `null`
-        /// @param parameterName public configuration parameter name
-        /// @return resolved encoding identities, or `null`
+        /// When no include filter was supplied, resolution starts with every
+        /// supported encoding. The exclude filter is then removed, so exclusion
+        /// wins for names present in both options.
+        ///
+        /// @return effective permitted encoding identities
         /// @throws IllegalArgumentException when a name is unknown
-        private static @Nullable Set<Encoding> resolveEncodingSet(
-                @Nullable Set<String> values,
-                String parameterName
-        ) {
-            if (values == null) {
-                return null;
+        private EnumSet<Encoding> resolveEncodings() {
+            EnumSet<Encoding> result = includeNames == null
+                    ? EnumSet.allOf(Encoding.class)
+                    : EnumSet.noneOf(Encoding.class);
+            if (includeNames != null) {
+                for (String value : includeNames) {
+                    result.add(resolveEncoding(value, "--include-encodings"));
+                }
             }
-            LinkedHashSet<Encoding> result = new LinkedHashSet<>(values.size());
-            for (String value : values) {
-                result.add(resolveEncoding(value, parameterName));
+            if (excludeNames != null) {
+                for (String value : excludeNames) {
+                    result.remove(resolveEncoding(value, "--exclude-encodings"));
+                }
             }
             return result;
         }
@@ -391,7 +395,7 @@ public final class Main {
         /// Resolves one canonical encoding name or alias.
         ///
         /// @param value         name to resolve
-        /// @param parameterName public configuration parameter name
+        /// @param parameterName diagnostic parameter name
         /// @return resolved encoding identity
         /// @throws IllegalArgumentException when the name is unknown
         private static Encoding resolveEncoding(String value, String parameterName) {

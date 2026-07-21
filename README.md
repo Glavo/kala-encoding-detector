@@ -110,7 +110,7 @@ EncodingDetector detector = EncodingDetector.DEFAULT
         .withEncodingEras(Set.of(Era.MODERN_WEB))
         .withMaxBytes(100_000)
         .withMinimumConfidence(0.35)
-        .withIncludedEncodings(Set.of(Encoding.UTF_8, Encoding.CP1252))
+        .withEncodings(Set.of(Encoding.UTF_8, Encoding.CP1252))
         .withNoMatchEncoding(Encoding.CP1252)
         .withPreferredSuperset(false);
 
@@ -143,9 +143,11 @@ aliases to enum values without consulting a JDK charset provider;
 - `EncodingDetector.Encoding.CP1252` when no candidate survives
 - `EncodingDetector.Encoding.UTF_8` for empty input
 
-Filters apply in era, include, then exclude order. They also gate BOM, markup,
-escape, and fallback results. Binary classification is not filtered and is
-reported with a `null` encoding and an appropriate MIME type.
+The configured encoding set is intersected with the selected eras. It contains
+all supported targets by default; an empty set permits no text encoding. The
+effective set also gates BOM, markup, escape, and fallback results. Binary
+classification is not filtered and is reported with a `null` encoding and an
+appropriate MIME type.
 
 `EncodingDetector` instances are safe for concurrent use. Registry, validity,
 decode, model, and confusion data are immutable after thread-safe lazy
@@ -174,7 +176,9 @@ type document.txt | kala-encdet
 Use `kala-encdet --help` for the complete option summary.
 
 The CLI accepts textual aliases and renders each detected enum value through
-`EncodingDetector.Encoding.displayName()` for chardet-compatible output.
+`EncodingDetector.Encoding.displayName()` for chardet-compatible output. Its
+include and exclude options are combined into the effective encoding set before
+detection; exclusion wins when a target is present in both options.
 
 ## Verification data
 

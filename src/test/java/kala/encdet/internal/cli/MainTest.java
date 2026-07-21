@@ -126,6 +126,22 @@ final class MainTest {
         assertEquals("", result.error());
     }
 
+    /// Verifies CLI inclusion and exclusion produce one effective encoding set.
+    @Test
+    void combinesEncodingFilters() {
+        RunResult result = invoke(
+                new String[]{
+                        "--minimal",
+                        "--include-encodings", "ascii",
+                        "--exclude-encodings", "ascii"
+                },
+                "Hello".getBytes(StandardCharsets.US_ASCII)
+        );
+        assertEquals(0, result.status());
+        assertEquals("None" + System.lineSeparator(), result.output());
+        assertEquals("", result.error());
+    }
+
     /// Verifies version and help requests do not consume standard input.
     @Test
     void printsVersionAndHelp() {

@@ -12,12 +12,7 @@ import org.jetbrains.annotations.Unmodifiable;
 import org.jetbrains.annotations.UnmodifiableView;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /// Detects character encodings using immutable reusable configuration.
 ///
@@ -27,16 +22,15 @@ import java.util.Set;
 /// return it when the requested value is already configured and otherwise
 /// return an independently configured detector.
 ///
-/// Candidate eligibility is evaluated in era, inclusion, then exclusion
-/// order. Exclusion therefore wins when the same encoding occurs in both
-/// filters. The resulting eligibility set also gates BOM, markup, escape, and
+/// Candidate eligibility is the intersection of the configured encoding and
+/// era sets. The resulting eligibility set also gates BOM, markup, escape, and
 /// fallback results; binary classifications have no encoding and are not
 /// filtered. If a configured fallback is ineligible, the detector returns a
 /// no-encoding result instead.
 ///
 /// Preferred-superset remapping, when enabled, occurs after candidate
-/// filtering. A reported superset may therefore be absent from the inclusion
-/// filter or present in the exclusion filter.
+/// filtering. A reported superset may therefore be absent from the configured
+/// encoding set.
 @NotNullByDefault
 public final class EncodingDetector {
     /// Represents one ordered character-encoding detection target.
@@ -406,19 +400,22 @@ public final class EncodingDetector {
     /// [#detectAll(ByteBuffer)].
     public static final double DEFAULT_MINIMUM_CONFIDENCE = 0.20;
 
+    /// Immutable set containing every encoding target.
+    private static final @Unmodifiable Set<Encoding> ALL_ENCODINGS =
+            Collections.unmodifiableSet(EnumSet.allOf(Encoding.class));
+
     /// Default detector with every encoding era enabled.
     ///
     /// It examines at most 200,000 bytes, retains candidates with confidence
-    /// of at least `0.20`, disables preferred-superset remapping and both
-    /// filters, uses [Encoding#CP1252] when no candidate survives, and uses
-    /// [Encoding#UTF_8] for empty input.
+    /// of at least `0.20`, disables preferred-superset remapping, allows every
+    /// encoding target, uses [Encoding#CP1252] when no candidate survives, and
+    /// uses [Encoding#UTF_8] for empty input.
     public static final EncodingDetector DEFAULT = new EncodingDetector(
             Collections.unmodifiableSet(EnumSet.allOf(Era.class)),
             200_000,
             DEFAULT_MINIMUM_CONFIDENCE,
             false,
-            null,
-            null,
+            ALL_ENCODINGS,
             Encoding.CP1252,
             Encoding.UTF_8
     );
@@ -435,13 +432,8 @@ public final class EncodingDetector {
     /// Whether subset encodings are remapped to preferred supersets.
     private final boolean preferSuperset;
 
-    /// Optional encoding inclusion filter.
-    private final @Nullable
-    @Unmodifiable Set<Encoding> includeEncodings;
-
-    /// Optional encoding exclusion filter.
-    private final @Nullable
-    @Unmodifiable Set<Encoding> excludeEncodings;
+    /// Encoding targets permitted to participate in detection.
+    private final @Unmodifiable Set<Encoding> encodings;
 
     /// Low-confidence fallback used when no candidate survives.
     private final Encoding noMatchEncoding;
@@ -455,8 +447,7 @@ public final class EncodingDetector {
     /// @param maxBytes           maximum leading input bytes examined
     /// @param minimumConfidence  inclusive filtered-candidate confidence bound
     /// @param preferSuperset     whether to remap subset encodings
-    /// @param includeEncodings   optional immutable inclusion filter
-    /// @param excludeEncodings   optional immutable exclusion filter
+    /// @param encodings          immutable permitted encoding targets
     /// @param noMatchEncoding    no-match fallback
     /// @param emptyInputEncoding empty-input fallback
     private EncodingDetector(
@@ -464,8 +455,7 @@ public final class EncodingDetector {
             int maxBytes,
             double minimumConfidence,
             boolean preferSuperset,
-            @Nullable @Unmodifiable Set<Encoding> includeEncodings,
-            @Nullable @Unmodifiable Set<Encoding> excludeEncodings,
+            @Unmodifiable Set<Encoding> encodings,
             Encoding noMatchEncoding,
             Encoding emptyInputEncoding
     ) {
@@ -473,8 +463,7 @@ public final class EncodingDetector {
         this.maxBytes = maxBytes;
         this.minimumConfidence = minimumConfidence;
         this.preferSuperset = preferSuperset;
-        this.includeEncodings = includeEncodings;
-        this.excludeEncodings = excludeEncodings;
+        this.encodings = encodings;
         this.noMatchEncoding = noMatchEncoding;
         this.emptyInputEncoding = emptyInputEncoding;
     }
@@ -507,18 +496,16 @@ public final class EncodingDetector {
         return preferSuperset;
     }
 
-    /// Returns the encoding inclusion filter.
+    /// Returns the encoding targets permitted to participate in detection.
     ///
-    /// @return immutable encodings in enum declaration order, or `null` when unrestricted
-    public @Nullable @Unmodifiable Set<Encoding> includeEncodings() {
-        return includeEncodings;
-    }
-
-    /// Returns the encoding exclusion filter.
+    /// An encoding is eligible only when this set contains it and
+    /// [#encodingEras()] contains its era. An empty set permits no text encoding
+    /// or configured fallback, but does not suppress binary classifications.
+    /// Preferred-superset remapping may produce a result absent from this set.
     ///
-    /// @return immutable encodings in enum declaration order, or `null` when disabled
-    public @Nullable @Unmodifiable Set<Encoding> excludeEncodings() {
-        return excludeEncodings;
+    /// @return immutable permitted encodings in enum declaration order
+    public @Unmodifiable Set<Encoding> encodings() {
+        return encodings;
     }
 
     /// Returns the no-match fallback.
@@ -553,8 +540,7 @@ public final class EncodingDetector {
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
-                includeEncodings,
-                excludeEncodings,
+                encodings,
                 noMatchEncoding,
                 emptyInputEncoding
         );
@@ -575,8 +561,7 @@ public final class EncodingDetector {
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
-                includeEncodings,
-                excludeEncodings,
+                encodings,
                 noMatchEncoding,
                 emptyInputEncoding
         );
@@ -599,8 +584,7 @@ public final class EncodingDetector {
                 value,
                 minimumConfidence,
                 preferSuperset,
-                includeEncodings,
-                excludeEncodings,
+                encodings,
                 noMatchEncoding,
                 emptyInputEncoding
         );
@@ -630,8 +614,7 @@ public final class EncodingDetector {
                 maxBytes,
                 value,
                 preferSuperset,
-                includeEncodings,
-                excludeEncodings,
+                encodings,
                 noMatchEncoding,
                 emptyInputEncoding
         );
@@ -650,80 +633,31 @@ public final class EncodingDetector {
                 maxBytes,
                 minimumConfidence,
                 value,
-                includeEncodings,
-                excludeEncodings,
+                encodings,
                 noMatchEncoding,
                 emptyInputEncoding
         );
     }
 
-    /// Returns a detector using an optional encoding inclusion filter.
+    /// Returns a detector using the supplied set of permitted encoding targets.
     ///
-    /// @param value encodings to include, or `null` to disable the filter
+    /// The supplied set is applied together with [#encodingEras()]. An empty set
+    /// permits no text encoding or configured fallback, but does not suppress
+    /// binary classifications.
+    ///
+    /// @param value permitted encodings; may be empty
     /// @return this detector if unchanged; otherwise a new detector
-    /// @throws NullPointerException     if an element is `null`
-    /// @throws IllegalArgumentException if the set is empty
-    public EncodingDetector withIncludedEncodings(@Nullable Set<Encoding> value) {
-        @Nullable @Unmodifiable Set<Encoding> included;
-        if (value == null) {
-            if (includeEncodings == null) {
-                return this;
-            }
-            included = null;
-        } else {
-            if (value.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "value must not be empty; pass null to disable filtering"
-                );
-            }
-            if (includeEncodings != null && includeEncodings.equals(value)) {
-                return this;
-            }
-            included = immutableEncodings(value);
+    /// @throws NullPointerException if `value` or an element is `null`
+    public EncodingDetector withEncodings(Set<Encoding> value) {
+        if (encodings.equals(value)) {
+            return this;
         }
         return new EncodingDetector(
                 encodingEras,
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
-                included,
-                excludeEncodings,
-                noMatchEncoding,
-                emptyInputEncoding
-        );
-    }
-
-    /// Returns a detector using an optional encoding exclusion filter.
-    ///
-    /// @param value encodings to exclude, or `null` to disable the filter
-    /// @return this detector if unchanged; otherwise a new detector
-    /// @throws NullPointerException     if an element is `null`
-    /// @throws IllegalArgumentException if the set is empty
-    public EncodingDetector withExcludedEncodings(@Nullable Set<Encoding> value) {
-        @Nullable @Unmodifiable Set<Encoding> excluded;
-        if (value == null) {
-            if (excludeEncodings == null) {
-                return this;
-            }
-            excluded = null;
-        } else {
-            if (value.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "value must not be empty; pass null to disable filtering"
-                );
-            }
-            if (excludeEncodings != null && excludeEncodings.equals(value)) {
-                return this;
-            }
-            excluded = immutableEncodings(value);
-        }
-        return new EncodingDetector(
-                encodingEras,
-                maxBytes,
-                minimumConfidence,
-                preferSuperset,
-                includeEncodings,
-                excluded,
+                immutableEncodings(value),
                 noMatchEncoding,
                 emptyInputEncoding
         );
@@ -744,8 +678,7 @@ public final class EncodingDetector {
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
-                includeEncodings,
-                excludeEncodings,
+                encodings,
                 value,
                 emptyInputEncoding
         );
@@ -766,8 +699,7 @@ public final class EncodingDetector {
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
-                includeEncodings,
-                excludeEncodings,
+                encodings,
                 noMatchEncoding,
                 value
         );
@@ -921,9 +853,9 @@ public final class EncodingDetector {
         return Collections.unmodifiableSet(copy);
     }
 
-    /// Copies an encoding filter.
+    /// Copies an encoding set while preserving enum declaration order.
     ///
-    /// @param encodings nonempty supplied encodings
+    /// @param encodings supplied encodings
     /// @return immutable encoding set
     private static @Unmodifiable Set<Encoding> immutableEncodings(Set<Encoding> encodings) {
         EnumSet<Encoding> copy = EnumSet.noneOf(Encoding.class);

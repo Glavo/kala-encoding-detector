@@ -93,23 +93,19 @@ public final class EncodingRegistry {
         return BY_ENCODING.get(encoding);
     }
 
-    /// Returns candidates after applying era, include, and exclude filters.
+    /// Returns candidates present in the configured encoding and era sets.
     ///
     /// @param detector immutable detector configuration
     /// @return immutable entries in registry order
     static @Unmodifiable List<Info> candidates(EncodingDetector detector) {
         Set<Era> eras = detector.encodingEras();
-        @Nullable Set<Encoding> included = detector.includeEncodings();
-        @Nullable Set<Encoding> excluded = detector.excludeEncodings();
+        Set<Encoding> encodings = detector.encodings();
         ArrayList<Info> result = new ArrayList<>(ENTRIES.size());
         for (Info entry : ENTRIES) {
             if (!eras.contains(entry.era())) {
                 continue;
             }
-            if (included != null && !included.contains(entry.encoding())) {
-                continue;
-            }
-            if (excluded != null && excluded.contains(entry.encoding())) {
+            if (!encodings.contains(entry.encoding())) {
                 continue;
             }
             result.add(entry);

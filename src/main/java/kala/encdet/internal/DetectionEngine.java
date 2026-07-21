@@ -257,7 +257,7 @@ public final class DetectionEngine {
             LOGGER.log(
                     System.Logger.Level.WARNING,
                     optionName + " '" + encoding.canonicalName()
-                            + "' is excluded by includeEncodings/excludeEncodings; returning no encoding"
+                            + "' is not in the configured encoding set; returning no encoding"
             );
             return List.of(NONE_RESULT);
         }
