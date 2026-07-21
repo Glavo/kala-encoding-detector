@@ -71,6 +71,7 @@ Gradle task. For example, this command performs a short focused run:
 ```java
 import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingDetector.Candidate;
+import kala.encdet.EncodingDetector.Encoding;
 import kala.encdet.EncodingDetector.Result;
 
 import java.nio.file.Files;
@@ -78,14 +79,11 @@ import java.nio.file.Path;
 
 byte[] input = Files.readAllBytes(Path.of("document.txt"));
 Result result = EncodingDetector.DEFAULT.detect(input);
-Candidate candidate = result.bestCandidate();
+Encoding encoding = result.bestEncoding();
+System.out.println(encoding == null ? null : encoding.canonicalName());
 
-if (candidate == null) {
-    System.out.println("No candidate matched");
-} else {
-    System.out.println(
-            candidate.encoding() == null ? null : candidate.encoding().canonicalName()
-    );
+Candidate candidate = result.bestCandidate();
+if (candidate != null) {
     System.out.println(candidate.confidence());
     System.out.println(candidate.language());
     System.out.println(candidate.mimeType());
@@ -100,18 +98,22 @@ pipeline: arrays are wrapped, while buffers are sliced over their current
 remaining region. Callers must not modify the underlying bytes while a
 detection call is in progress.
 
-`Result.candidates()` contains every candidate in stable
-descending-confidence order, while `Result.likelyCandidates()` contains the
-prefix whose confidence is greater than or equal to the detector's configured
-minimum, which defaults to `0.20`. If no candidate reaches the threshold, the
-likely list contains every candidate. Both lists are immutable and are empty
-when nothing matches. `Result.bestCandidate()` returns the first candidate or
-`null` when the result is empty.
+`Result.candidates()` is an immutable list containing only candidates whose
+confidence is greater than or equal to the detector's configured minimum,
+which defaults to `0.20`. The list uses stable descending-confidence order and
+may be empty. Configure a minimum of `0.0` to retain every candidate produced by
+the detection pipeline. `Result.bestCandidate()` returns the first candidate or
+`null` when the list is empty.
+
+`Result.bestEncoding()` returns the recommended encoding. It normally matches
+the first candidate, but empty-input and no-match policies can provide a
+recommendation without creating a candidate. It is `null` when no encoding is
+recommended or when the leading candidate identifies a non-text format.
 
 Each `Candidate` carries an encoding, confidence, language, and MIME type. A
 candidate returned by the detector may have a `null` encoding for binary input
 or another recognized non-text format, and may have a `null` language when it
-cannot be determined. A no-match result contains no candidates.
+cannot be determined. Empty input and no-match policies never create candidates.
 
 ```java
 import kala.encdet.EncodingDetector;
@@ -129,8 +131,10 @@ EncodingDetector detector = EncodingDetector.DEFAULT
 Result result = detector.detect(input);
 ```
 
-This example explicitly opts into CP1252 as the no-match fallback. Passing
-`null` to `withNoMatchEncoding` disables fallback guessing.
+This example explicitly opts into CP1252 as the recommendation when nonempty
+input has no qualifying text candidate. That recommendation is available from
+`bestEncoding()` but is not represented by a `Candidate`. Passing `null` to
+`withNoMatchEncoding` disables the recommendation.
 
 `EncodingDetector` is immutable. Every `withXxx` method leaves its receiver
 unchanged. It returns that receiver when the requested value is already
@@ -163,19 +167,20 @@ target as an immutable set in enum declaration order.
 `EncodingDetector.DEFAULT` permits all supported encodings and uses:
 
 - `maxBytes = 200_000`
+- `minimumConfidence = 0.20`
 - no preferred-superset remapping
 - every supported encoding in the effective encoding set
-- an empty result when no candidate survives
-- `EncodingDetector.Encoding.UTF_8` for empty input
+- no recommendation when nonempty input has no qualifying text candidate
+- `EncodingDetector.Encoding.UTF_8` as the empty-input recommendation
 
 The configured encoding set contains all supported targets by default; an
 empty set permits no text encoding. It also gates BOM, markup, escape, and
-fallback results. Binary classification is not filtered and is reported with a
-`null` encoding and an appropriate MIME type.
+configured recommendations. Binary classification is not filtered by encoding
+selection and is reported with a `null` encoding and an appropriate MIME type.
 
-When the text-detection pipeline produces no candidate, the default detector
-returns a `Result` with empty candidate lists. Configure `withNoMatchEncoding`
-to opt into a specific low-confidence fallback.
+When no text candidate meets the confidence threshold, the default detector
+returns a `Result` with an empty candidate list and no recommended encoding.
+Configure `withNoMatchEncoding` to opt into a specific recommendation.
 
 `EncodingDetector` instances are safe for concurrent use. Registry, validity,
 decode, model, and confusion data are immutable after thread-safe lazy
@@ -203,7 +208,7 @@ type document.txt | kala-encdet
 
 Use `kala-encdet --help` for the complete option summary.
 
-The CLI likewise has no no-match fallback by default;
+The CLI likewise has no no-match recommendation by default;
 `--no-match-encoding` explicitly enables one for that invocation.
 
 The CLI accepts textual aliases and renders each detected enum value through

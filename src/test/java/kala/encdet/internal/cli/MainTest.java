@@ -119,16 +119,17 @@ final class MainTest {
     void resolvesEncodingAliasesAndPrintsDisplayNames() {
         RunResult result = invoke(
                 new String[]{"--minimal", "--include-encodings", "windows-1252"},
-                "Héllo café".getBytes(StandardCharsets.ISO_8859_1)
+                "<meta charset=\"windows-1252\">Héllo café"
+                        .getBytes(StandardCharsets.ISO_8859_1)
         );
         assertEquals(0, result.status());
         assertEquals("Windows-1252" + System.lineSeparator(), result.output());
         assertEquals("", result.error());
     }
 
-    /// Verifies no-match fallback is disabled by default and remains configurable.
+    /// Verifies the no-match recommendation is disabled by default and configurable.
     @Test
-    void configuresOptionalNoMatchFallback() {
+    void configuresOptionalNoMatchRecommendation() {
         byte[] input = {(byte) 0xe9, (byte) 0xe9, (byte) 0xe9};
         RunResult disabled = invoke(
                 new String[]{"--minimal", "--include-encodings", "ascii"},
@@ -160,6 +161,32 @@ final class MainTest {
         assertEquals(0, configured.status());
         assertEquals("ascii" + System.lineSeparator(), configured.output());
         assertEquals("", configured.error());
+
+        RunResult configuredDetailed = invoke(
+                new String[]{
+                        "--include-encodings", "ascii",
+                        "--no-match-encoding", "ascii"
+                },
+                input
+        );
+        assertEquals(0, configuredDetailed.status());
+        assertEquals(
+                "stdin: ascii with confidence 0.0" + System.lineSeparator(),
+                configuredDetailed.output()
+        );
+        assertEquals("", configuredDetailed.error());
+    }
+
+    /// Verifies an empty-input recommendation is printed without detection confidence.
+    @Test
+    void printsEmptyInputRecommendationWithoutEvidence() {
+        RunResult result = invoke(new String[0], new byte[0]);
+        assertEquals(0, result.status());
+        assertEquals(
+                "stdin: utf-8 with confidence 0.0" + System.lineSeparator(),
+                result.output()
+        );
+        assertEquals("", result.error());
     }
 
     /// Verifies CLI inclusion and exclusion produce one effective encoding set.
@@ -204,7 +231,7 @@ final class MainTest {
         RunResult help = invoke(new String[]{"--help"}, new byte[0]);
         assertEquals(0, help.status());
         assertTrue(help.output().startsWith("usage: kala-encdet"));
-        assertTrue(help.output().contains("no-match fallback (default: none)"));
+        assertTrue(help.output().contains("no-match recommendation (default: none)"));
         assertEquals("", help.error());
     }
 

@@ -26,16 +26,19 @@ import java.util.*;
 ///
 /// Candidate eligibility is defined by the configured encoding set. Era-based
 /// configuration methods replace that set with the encodings classified in the
-/// requested eras. The set also gates BOM, markup, escape, and fallback results;
-/// binary classifications have no encoding and are not filtered. If no
-/// fallback is configured or the configured fallback is ineligible, the
-/// detector returns a result with no candidates.
+/// requested eras. The set also gates BOM, markup, escape, and configured
+/// recommendations. Binary classifications have no encoding and are unaffected
+/// by encoding-set selection. An absent or ineligible recommendation is
+/// reported as `null`.
 ///
-/// Preferred-superset remapping, when enabled, occurs after candidate
+/// Preferred-superset remapping, when enabled, occurs after encoding-set
 /// filtering. A reported superset may therefore be absent from the configured
 /// encoding set.
 @NotNullByDefault
 public final class EncodingDetector {
+    /// Logger used when a configured recommendation is excluded by the encoding set.
+    private static final System.Logger LOGGER = System.getLogger(EncodingDetector.class.getName());
+
     /// Represents one ordered character-encoding detection target.
     ///
     /// Enum identity is the authoritative encoding representation used by the
@@ -1067,39 +1070,36 @@ public final class EncodingDetector {
         }
     }
 
-    /// Contains the complete and likely candidate lists for one detection outcome.
+    /// Contains the candidates and recommended encoding for one detection outcome.
     ///
-    /// Both lists are immutable snapshots. The complete list is sorted by
-    /// descending confidence, and the likely list is a prefix of it. Results
-    /// returned by [#detect(byte[])] and [#detect(ByteBuffer)] use stable ordering
-    /// for equal confidences and select the likely prefix using the detector's
-    /// [#minimumConfidence()] value. When no candidate reaches that threshold,
-    /// the likely list contains every candidate. A no-match result has both
-    /// lists empty.
+    /// The candidate list is an immutable snapshot in descending-confidence
+    /// order. Results returned by [#detect(byte[])] and [#detect(ByteBuffer)]
+    /// contain only candidates whose confidence meets the detector's inclusive
+    /// [#minimumConfidence()] value, with stable ordering for equal confidences.
     ///
-    /// @param candidates       all candidates in descending-confidence order;
-    ///                         may be empty
-    /// @param likelyCandidates a prefix of `candidates`; empty only when
-    ///                         `candidates` is empty
+    /// A recommendation can exist without a candidate. This occurs when the
+    /// detector applies its configured empty-input or no-match policy. Such a
+    /// recommendation carries no confidence, language, or MIME type. When a
+    /// candidate is present, the recommendation is exactly the first candidate's
+    /// encoding and may therefore be `null` for a non-text classification.
+    ///
+    /// @param candidates   qualifying candidates in descending-confidence order;
+    ///                     may be empty
+    /// @param bestEncoding recommended encoding, or `null` when no encoding is
+    ///                     recommended
     @NotNullByDefault
     public record Result(
             @Unmodifiable List<Candidate> candidates,
-            @Unmodifiable List<Candidate> likelyCandidates
+            @Nullable Encoding bestEncoding
     ) {
-        /// Creates a result after copying and validating its candidate lists.
+        /// Creates a result after copying and validating its candidates.
         ///
-        /// @throws NullPointerException if either list or an element is `null`
-        /// @throws IllegalArgumentException if a nonempty complete list has an
-        /// empty likely list, the complete list is not in descending-confidence
-        /// order, or the likely list is not a prefix of the complete list
+        /// @throws NullPointerException     if `candidates` or an element is `null`
+        /// @throws IllegalArgumentException if candidates are not in
+        /// descending-confidence order, or a nonempty list's first candidate
+        /// does not have `bestEncoding`
         public Result {
             candidates = List.copyOf(candidates);
-            likelyCandidates = List.copyOf(likelyCandidates);
-            if (!candidates.isEmpty() && likelyCandidates.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "likelyCandidates must not be empty when candidates is nonempty"
-                );
-            }
             for (int index = 1; index < candidates.size(); index++) {
                 if (candidates.get(index - 1).confidence()
                         < candidates.get(index).confidence()) {
@@ -1108,42 +1108,32 @@ public final class EncodingDetector {
                     );
                 }
             }
-            if (likelyCandidates.size() > candidates.size()
-                    || !candidates.subList(0, likelyCandidates.size())
-                    .equals(likelyCandidates)) {
+            if (!candidates.isEmpty()
+                    && candidates.get(0).encoding() != bestEncoding) {
                 throw new IllegalArgumentException(
-                        "likelyCandidates must be a prefix of candidates"
+                        "bestEncoding must match the highest-ranked candidate"
                 );
             }
         }
 
         /// Returns the highest-ranked candidate, if present.
         ///
-        /// @return first candidate in the complete list, or `null` when no
-        /// candidate matched
+        /// @return first candidate, or `null` when `candidates` is empty
         public @Nullable Candidate bestCandidate() {
             return candidates.isEmpty() ? null : candidates.get(0);
         }
-
-        /// Returns the encoding assigned to the highest-ranked candidate.
-        ///
-        /// @return highest-ranked candidate's encoding, or `null` when the result
-        /// is empty or its highest-ranked candidate represents a non-text format
-        public @Nullable Encoding bestEncoding() {
-            return candidates.isEmpty() ? null : candidates.get(0).encoding();
-        }
     }
 
-    /// Default inclusive confidence threshold used by
-    /// [Result#likelyCandidates()].
+    /// Default inclusive confidence threshold used by [Result#candidates()].
     public static final double DEFAULT_MINIMUM_CONFIDENCE = 0.20;
 
     /// Default detector with every encoding target enabled.
     ///
-    /// It examines at most 200,000 bytes, reports candidates with confidence of
-    /// at least `0.20` as likely, disables preferred-superset remapping, allows
-    /// every encoding target, returns an empty result when no candidate survives,
-    /// and uses [Encoding#UTF_8] for empty input.
+    /// It examines at most 200,000 bytes, retains candidates with confidence of
+    /// at least `0.20`, disables preferred-superset remapping, allows every
+    /// encoding target, makes no recommendation when nonempty input has no
+    /// qualifying text candidate, and recommends [Encoding#UTF_8] for empty
+    /// input.
     public static final EncodingDetector DEFAULT = new EncodingDetector(
             200_000,
             DEFAULT_MINIMUM_CONFIDENCE,
@@ -1156,14 +1146,14 @@ public final class EncodingDetector {
     /// Preset detector limited to encodings classified in [Era#MODERN_WEB].
     ///
     /// Its maximum input length, confidence threshold, preferred-superset
-    /// setting, and fallback encodings are identical to those of [#DEFAULT].
+    /// setting, and recommendation encodings are identical to those of [#DEFAULT].
     public static final EncodingDetector MODERN_WEB =
             DEFAULT.withEncodingEra(Era.MODERN_WEB);
 
     /// Maximum number of leading input bytes examined.
     private final int maxBytes;
 
-    /// Inclusive lower confidence bound applied to likely candidate lists.
+    /// Inclusive lower confidence bound applied to result candidate lists.
     private final double minimumConfidence;
 
     /// Whether subset encodings are remapped to preferred supersets.
@@ -1172,20 +1162,20 @@ public final class EncodingDetector {
     /// Encoding targets permitted to participate in detection.
     private final @Unmodifiable EnumSet<Encoding> encodings;
 
-    /// Optional low-confidence fallback used when no candidate survives.
+    /// Optional encoding recommended when nonempty input has no qualifying text candidate.
     private final @Nullable Encoding noMatchEncoding;
 
-    /// Low-confidence fallback used for empty input.
+    /// Encoding recommended for empty input.
     private final Encoding emptyInputEncoding;
 
     /// Creates a detector from validated immutable configuration state.
     ///
     /// @param maxBytes           maximum leading input bytes examined
-    /// @param minimumConfidence  inclusive likely-candidate confidence bound
+    /// @param minimumConfidence  inclusive candidate confidence bound
     /// @param preferSuperset     whether to remap subset encodings
     /// @param encodings          immutable permitted encoding targets
-    /// @param noMatchEncoding    no-match fallback, or `null` to return an empty result
-    /// @param emptyInputEncoding empty-input fallback
+    /// @param noMatchEncoding    no-match recommendation, or `null` for none
+    /// @param emptyInputEncoding empty-input recommendation
     private EncodingDetector(
             int maxBytes,
             double minimumConfidence,
@@ -1229,9 +1219,9 @@ public final class EncodingDetector {
     /// method replaces it rather than adding another filter. The returned view
     /// cannot be modified.
     ///
-    /// An empty set permits no text encoding or configured fallback, but does
-    /// not suppress binary classifications. Preferred-superset remapping may
-    /// produce a result absent from this set.
+    /// An empty set permits no text encoding or configured recommendation, but
+    /// does not suppress binary classifications. Preferred-superset remapping
+    /// may produce a result absent from this set.
     ///
     /// @return an immutable view of the permitted encodings in enum declaration
     /// order
@@ -1240,16 +1230,16 @@ public final class EncodingDetector {
         return Collections.unmodifiableSet(encodings);
     }
 
-    /// Returns the optional no-match fallback.
+    /// Returns the optional no-match recommendation.
     ///
-    /// @return fallback encoding, or `null` when no fallback is configured
+    /// @return recommended encoding, or `null` when none is configured
     public @Nullable Encoding noMatchEncoding() {
         return noMatchEncoding;
     }
 
-    /// Returns the empty-input fallback.
+    /// Returns the empty-input recommendation.
     ///
-    /// @return fallback encoding
+    /// @return recommended encoding
     public Encoding emptyInputEncoding() {
         return emptyInputEncoding;
     }
@@ -1347,11 +1337,11 @@ public final class EncodingDetector {
         );
     }
 
-    /// Returns a detector with a new likely-candidate confidence threshold.
+    /// Returns a detector with a new candidate confidence threshold.
     ///
-    /// [Result#likelyCandidates()] contains candidates whose confidence is
-    /// greater than or equal to this value. If none qualify, it contains every
-    /// candidate.
+    /// [Result#candidates()] contains only candidates whose confidence is
+    /// greater than or equal to this value. A value of `0.0` retains every
+    /// candidate produced by the detection pipeline.
     ///
     /// @param value a finite value in `[0.0, 1.0]`
     /// @return this detector if unchanged; otherwise a new detector
@@ -1416,8 +1406,8 @@ public final class EncodingDetector {
     /// This method replaces the same effective encoding set as
     /// [#withEncodingEras(Collection)]. Argument order and duplicate encodings
     /// have no effect. An empty collection permits no text encoding or
-    /// configured fallback, but does not suppress binary classifications. The
-    /// collection is copied and is not retained.
+    /// configured recommendation, but does not suppress binary classifications.
+    /// The collection is copied and is not retained.
     ///
     /// @param value permitted encodings; may be empty
     /// @return this detector if its effective encoding set is unchanged;
@@ -1429,13 +1419,14 @@ public final class EncodingDetector {
         return withEncodingSet(copy);
     }
 
-    /// Returns a detector using the supplied optional no-match fallback.
+    /// Returns a detector using the supplied optional no-match recommendation.
     ///
-    /// A `null` value disables fallback guessing. When the detection pipeline
-    /// produces no candidate, the resulting [Result] then has empty candidate
-    /// lists.
+    /// When nonempty input has no qualifying text candidate, the configured
+    /// encoding is returned by [Result#bestEncoding()] without adding a
+    /// [Candidate]. A `null` value disables that recommendation. This policy
+    /// does not replace a detected non-text classification.
     ///
-    /// @param value fallback encoding, or `null` to disable the fallback
+    /// @param value recommended encoding, or `null` to disable the recommendation
     /// @return this detector if unchanged; otherwise a new detector
     public EncodingDetector withNoMatchEncoding(@Nullable Encoding value) {
         if (noMatchEncoding == value) {
@@ -1451,9 +1442,12 @@ public final class EncodingDetector {
         );
     }
 
-    /// Returns a detector using the supplied empty-input fallback.
+    /// Returns a detector using the supplied empty-input recommendation.
     ///
-    /// @param value fallback encoding
+    /// Empty input produces no [Candidate]. If this encoding is permitted by
+    /// [#encodings()], it is returned by [Result#bestEncoding()].
+    ///
+    /// @param value recommended encoding
     /// @return this detector if unchanged; otherwise a new detector
     /// @throws NullPointerException if `value` is `null`
     public EncodingDetector withEmptyInputEncoding(Encoding value) {
@@ -1478,8 +1472,8 @@ public final class EncodingDetector {
     /// is never modified. Its contents must not be changed during detection.
     ///
     /// @param input bytes to examine
-    /// @return immutable result containing every candidate and the likely
-    /// candidate prefix
+    /// @return immutable result containing qualifying candidates and the
+    /// recommended encoding
     /// @throws NullPointerException if `input` is `null`
     public Result detect(byte[] input) {
         return detectNormalized(ByteBufferSupport.wrap(input));
@@ -1493,8 +1487,8 @@ public final class EncodingDetector {
     /// read directly without copying and must not change during detection.
     ///
     /// @param input buffer whose remaining bytes are examined
-    /// @return immutable result containing every candidate and the likely
-    /// candidate prefix
+    /// @return immutable result containing qualifying candidates and the
+    /// recommended encoding
     /// @throws NullPointerException if `input` is `null`
     public Result detect(ByteBuffer input) {
         return detectNormalized(ByteBufferSupport.view(input));
@@ -1505,19 +1499,53 @@ public final class EncodingDetector {
     /// @param input bytes to examine
     /// @return immutable aggregate result
     private Result detectNormalized(@UnmodifiableView ByteBuffer input) {
-        List<Candidate> candidates = DetectionEngine.detect(input, this).stream()
+        List<Candidate> detectedCandidates = DetectionEngine.detect(input, this).stream()
                 .sorted(Comparator.comparingDouble(Candidate::confidence).reversed())
                 .toList();
-        int likelyCount = 0;
-        while (likelyCount < candidates.size()
-                && candidates.get(likelyCount).confidence() >= minimumConfidence) {
-            likelyCount++;
+        int candidateCount = 0;
+        while (candidateCount < detectedCandidates.size()
+                && detectedCandidates.get(candidateCount).confidence() >= minimumConfidence) {
+            candidateCount++;
         }
-        List<Candidate> likelyCandidates = likelyCount == 0
-                || likelyCount == candidates.size()
-                ? candidates
-                : candidates.subList(0, likelyCount);
-        return new Result(candidates, likelyCandidates);
+        List<Candidate> candidates = candidateCount == detectedCandidates.size()
+                ? detectedCandidates
+                : detectedCandidates.subList(0, candidateCount);
+
+        @Nullable Encoding bestEncoding;
+        if (!candidates.isEmpty()) {
+            bestEncoding = candidates.get(0).encoding();
+        } else if (input.remaining() == 0) {
+            bestEncoding = recommendation(emptyInputEncoding, "emptyInputEncoding");
+        } else if (!detectedCandidates.isEmpty()
+                && detectedCandidates.get(0).encoding() == null) {
+            bestEncoding = null;
+        } else {
+            bestEncoding = recommendation(noMatchEncoding, "noMatchEncoding");
+        }
+        return new Result(candidates, bestEncoding);
+    }
+
+    /// Returns an eligible configured recommendation after public-name remapping.
+    ///
+    /// @param encoding   configured encoding, or `null`
+    /// @param optionName option name used in an exclusion warning
+    /// @return recommended encoding, or `null` when absent or excluded
+    private @Nullable Encoding recommendation(
+            @Nullable Encoding encoding,
+            String optionName
+    ) {
+        if (encoding == null) {
+            return null;
+        }
+        if (!encodings.contains(encoding)) {
+            LOGGER.log(
+                    System.Logger.Level.WARNING,
+                    optionName + " '" + encoding.canonicalName()
+                            + "' is not in the configured encoding set; returning no encoding"
+            );
+            return null;
+        }
+        return DetectionEngine.transformEncoding(encoding, this);
     }
 
     /// Returns a detector using an already validated independent encoding set.

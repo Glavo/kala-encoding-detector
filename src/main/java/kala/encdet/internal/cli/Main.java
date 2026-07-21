@@ -7,6 +7,7 @@ import kala.encdet.EncodingDetector;
 import kala.encdet.EncodingDetector.Candidate;
 import kala.encdet.EncodingDetector.Encoding;
 import kala.encdet.EncodingDetector.Era;
+import kala.encdet.EncodingDetector.Result;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -118,8 +119,8 @@ public final class Main {
                     continue;
                 }
                 try {
-                    @Nullable Candidate candidate = parsed.toDetector().detect(data).bestCandidate();
-                    printCandidate(candidate, file, parsed.minimal, parsed.language, output);
+                    Result result = parsed.toDetector().detect(data);
+                    printResult(result, file, parsed.minimal, parsed.language, output);
                 } catch (RuntimeException exception) {
                     error.println(
                             "kala-encdet: " + file + ": detection failed: " + exception.getMessage()
@@ -138,8 +139,8 @@ public final class Main {
             return 1;
         }
         try {
-            @Nullable Candidate candidate = parsed.toDetector().detect(data).bestCandidate();
-            printCandidate(candidate, "stdin", parsed.minimal, parsed.language, output);
+            Result result = parsed.toDetector().detect(data);
+            printResult(result, "stdin", parsed.minimal, parsed.language, output);
             return 0;
         } catch (RuntimeException exception) {
             error.println("kala-encdet: stdin: detection failed: " + exception.getMessage());
@@ -149,21 +150,23 @@ public final class Main {
 
     /// Prints one detection outcome in reference-compatible detailed or minimal form.
     ///
-    /// @param candidate       highest-ranked candidate, or `null` when none matched
+    /// @param result          detection result
     /// @param label           file name or `stdin`
     /// @param minimal         whether only compact tokens are printed
     /// @param includeLanguage whether language information is printed
     /// @param output          destination stream
-    private static void printCandidate(
-            @Nullable Candidate candidate,
+    private static void printResult(
+            Result result,
             String label,
             boolean minimal,
             boolean includeLanguage,
             PrintStream output
     ) {
-        String encodingText = candidate == null || candidate.encoding() == null
+        @Nullable Candidate candidate = result.bestCandidate();
+        @Nullable Encoding encoding = result.bestEncoding();
+        String encodingText = encoding == null
                 ? "None"
-                : candidate.encoding().displayName();
+                : encoding.displayName();
         if (minimal) {
             output.println(includeLanguage
                     ? encodingText + " " + languageCode(candidate)
@@ -216,8 +219,8 @@ public final class Main {
         output.println("                                legacy_regional, dos, mainframe, or all");
         output.println("  -i, --include-encodings LIST comma-separated encodings to consider");
         output.println("  -x, --exclude-encodings LIST comma-separated encodings to exclude");
-        output.println("  --no-match-encoding NAME     no-match fallback (default: none)");
-        output.println("  --empty-input-encoding NAME  empty-input fallback (default: utf-8)");
+        output.println("  --no-match-encoding NAME     no-match recommendation (default: none)");
+        output.println("  --empty-input-encoding NAME  empty-input recommendation (default: utf-8)");
         output.println("  --version                    show version");
         output.println("  -h, --help                   show this help");
     }
@@ -246,10 +249,10 @@ public final class Main {
         /// Optional raw exclude filter.
         private @Nullable Set<String> excludeNames;
 
-        /// Optional raw no-match fallback.
+        /// Optional raw no-match recommendation.
         private @Nullable String noMatchName;
 
-        /// Raw empty-input fallback.
+        /// Raw empty-input recommendation.
         private String emptyInputName = "utf-8";
 
         /// Positional file names.

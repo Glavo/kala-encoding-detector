@@ -287,10 +287,10 @@ final class PublicApiTest {
                         "Hello world".getBytes(StandardCharsets.US_ASCII)
                 ).bestCandidate()
         );
-        assertEquals(
-                new Candidate(Encoding.UTF_8, 0.10, null, "text/plain"),
-                detector.detect(new byte[0]).bestCandidate()
-        );
+        Result empty = detector.detect(new byte[0]);
+        assertTrue(empty.candidates().isEmpty());
+        assertNull(empty.bestCandidate());
+        assertEquals(Encoding.UTF_8, empty.bestEncoding());
         assertEquals(
                 Encoding.UTF_8_SIG,
                 detector.detect(
@@ -338,8 +338,8 @@ final class PublicApiTest {
                 .asReadOnlyBuffer();
         assertEquals(expected, detector.detect(readOnlySlice));
         assertEquals(
-                expected.likelyCandidates(),
-                detector.detect(readOnlySlice).likelyCandidates()
+                expected.bestEncoding(),
+                detector.detect(readOnlySlice).bestEncoding()
         );
 
         ByteBuffer empty = ByteBuffer.allocateDirect(4);
@@ -357,12 +357,28 @@ final class PublicApiTest {
                 Encoding.ASCII,
                 EncodingDetector.DEFAULT.detect(data).bestEncoding()
         );
+
+        EncodingDetector preferredRecommendation = preferred
+                .withEncodings(Encoding.ASCII)
+                .withNoMatchEncoding(Encoding.ASCII)
+                .withEmptyInputEncoding(Encoding.ASCII);
+        assertEquals(
+                Encoding.CP1252,
+                preferredRecommendation.detect(new byte[0]).bestEncoding()
+        );
+        assertEquals(
+                Encoding.CP1252,
+                preferredRecommendation.detect(
+                        new byte[]{(byte) 0x80, (byte) 0x81, (byte) 0x82}
+                ).bestEncoding()
+        );
     }
 
-    /// Verifies encoding eligibility and fallback gating.
+    /// Verifies encoding eligibility and recommendation gating.
     @Test
-    void appliesEncodingSetAndFallbacks() {
+    void appliesEncodingSetAndRecommendations() {
         EncodingDetector includeCp1252 = EncodingDetector.DEFAULT
+                .withMinimumConfidence(0.0)
                 .withEncodings(Set.of(Encoding.CP1252));
         assertEquals(
                 Encoding.CP1252,
@@ -376,33 +392,36 @@ final class PublicApiTest {
                 "Hello".getBytes(StandardCharsets.US_ASCII)
         );
         assertTrue(none.candidates().isEmpty());
-        assertTrue(none.likelyCandidates().isEmpty());
         assertNull(none.bestCandidate());
-        assertTrue(noEncodings.detect(new byte[0]).candidates().isEmpty());
+        assertNull(none.bestEncoding());
+        Result noEncodingEmpty = noEncodings.detect(new byte[0]);
+        assertTrue(noEncodingEmpty.candidates().isEmpty());
+        assertNull(noEncodingEmpty.bestEncoding());
 
-        EncodingDetector noFallback = EncodingDetector.DEFAULT
+        EncodingDetector noRecommendation = EncodingDetector.DEFAULT
                 .withEncodings(Set.of(Encoding.ASCII));
-        Result noMatch = noFallback.detect(
+        Result noMatch = noRecommendation.detect(
                 new byte[]{(byte) 0x80, (byte) 0x81, (byte) 0x82}
         );
         assertTrue(noMatch.candidates().isEmpty());
-        assertTrue(noMatch.likelyCandidates().isEmpty());
         assertNull(noMatch.bestCandidate());
+        assertNull(noMatch.bestEncoding());
 
-        EncodingDetector customFallbacks = EncodingDetector.DEFAULT
+        EncodingDetector customRecommendations = EncodingDetector.DEFAULT
                 .withEncodings(Set.of(Encoding.ASCII))
                 .withNoMatchEncoding(Encoding.ASCII)
                 .withEmptyInputEncoding(Encoding.ASCII);
-        assertEquals(
-                Encoding.ASCII,
-                customFallbacks.detect(new byte[0]).bestEncoding()
+        Result emptyRecommendation = customRecommendations.detect(new byte[0]);
+        assertTrue(emptyRecommendation.candidates().isEmpty());
+        assertNull(emptyRecommendation.bestCandidate());
+        assertEquals(Encoding.ASCII, emptyRecommendation.bestEncoding());
+
+        Result noMatchRecommendation = customRecommendations.detect(
+                new byte[]{(byte) 0x80, (byte) 0x81, (byte) 0x82}
         );
-        assertEquals(
-                Encoding.ASCII,
-                customFallbacks.detect(
-                        new byte[]{(byte) 0x80, (byte) 0x81, (byte) 0x82}
-                ).bestEncoding()
-        );
+        assertTrue(noMatchRecommendation.candidates().isEmpty());
+        assertNull(noMatchRecommendation.bestCandidate());
+        assertEquals(Encoding.ASCII, noMatchRecommendation.bestEncoding());
     }
 
     /// Verifies BOM results are gated by the same candidate filters.
@@ -412,6 +431,7 @@ final class PublicApiTest {
         EncodingDetector excluded = EncodingDetector.DEFAULT
                 .withEncodings(EnumSet.complementOf(EnumSet.of(Encoding.UTF_8_SIG)));
         EncodingDetector included = EncodingDetector.DEFAULT
+                .withMinimumConfidence(0.0)
                 .withEncodings(Set.of(Encoding.CP1252));
         assertEquals(Encoding.UTF_8, excluded.detect(data).bestEncoding());
         assertEquals(Encoding.CP1252, included.detect(data).bestEncoding());
@@ -436,38 +456,26 @@ final class PublicApiTest {
         );
     }
 
-    /// Verifies aggregate candidate filtering, stable ordering, and immutability.
+    /// Verifies aggregate candidate stable ordering and immutability.
     @Test
     void resultContainsStableImmutableCandidates() {
         byte[] data = {
                 (byte) 0xe9, (byte) 0xe8, (byte) 0xea, (byte) 0xeb,
                 (byte) 0xf6, (byte) 0xfc, (byte) 0xe4
         };
-        EncodingDetector detector = EncodingDetector.DEFAULT;
+        EncodingDetector detector = EncodingDetector.DEFAULT.withMinimumConfidence(0.0);
         Result result = detector.detect(data);
         List<Candidate> all = result.candidates();
-        List<Candidate> filtered = result.likelyCandidates();
         assertFalse(all.isEmpty());
         assertEquals(result.bestCandidate(), all.get(0));
-        double minimumConfidence = detector.minimumConfidence();
-        if (all.stream().anyMatch(candidate -> candidate.confidence() >= minimumConfidence)) {
-            assertTrue(
-                    filtered.stream()
-                            .allMatch(candidate -> candidate.confidence() >= minimumConfidence)
-            );
-        } else {
-            assertEquals(all, filtered);
-        }
+        assertEquals(all.get(0).encoding(), result.bestEncoding());
+        assertTrue(all.stream().allMatch(candidate -> candidate.confidence() >= 0.0));
         for (int index = 1; index < all.size(); index++) {
             assertTrue(all.get(index - 1).confidence() >= all.get(index).confidence());
         }
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> all.add(new Candidate(Encoding.ASCII, 1.0, null, "text/plain"))
-        );
-        assertThrows(
-                UnsupportedOperationException.class,
-                () -> filtered.clear()
         );
         assertEquals(detector.detect(data), result);
     }
@@ -479,8 +487,10 @@ final class PublicApiTest {
                 (byte) 0xe9, (byte) 0xe8, (byte) 0xea, (byte) 0xeb,
                 (byte) 0xf6, (byte) 0xfc, (byte) 0xe4
         };
-        Result defaultResult = EncodingDetector.DEFAULT.detect(data);
-        List<Candidate> all = defaultResult.candidates();
+        Result unfilteredResult = EncodingDetector.DEFAULT
+                .withMinimumConfidence(0.0)
+                .detect(data);
+        List<Candidate> all = unfilteredResult.candidates();
         double highest = all.get(0).confidence();
         double lowest = all.get(all.size() - 1).confidence();
         assertTrue(highest > lowest);
@@ -495,10 +505,10 @@ final class PublicApiTest {
         EncodingDetector detector = EncodingDetector.DEFAULT.withMinimumConfidence(threshold);
         assertEquals(threshold, detector.minimumConfidence());
         Result result = detector.detect(data);
-        assertEquals(expected, result.likelyCandidates());
+        assertEquals(expected, result.candidates());
         assertEquals(result, detector.detect(ByteBuffer.wrap(data)));
-        assertEquals(all, result.candidates());
-        assertEquals(defaultResult.bestCandidate(), result.bestCandidate());
+        assertEquals(expected.get(0), result.bestCandidate());
+        assertEquals(expected.get(0).encoding(), result.bestEncoding());
 
         List<Candidate> boundary = all.stream()
                 .filter(candidate -> candidate.confidence() >= highest)
@@ -507,59 +517,61 @@ final class PublicApiTest {
                 boundary,
                 detector.withMinimumConfidence(highest)
                         .detect(data)
-                        .likelyCandidates()
+                        .candidates()
         );
 
         assertTrue(highest < 1.0);
-        assertEquals(
-                all,
-                detector.withMinimumConfidence(1.0)
-                        .detect(data)
-                        .likelyCandidates()
-        );
+        Result rejected = detector.withMinimumConfidence(1.0).detect(data);
+        assertTrue(rejected.candidates().isEmpty());
+        assertNull(rejected.bestCandidate());
+        assertNull(rejected.bestEncoding());
+
+        Result recommendation = detector.withMinimumConfidence(1.0)
+                .withNoMatchEncoding(Encoding.ASCII)
+                .detect(data);
+        assertTrue(recommendation.candidates().isEmpty());
+        assertNull(recommendation.bestCandidate());
+        assertEquals(Encoding.ASCII, recommendation.bestEncoding());
     }
 
-    /// Verifies aggregate results copy and validate their candidate lists.
+    /// Verifies aggregate results copy and validate their candidates and recommendation.
     @Test
     void resultCopiesAndValidatesCandidateLists() {
         Candidate high = new Candidate(Encoding.UTF_8, 0.9, null, "text/plain");
         Candidate low = new Candidate(Encoding.CP1252, 0.4, "en", "text/plain");
         ArrayList<Candidate> candidates = new ArrayList<>(List.of(high, low));
-        ArrayList<Candidate> likely = new ArrayList<>(List.of(high));
-        Result result = new Result(candidates, likely);
-        Result empty = new Result(List.of(), List.of());
+        Result result = new Result(candidates, Encoding.UTF_8);
+        Result empty = new Result(List.of(), null);
+        Result recommendation = new Result(List.of(), Encoding.CP1252);
+        Candidate binaryCandidate = new Candidate(
+                null,
+                0.95,
+                null,
+                "application/octet-stream"
+        );
+        Result binary = new Result(List.of(binaryCandidate), null);
 
         candidates.clear();
-        likely.clear();
         assertEquals(List.of(high, low), result.candidates());
-        assertEquals(List.of(high), result.likelyCandidates());
         assertEquals(high, result.bestCandidate());
         assertEquals(Encoding.UTF_8, result.bestEncoding());
         assertThrows(UnsupportedOperationException.class, () -> result.candidates().clear());
-        assertThrows(
-                UnsupportedOperationException.class,
-                () -> result.likelyCandidates().clear()
-        );
         assertTrue(empty.candidates().isEmpty());
-        assertTrue(empty.likelyCandidates().isEmpty());
         assertNull(empty.bestCandidate());
         assertNull(empty.bestEncoding());
+        assertTrue(recommendation.candidates().isEmpty());
+        assertNull(recommendation.bestCandidate());
+        assertEquals(Encoding.CP1252, recommendation.bestEncoding());
+        assertEquals(binaryCandidate, binary.bestCandidate());
+        assertNull(binary.bestEncoding());
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new Result(List.of(), List.of(high))
+                () -> new Result(List.of(low, high), Encoding.CP1252)
         );
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new Result(List.of(high), List.of())
-        );
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new Result(List.of(low, high), List.of(low))
-        );
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new Result(List.of(high, low), List.of(low))
+                () -> new Result(List.of(high, low), Encoding.CP1252)
         );
     }
 
@@ -612,10 +624,10 @@ final class PublicApiTest {
         Candidate candidate = new Candidate(Encoding.ASCII, 1.0, null, null);
         assertThrows(
                 NullPointerException.class,
-                () -> new Result(null, List.of(candidate))
+                () -> new Result(null, null)
         );
         assertThrows(
-                NullPointerException.class,
+                IllegalArgumentException.class,
                 () -> new Result(List.of(candidate), null)
         );
     }

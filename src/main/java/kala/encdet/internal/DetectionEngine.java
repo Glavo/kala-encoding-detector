@@ -20,17 +20,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/// Runs the complete ordered detection pipeline and public result transforms.
+/// Runs the complete ordered detection pipeline and public candidate transforms.
 @NotNullByDefault
 public final class DetectionEngine {
-    /// Logger used when a configured fallback is filtered out.
-    private static final System.Logger LOGGER = System.getLogger(DetectionEngine.class.getName());
-
     /// Confidence used by deterministic non-BOM stages.
     private static final double DETERMINISTIC_CONFIDENCE = 0.95;
-
-    /// Confidence used by fallback results.
-    private static final double FALLBACK_CONFIDENCE = 0.10;
 
     /// Structural score that enables combined CJK and statistical ranking.
     private static final double STRUCTURAL_CONFIDENCE_THRESHOLD = 0.85;
@@ -129,7 +123,7 @@ public final class DetectionEngine {
         List<Encoding> candidates = List.copyOf(allowed);
 
         if (data.remaining() == 0) {
-            return fallback(detector.emptyInputEncoding(), allowed, "emptyInputEncoding");
+            return List.of();
         }
 
         @Nullable PipelineResult result = detectBom(data);
@@ -171,13 +165,13 @@ public final class DetectionEngine {
 
         List<Encoding> validCandidates = ByteValidity.filter(data, candidates);
         if (validCandidates.isEmpty()) {
-            return fallback(detector.noMatchEncoding(), allowed, "noMatchEncoding");
+            return List.of();
         }
 
         PipelineContext context = new PipelineContext();
         validCandidates = gateCjkCandidates(data, validCandidates, context);
         if (validCandidates.isEmpty()) {
-            return fallback(detector.noMatchEncoding(), allowed, "noMatchEncoding");
+            return List.of();
         }
 
         ArrayList<ScoredEncoding> structuralScores = new ArrayList<>();
@@ -218,7 +212,7 @@ public final class DetectionEngine {
         );
         List<PipelineResult> scored = scoreCandidates(statisticalData, validCandidates);
         if (scored.isEmpty()) {
-            return fallback(detector.noMatchEncoding(), allowed, "noMatchEncoding");
+            return List.of();
         }
         return PostProcessor.process(data, scored);
     }
@@ -233,31 +227,6 @@ public final class DetectionEngine {
             Set<Encoding> allowed
     ) {
         return result.encoding() != null && allowed.contains(result.encoding());
-    }
-
-    /// Returns a fallback or an empty list if absent or filtered out.
-    ///
-    /// @param encoding   fallback encoding, or `null` to return no candidate
-    /// @param allowed    allowed encodings
-    /// @param optionName option name used in a warning
-    /// @return immutable list containing at most one fallback candidate
-    private static List<PipelineResult> fallback(
-            @Nullable Encoding encoding,
-            Set<Encoding> allowed,
-            String optionName
-    ) {
-        if (encoding == null) {
-            return List.of();
-        }
-        if (!allowed.contains(encoding)) {
-            LOGGER.log(
-                    System.Logger.Level.WARNING,
-                    optionName + " '" + encoding.canonicalName()
-                            + "' is not in the configured encoding set; returning no candidate"
-            );
-            return List.of();
-        }
-        return List.of(new PipelineResult(encoding, FALLBACK_CONFIDENCE, null, null));
     }
 
     /// Detects byte-order marks longest-first with UTF-32 overlap handling.
@@ -573,9 +542,9 @@ public final class DetectionEngine {
     /// Applies preferred-superset transformation.
     ///
     /// @param encoding encoding, or `null`
-    /// @param detector  detector configuration
+    /// @param detector detector configuration
     /// @return transformed encoding, or `null`
-    private static @Nullable Encoding transformEncoding(
+    public static @Nullable Encoding transformEncoding(
             @Nullable Encoding encoding,
             EncodingDetector detector
     ) {

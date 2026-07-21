@@ -31,9 +31,11 @@ final class CorpusGoldenTest {
     /// Corpus classpath prefix.
     private static final String CORPUS_PREFIX = "chardet-test-data/";
 
-    /// Detector configured with the pinned reference implementation's fallback.
+    /// Detector configured to expose every candidate from the pinned reference behavior.
     private static final EncodingDetector REFERENCE_DETECTOR =
-            EncodingDetector.DEFAULT.withNoMatchEncoding(Encoding.CP1252);
+            EncodingDetector.DEFAULT
+                    .withMinimumConfidence(0.0)
+                    .withNoMatchEncoding(Encoding.CP1252);
 
     /// Maximum mismatch details retained in one assertion message.
     private static final int MAX_DETAILS = 40;

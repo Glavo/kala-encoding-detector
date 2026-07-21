@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /// Verifies pipeline ordering and regressions not represented by ordinary corpus files.
 @NotNullByDefault
@@ -101,6 +102,14 @@ final class PipelineEdgeCaseTest {
         assertEquals("application/octet-stream", binary.mimeType());
         assertEquals(0.95, binary.confidence());
         assertNull(binaryResult.bestEncoding());
+
+        Result filteredBinary = EncodingDetector.DEFAULT
+                .withMinimumConfidence(1.0)
+                .withNoMatchEncoding(Encoding.ASCII)
+                .detect(new byte[100]);
+        assertTrue(filteredBinary.candidates().isEmpty());
+        assertNull(filteredBinary.bestCandidate());
+        assertNull(filteredBinary.bestEncoding());
     }
 
     /// Verifies truncated UTF-8 is accepted only after a complete multibyte sequence.
