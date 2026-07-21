@@ -118,7 +118,7 @@ public final class Main {
                     continue;
                 }
                 try {
-                    Candidate candidate = parsed.toDetector().detect(data).bestCandidate();
+                    @Nullable Candidate candidate = parsed.toDetector().detect(data).bestCandidate();
                     printCandidate(candidate, file, parsed.minimal, parsed.language, output);
                 } catch (RuntimeException exception) {
                     error.println(
@@ -138,7 +138,7 @@ public final class Main {
             return 1;
         }
         try {
-            Candidate candidate = parsed.toDetector().detect(data).bestCandidate();
+            @Nullable Candidate candidate = parsed.toDetector().detect(data).bestCandidate();
             printCandidate(candidate, "stdin", parsed.minimal, parsed.language, output);
             return 0;
         } catch (RuntimeException exception) {
@@ -147,21 +147,21 @@ public final class Main {
         }
     }
 
-    /// Prints one candidate in reference-compatible detailed or minimal form.
+    /// Prints one detection outcome in reference-compatible detailed or minimal form.
     ///
-    /// @param candidate       highest-ranked candidate
+    /// @param candidate       highest-ranked candidate, or `null` when none matched
     /// @param label           file name or `stdin`
     /// @param minimal         whether only compact tokens are printed
     /// @param includeLanguage whether language information is printed
     /// @param output          destination stream
     private static void printCandidate(
-            Candidate candidate,
+            @Nullable Candidate candidate,
             String label,
             boolean minimal,
             boolean includeLanguage,
             PrintStream output
     ) {
-        String encodingText = candidate.encoding() == null
+        String encodingText = candidate == null || candidate.encoding() == null
                 ? "None"
                 : candidate.encoding().displayName();
         if (minimal) {
@@ -178,21 +178,29 @@ public final class Main {
                     : rawName.substring(0, 1).toUpperCase(Locale.ROOT) + rawName.substring(1);
             output.println(
                     label + ": " + encodingText + " " + code + " (" + name
-                            + ") with confidence " + candidate.confidence()
+                            + ") with confidence " + confidence(candidate)
             );
         } else {
             output.println(
-                    label + ": " + encodingText + " with confidence " + candidate.confidence()
+                    label + ": " + encodingText + " with confidence " + confidence(candidate)
             );
         }
     }
 
     /// Returns a candidate language or the undetermined sentinel.
     ///
-    /// @param candidate detection candidate
+    /// @param candidate detection candidate, or `null` when none matched
     /// @return ISO language code
-    private static String languageCode(Candidate candidate) {
-        return candidate.language() == null ? "und" : candidate.language();
+    private static String languageCode(@Nullable Candidate candidate) {
+        return candidate == null || candidate.language() == null ? "und" : candidate.language();
+    }
+
+    /// Returns a candidate confidence or zero when no candidate matched.
+    ///
+    /// @param candidate detection candidate, or `null` when none matched
+    /// @return reported confidence
+    private static double confidence(@Nullable Candidate candidate) {
+        return candidate == null ? 0.0 : candidate.confidence();
     }
 
     /// Prints concise command help.

@@ -80,12 +80,16 @@ byte[] input = Files.readAllBytes(Path.of("document.txt"));
 Result result = EncodingDetector.DEFAULT.detect(input);
 Candidate candidate = result.bestCandidate();
 
-System.out.println(
-        candidate.encoding() == null ? null : candidate.encoding().canonicalName()
-);
-System.out.println(candidate.confidence());
-System.out.println(candidate.language());
-System.out.println(candidate.mimeType());
+if (candidate == null) {
+    System.out.println("No candidate matched");
+} else {
+    System.out.println(
+            candidate.encoding() == null ? null : candidate.encoding().canonicalName()
+    );
+    System.out.println(candidate.confidence());
+    System.out.println(candidate.language());
+    System.out.println(candidate.mimeType());
+}
 ```
 
 `detect` accepts either a `byte[]` or a `ByteBuffer` and returns one immutable
@@ -100,13 +104,14 @@ detection call is in progress.
 descending-confidence order, while `Result.likelyCandidates()` contains the
 prefix whose confidence is greater than or equal to the detector's configured
 minimum, which defaults to `0.20`. If no candidate reaches the threshold, the
-likely list contains every candidate. Both lists are immutable and nonempty;
-`Result.bestCandidate()` returns their first candidate.
+likely list contains every candidate. Both lists are immutable and are empty
+when nothing matches. `Result.bestCandidate()` returns the first candidate or
+`null` when the result is empty.
 
 Each `Candidate` carries an encoding, confidence, language, and MIME type. A
 candidate returned by the detector may have a `null` encoding for binary input
-or when no permitted fallback exists, and may have a `null` language when it
-cannot be determined.
+or another recognized non-text format, and may have a `null` language when it
+cannot be determined. A no-match result contains no candidates.
 
 ```java
 import kala.encdet.EncodingDetector;
@@ -160,7 +165,7 @@ target as an immutable set in enum declaration order.
 - `maxBytes = 200_000`
 - no preferred-superset remapping
 - every supported encoding in the effective encoding set
-- no encoding when no candidate survives
+- an empty result when no candidate survives
 - `EncodingDetector.Encoding.UTF_8` for empty input
 
 The configured encoding set contains all supported targets by default; an
@@ -169,8 +174,8 @@ fallback results. Binary classification is not filtered and is reported with a
 `null` encoding and an appropriate MIME type.
 
 When the text-detection pipeline produces no candidate, the default detector
-returns a candidate with a `null` encoding and zero confidence. Configure
-`withNoMatchEncoding` to opt into a specific low-confidence fallback.
+returns a `Result` with empty candidate lists. Configure `withNoMatchEncoding`
+to opt into a specific low-confidence fallback.
 
 `EncodingDetector` instances are safe for concurrent use. Registry, validity,
 decode, model, and confusion data are immutable after thread-safe lazy

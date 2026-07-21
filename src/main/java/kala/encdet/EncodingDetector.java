@@ -29,7 +29,7 @@ import java.util.*;
 /// requested eras. The set also gates BOM, markup, escape, and fallback results;
 /// binary classifications have no encoding and are not filtered. If no
 /// fallback is configured or the configured fallback is ineligible, the
-/// detector returns a no-encoding result instead.
+/// detector returns a result with no candidates.
 ///
 /// Preferred-superset remapping, when enabled, occurs after candidate
 /// filtering. A reported superset may therefore be absent from the configured
@@ -1042,7 +1042,7 @@ public final class EncodingDetector {
     /// Describes one candidate classification produced by encoding detection.
     ///
     /// @param encoding   the detected encoding, or `null` when the input is
-    ///                 classified as binary or no permitted fallback exists
+    ///                 classified as binary or another recognized non-text format
     /// @param confidence the confidence in the range `[0.0, 1.0]`
     /// @param language   the ISO 639 language code, or `null` when undetermined
     /// @param mimeType   the detected or inferred MIME type, or `null` only for a
@@ -1069,15 +1069,18 @@ public final class EncodingDetector {
 
     /// Contains the complete and likely candidate lists for one detection outcome.
     ///
-    /// Both lists are immutable snapshots. The complete list is nonempty and
-    /// sorted by descending confidence, and the likely list is a nonempty prefix
-    /// of it. Results returned by [#detect(byte[])] and [#detect(ByteBuffer)] use
-    /// stable ordering for equal confidences and select the likely prefix using
-    /// the detector's [#minimumConfidence()] value. When no candidate reaches
-    /// that threshold, the likely list contains every candidate.
+    /// Both lists are immutable snapshots. The complete list is sorted by
+    /// descending confidence, and the likely list is a prefix of it. Results
+    /// returned by [#detect(byte[])] and [#detect(ByteBuffer)] use stable ordering
+    /// for equal confidences and select the likely prefix using the detector's
+    /// [#minimumConfidence()] value. When no candidate reaches that threshold,
+    /// the likely list contains every candidate. A no-match result has both
+    /// lists empty.
     ///
-    /// @param candidates       all candidates in descending-confidence order
-    /// @param likelyCandidates a nonempty prefix of `candidates`
+    /// @param candidates       all candidates in descending-confidence order;
+    ///                         may be empty
+    /// @param likelyCandidates a prefix of `candidates`; empty only when
+    ///                         `candidates` is empty
     @NotNullByDefault
     public record Result(
             @Unmodifiable List<Candidate> candidates,
@@ -1086,17 +1089,16 @@ public final class EncodingDetector {
         /// Creates a result after copying and validating its candidate lists.
         ///
         /// @throws NullPointerException if either list or an element is `null`
-        /// @throws IllegalArgumentException if either list is empty, the complete
-        /// list is not in descending-confidence order, or the likely list is not
-        /// a prefix of the complete list
+        /// @throws IllegalArgumentException if a nonempty complete list has an
+        /// empty likely list, the complete list is not in descending-confidence
+        /// order, or the likely list is not a prefix of the complete list
         public Result {
             candidates = List.copyOf(candidates);
             likelyCandidates = List.copyOf(likelyCandidates);
-            if (candidates.isEmpty()) {
-                throw new IllegalArgumentException("candidates must not be empty");
-            }
-            if (likelyCandidates.isEmpty()) {
-                throw new IllegalArgumentException("likelyCandidates must not be empty");
+            if (!candidates.isEmpty() && likelyCandidates.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "likelyCandidates must not be empty when candidates is nonempty"
+                );
             }
             for (int index = 1; index < candidates.size(); index++) {
                 if (candidates.get(index - 1).confidence()
@@ -1115,11 +1117,12 @@ public final class EncodingDetector {
             }
         }
 
-        /// Returns the highest-ranked candidate.
+        /// Returns the highest-ranked candidate, if present.
         ///
-        /// @return first candidate in the complete list
-        public Candidate bestCandidate() {
-            return candidates.get(0);
+        /// @return first candidate in the complete list, or `null` when no
+        /// candidate matched
+        public @Nullable Candidate bestCandidate() {
+            return candidates.isEmpty() ? null : candidates.get(0);
         }
     }
 
@@ -1131,7 +1134,7 @@ public final class EncodingDetector {
     ///
     /// It examines at most 200,000 bytes, reports candidates with confidence of
     /// at least `0.20` as likely, disables preferred-superset remapping, allows
-    /// every encoding target, reports no encoding when no candidate survives,
+    /// every encoding target, returns an empty result when no candidate survives,
     /// and uses [Encoding#UTF_8] for empty input.
     public static final EncodingDetector DEFAULT = new EncodingDetector(
             200_000,
@@ -1166,7 +1169,7 @@ public final class EncodingDetector {
     /// @param minimumConfidence  inclusive likely-candidate confidence bound
     /// @param preferSuperset     whether to remap subset encodings
     /// @param encodings          immutable permitted encoding targets
-    /// @param noMatchEncoding    no-match fallback, or `null` to report no encoding
+    /// @param noMatchEncoding    no-match fallback, or `null` to return an empty result
     /// @param emptyInputEncoding empty-input fallback
     private EncodingDetector(
             int maxBytes,
@@ -1414,8 +1417,8 @@ public final class EncodingDetector {
     /// Returns a detector using the supplied optional no-match fallback.
     ///
     /// A `null` value disables fallback guessing. When the detection pipeline
-    /// produces no candidate, the resulting candidate then has a `null`
-    /// encoding and zero confidence.
+    /// produces no candidate, the resulting [Result] then has empty candidate
+    /// lists.
     ///
     /// @param value fallback encoding, or `null` to disable the fallback
     /// @return this detector if unchanged; otherwise a new detector

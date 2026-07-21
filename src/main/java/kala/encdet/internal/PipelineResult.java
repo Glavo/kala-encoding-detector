@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 /// Holds one internal pipeline candidate before public confidence clamping.
 ///
-/// @param encoding   encoding, or `null` for binary or no result
+/// @param encoding   encoding, or `null` for a binary or other non-text result
 /// @param confidence internal ranking confidence, which may exceed one
 /// @param language   ISO 639 language code, or `null`
 /// @param mimeType   MIME type, or `null` before defaulting

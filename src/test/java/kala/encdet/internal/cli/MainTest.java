@@ -138,6 +138,17 @@ final class MainTest {
         assertEquals("None" + System.lineSeparator(), disabled.output());
         assertEquals("", disabled.error());
 
+        RunResult detailed = invoke(
+                new String[]{"--include-encodings", "ascii"},
+                input
+        );
+        assertEquals(0, detailed.status());
+        assertEquals(
+                "stdin: None with confidence 0.0" + System.lineSeparator(),
+                detailed.output()
+        );
+        assertEquals("", detailed.error());
+
         RunResult configured = invoke(
                 new String[]{
                         "--minimal",

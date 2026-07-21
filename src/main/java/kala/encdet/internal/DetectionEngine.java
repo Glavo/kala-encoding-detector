@@ -56,9 +56,6 @@ public final class DetectionEngine {
     /// Non-ASCII count at which lead-diversity gating begins.
     private static final int CJK_DIVERSITY_MIN_NON_ASCII = 16;
 
-    /// No-detection sentinel.
-    private static final PipelineResult NONE_RESULT = new PipelineResult(null, 0.0, null, null);
-
     /// Generic binary classification result.
     private static final PipelineResult BINARY_RESULT = new PipelineResult(
             null,
@@ -93,7 +90,8 @@ public final class DetectionEngine {
     ///
     /// @param input    caller-owned bytes, which are never modified or retained
     /// @param detector immutable detector configuration
-    /// @return immutable public candidates in stable ranking order
+    /// @return immutable public candidates in stable ranking order; empty when
+    /// no candidate matched
     public static @Unmodifiable List<Candidate> detect(
             @UnmodifiableView ByteBuffer input,
             EncodingDetector detector
@@ -114,9 +112,6 @@ public final class DetectionEngine {
                     result.language(),
                     mimeType
             ));
-        }
-        if (publicCandidates.isEmpty()) {
-            throw new IllegalStateException("The detection pipeline returned no result");
         }
         return List.copyOf(publicCandidates);
     }
@@ -240,27 +235,27 @@ public final class DetectionEngine {
         return result.encoding() != null && allowed.contains(result.encoding());
     }
 
-    /// Returns a fallback or the no-detection sentinel if absent or filtered out.
+    /// Returns a fallback or an empty list if absent or filtered out.
     ///
-    /// @param encoding   fallback encoding, or `null` to report no encoding
+    /// @param encoding   fallback encoding, or `null` to return no candidate
     /// @param allowed    allowed encodings
     /// @param optionName option name used in a warning
-    /// @return singleton internal result list
+    /// @return immutable list containing at most one fallback candidate
     private static List<PipelineResult> fallback(
             @Nullable Encoding encoding,
             Set<Encoding> allowed,
             String optionName
     ) {
         if (encoding == null) {
-            return List.of(NONE_RESULT);
+            return List.of();
         }
         if (!allowed.contains(encoding)) {
             LOGGER.log(
                     System.Logger.Level.WARNING,
                     optionName + " '" + encoding.canonicalName()
-                            + "' is not in the configured encoding set; returning no encoding"
+                            + "' is not in the configured encoding set; returning no candidate"
             );
-            return List.of(NONE_RESULT);
+            return List.of();
         }
         return List.of(new PipelineResult(encoding, FALLBACK_CONFIDENCE, null, null));
     }

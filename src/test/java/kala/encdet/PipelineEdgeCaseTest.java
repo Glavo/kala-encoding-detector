@@ -8,6 +8,7 @@ import kala.encdet.EncodingDetector.Candidate;
 import kala.encdet.EncodingDetector.Result;
 
 import org.jetbrains.annotations.NotNullByDefault;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
 import org.junit.jupiter.api.Test;
 
@@ -27,20 +28,20 @@ final class PipelineEdgeCaseTest {
     void handlesOverlappingBomPrefixes() {
         assertEquals(
                 Encoding.UTF_32,
-                EncodingDetector.DEFAULT.detect(
+                bestEncoding(EncodingDetector.DEFAULT.detect(
                         new byte[]{(byte) 0xff, (byte) 0xfe, 0, 0}
-                ).bestCandidate().encoding()
+                ))
         );
         assertEquals(
                 Encoding.UTF_16,
-                EncodingDetector.DEFAULT.detect(
+                bestEncoding(EncodingDetector.DEFAULT.detect(
                         new byte[]{(byte) 0xff, (byte) 0xfe, 0, 0, 'x'}
-                ).bestCandidate().encoding()
+                ))
         );
         assertNull(
-                EncodingDetector.DEFAULT.detect(
+                bestEncoding(EncodingDetector.DEFAULT.detect(
                         new byte[]{0, 0, (byte) 0xfe, (byte) 0xff, 'x'}
-                ).bestCandidate().encoding()
+                ))
         );
     }
 
@@ -53,11 +54,11 @@ final class PipelineEdgeCaseTest {
         byte[] utf32be = encodeUtf32("UTF-32 big endian sample", ByteOrder.BIG_ENDIAN);
         assertEquals(
                 Encoding.UTF_16_LE,
-                EncodingDetector.DEFAULT.detect(utf16le).bestCandidate().encoding()
+                bestEncoding(EncodingDetector.DEFAULT.detect(utf16le))
         );
         assertEquals(
                 Encoding.UTF_16_BE,
-                EncodingDetector.DEFAULT.detect(utf16be).bestCandidate().encoding()
+                bestEncoding(EncodingDetector.DEFAULT.detect(utf16be))
         );
         assertEquals(
                 EncodingDetector.DEFAULT.detect(utf16le),
@@ -69,11 +70,11 @@ final class PipelineEdgeCaseTest {
         );
         assertEquals(
                 Encoding.UTF_32_LE,
-                EncodingDetector.DEFAULT.detect(utf32le).bestCandidate().encoding()
+                bestEncoding(EncodingDetector.DEFAULT.detect(utf32le))
         );
         assertEquals(
                 Encoding.UTF_32_BE,
-                EncodingDetector.DEFAULT.detect(utf32be).bestCandidate().encoding()
+                bestEncoding(EncodingDetector.DEFAULT.detect(utf32be))
         );
         assertEquals(
                 EncodingDetector.DEFAULT.detect(utf32le),
@@ -90,11 +91,11 @@ final class PipelineEdgeCaseTest {
     void distinguishesSparseNullTextFromBinaryData() {
         byte[] sparse = "alpha beta gamma delta".getBytes(StandardCharsets.US_ASCII);
         sparse[10] = 0;
-        Candidate ascii = EncodingDetector.DEFAULT.detect(sparse).bestCandidate();
+        Candidate ascii = requireBestCandidate(EncodingDetector.DEFAULT.detect(sparse));
         assertEquals(Encoding.ASCII, ascii.encoding());
         assertEquals(0.99, ascii.confidence());
 
-        Candidate binary = EncodingDetector.DEFAULT.detect(new byte[100]).bestCandidate();
+        Candidate binary = requireBestCandidate(EncodingDetector.DEFAULT.detect(new byte[100]));
         assertNull(binary.encoding());
         assertEquals("application/octet-stream", binary.mimeType());
         assertEquals(0.95, binary.confidence());
@@ -107,13 +108,13 @@ final class PipelineEdgeCaseTest {
         byte[] truncated = java.util.Arrays.copyOf(complete, complete.length - 1);
         assertEquals(
                 Encoding.UTF_8,
-                EncodingDetector.DEFAULT.detect(truncated).bestCandidate().encoding()
+                bestEncoding(EncodingDetector.DEFAULT.detect(truncated))
         );
         assertNotEquals(
                 Encoding.UTF_8,
-                EncodingDetector.DEFAULT.detect(
+                bestEncoding(EncodingDetector.DEFAULT.detect(
                         new byte[]{(byte) 0xe2}
-                ).bestCandidate().encoding()
+                ))
         );
     }
 
@@ -122,31 +123,34 @@ final class PipelineEdgeCaseTest {
     void detectsEscapeEncodingsWithoutUtf7FalsePositives() {
         assertEquals(
                 Encoding.HZ,
-                EncodingDetector.DEFAULT.detect("Hello ~{CEDE~} World".getBytes(StandardCharsets.US_ASCII))
-                        .bestCandidate().encoding()
+                bestEncoding(EncodingDetector.DEFAULT.detect(
+                        "Hello ~{CEDE~} World".getBytes(StandardCharsets.US_ASCII)
+                ))
         );
         assertEquals(
                 Encoding.ISO_2022_KR,
-                EncodingDetector.DEFAULT.detect(new byte[]{0x1b, '$', ')', 'C', 0x0e, '!', '!', 0x0f})
-                        .bestCandidate().encoding()
+                bestEncoding(EncodingDetector.DEFAULT.detect(
+                        new byte[]{0x1b, '$', ')', 'C', 0x0e, '!', '!', 0x0f}
+                ))
         );
         assertEquals(
                 Encoding.UTF_7,
-                EncodingDetector.DEFAULT.detect(
+                bestEncoding(EncodingDetector.DEFAULT.detect(
                         "Hello +ThZ1TA-".getBytes(StandardCharsets.US_ASCII)
-                ).bestCandidate().encoding()
+                ))
         );
         assertEquals(
                 Encoding.ASCII,
-                EncodingDetector.DEFAULT.detect("C++20 and +100 are ASCII".getBytes(StandardCharsets.US_ASCII))
-                        .bestCandidate().encoding()
+                bestEncoding(EncodingDetector.DEFAULT.detect(
+                        "C++20 and +100 are ASCII".getBytes(StandardCharsets.US_ASCII)
+                ))
         );
         assertEquals(
                 Encoding.ASCII,
-                EncodingDetector.DEFAULT.detect(
+                bestEncoding(EncodingDetector.DEFAULT.detect(
                         "+4bafdea31b1a83b6eff5dac6cedcff073cb984f6"
                                 .getBytes(StandardCharsets.US_ASCII)
-                ).bestCandidate().encoding()
+                ))
         );
     }
 
@@ -157,7 +161,7 @@ final class PipelineEdgeCaseTest {
         byte[] xmlData = "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?><root/>"
                 .getBytes(StandardCharsets.US_ASCII);
         Result xmlResult = detector.detect(directView(xmlData));
-        Candidate xml = xmlResult.bestCandidate();
+        Candidate xml = requireBestCandidate(xmlResult);
         assertEquals(detector.detect(xmlData), xmlResult);
         assertEquals(Encoding.ISO_8859_1, xml.encoding());
         assertEquals("text/xml", xml.mimeType());
@@ -166,7 +170,7 @@ final class PipelineEdgeCaseTest {
         byte[] htmlData = "<meta charset=\"utf-8\"><p>Hello</p>"
                 .getBytes(StandardCharsets.US_ASCII);
         Result htmlResult = detector.detect(readOnlyView(htmlData));
-        Candidate html = htmlResult.bestCandidate();
+        Candidate html = requireBestCandidate(htmlResult);
         assertEquals(detector.detect(htmlData), htmlResult);
         assertEquals(Encoding.UTF_8, html.encoding());
         assertEquals("text/html", html.mimeType());
@@ -174,23 +178,23 @@ final class PipelineEdgeCaseTest {
         byte[] pepData = "#!/usr/bin/env python\n# -*- coding: iso-8859-1 -*-\nx='é'\n"
                 .getBytes(StandardCharsets.ISO_8859_1);
         Result pepResult = detector.detect(directView(pepData));
-        Candidate pep = pepResult.bestCandidate();
+        Candidate pep = requireBestCandidate(pepResult);
         assertEquals(detector.detect(pepData), pepResult);
         assertEquals(Encoding.ISO_8859_1, pep.encoding());
         assertEquals("text/x-python", pep.mimeType());
 
         assertEquals(
                 Encoding.ASCII,
-                EncodingDetector.DEFAULT.detect(
+                bestEncoding(EncodingDetector.DEFAULT.detect(
                         "<meta charset=\"\0utf-8\">".getBytes(StandardCharsets.ISO_8859_1)
-                ).bestCandidate().encoding()
+                ))
         );
         assertEquals(
                 Encoding.ASCII,
-                EncodingDetector.DEFAULT.detect(
+                bestEncoding(EncodingDetector.DEFAULT.detect(
                         "# first\n# second\n# coding: iso-8859-1\n"
                                 .getBytes(StandardCharsets.US_ASCII)
-                ).bestCandidate().encoding()
+                ))
         );
     }
 
@@ -273,11 +277,32 @@ final class PipelineEdgeCaseTest {
     /// @param mimeType expected MIME type
     private static void assertMagic(byte[] data, String mimeType) {
         Result result = EncodingDetector.DEFAULT.detect(data);
-        Candidate candidate = result.bestCandidate();
+        Candidate candidate = requireBestCandidate(result);
         assertNull(candidate.encoding());
         assertEquals(1.0, candidate.confidence());
         assertEquals(mimeType, candidate.mimeType());
         assertEquals(result, EncodingDetector.DEFAULT.detect(directView(data)));
         assertEquals(result, EncodingDetector.DEFAULT.detect(readOnlyView(data)));
+    }
+
+    /// Returns the encoding of the highest-ranked candidate, if present.
+    ///
+    /// @param result detection result
+    /// @return candidate encoding, or `null` when the result is empty or binary
+    private static @Nullable Encoding bestEncoding(Result result) {
+        @Nullable Candidate candidate = result.bestCandidate();
+        return candidate == null ? null : candidate.encoding();
+    }
+
+    /// Returns the highest-ranked candidate or fails the current test.
+    ///
+    /// @param result detection result expected to contain a candidate
+    /// @return highest-ranked candidate
+    private static Candidate requireBestCandidate(Result result) {
+        @Nullable Candidate candidate = result.bestCandidate();
+        if (candidate == null) {
+            throw new AssertionError("Expected a detection candidate");
+        }
+        return candidate;
     }
 }
