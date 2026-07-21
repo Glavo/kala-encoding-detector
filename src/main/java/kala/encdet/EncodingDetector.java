@@ -88,10 +88,13 @@ public final class EncodingDetector {
                 "x-unicode20utf8", "cp65001", "u8", "utf", "utf8_ucs2", "utf8_ucs4", "utf_8"
         ),
 
-        /// UTF-8 identified by its leading byte-order mark.
+        /// UTF-8 text prefixed with the signature `EF BB BF`.
         ///
-        /// OpenJDK 17's standard charset providers do not include an exact
-        /// [Charset] mapping for this encoding.
+        /// Java SE's [StandardCharsets#UTF_8] can decode the byte sequence, but
+        /// it does not implement UTF-8-SIG framing: its decoder exposes the
+        /// initial signature as `U+FEFF`, and its encoder does not prepend one.
+        /// Consequently, [#charset()] returns `null` unless an installed provider
+        /// supplies an exact mapping.
         UTF_8_SIG(
                 "utf-8-sig", "UTF-8-SIG", Era.MODERN_WEB, false,
                 List.of(),
