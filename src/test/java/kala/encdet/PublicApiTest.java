@@ -212,9 +212,9 @@ final class PublicApiTest {
         );
     }
 
-    /// Verifies exact Java charset mappings and rejects related substitutes.
+    /// Verifies Java charset mappings and rejects different character mappings.
     @Test
-    void mapsEncodingTargetsToExactJavaCharsets() {
+    void mapsEncodingTargetsToJavaCharsets() {
         assertEquals(StandardCharsets.US_ASCII, Encoding.ASCII.charset());
         assertEquals(StandardCharsets.UTF_8, Encoding.UTF_8.charset());
         assertEquals(StandardCharsets.UTF_16, Encoding.UTF_16.charset());
@@ -225,19 +225,19 @@ final class PublicApiTest {
         assertEquals(Charset.forName("x-windows-874"), Encoding.CP874.charset());
         assertEquals(Charset.forName("x-SJIS_0213"), Encoding.SHIFT_JIS_2004.charset());
         assertEquals(Charset.forName("IBM01140"), Encoding.CP1140.charset());
+        assertEquals(StandardCharsets.UTF_8, Encoding.UTF_8_SIG.charset());
         assertNotEquals(Charset.forName("IBM037"), Encoding.CP1140.charset());
-        assertNotEquals(StandardCharsets.UTF_8, Encoding.UTF_8_SIG.charset());
         assertNotEquals(Charset.forName("EUC-JP"), Encoding.EUC_JIS_2004.charset());
         assertNotEquals(Charset.forName("Shift_JIS"), Encoding.SHIFT_JIS_2004.charset());
     }
 
-    /// Verifies charset availability reporting against exact runtime lookup.
+    /// Verifies charset availability reporting against runtime lookup.
     @Test
     void reportsCurrentRuntimeCharsetSupport() {
         assertTrue(Encoding.UTF_8_SIG.isCharsetSupported());
         for (Encoding encoding : Encoding.values()) {
             assertEquals(
-                    encoding == Encoding.UTF_8_SIG || encoding.charset() != null,
+                    encoding.charset() != null,
                     encoding.isCharsetSupported(),
                     encoding.name()
             );

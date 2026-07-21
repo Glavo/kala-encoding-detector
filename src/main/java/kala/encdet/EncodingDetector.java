@@ -53,18 +53,19 @@ public final class EncodingDetector {
     ///
     /// ## Java charset support
     ///
-    /// Exact [Charset] availability depends on the runtime. Java SE requires the
+    /// [Charset] availability depends on the runtime. Java SE requires the
     /// mappings identified on individual constants, while OpenJDK 17 supplies
     /// additional mappings through its standard charset providers. Installed
     /// [java.nio.charset.spi.CharsetProvider] implementations may add mappings,
     /// while custom runtime images may omit OpenJDK's extended providers. A
-    /// related charset with different decoding semantics is not an exact
-    /// substitute. Call [#isCharsetSupported()] to test whether the runtime has
-    /// the required underlying charset support and [#charset()] to obtain an
-    /// exact mapping when one exists.
+    /// related charset with different character mappings is not substituted.
+    /// [#UTF_8_SIG] is the framing-only exception: its payload uses UTF-8, while
+    /// its signature remains outside the returned charset. Call
+    /// [#isCharsetSupported()] to test availability and [#charset()] to obtain
+    /// the payload charset.
     ///
-    /// @apiNote [#charset()] returns an exact `java.nio.charset.Charset`
-    /// mapping when the current runtime provides one.
+    /// @apiNote [#charset()] does not consume or emit external framing such as
+    /// the signature associated with [#UTF_8_SIG].
     @NotNullByDefault
     public enum Encoding {
         /// Seven-bit US-ASCII.
@@ -91,13 +92,11 @@ public final class EncodingDetector {
 
         /// UTF-8 text prefixed with the signature `EF BB BF`.
         ///
-        /// Java SE's [StandardCharsets#UTF_8] can decode the byte sequence, but
-        /// it does not implement UTF-8-SIG framing: its decoder exposes the
-        /// initial signature as `U+FEFF`, and its encoder does not prepend one.
-        /// Consequently, [#charset()] returns `null` unless an installed provider
-        /// supplies an exact mapping. [#isCharsetSupported()] nevertheless
-        /// returns `true` because Java SE provides the underlying UTF-8 codec
-        /// needed when signature framing is handled separately.
+        /// [#charset()] returns [StandardCharsets#UTF_8], which maps the text
+        /// after the signature. That charset does not implement UTF-8-SIG
+        /// framing: its decoder exposes an initial signature as `U+FEFF`, and
+        /// its encoder does not prepend one. Code processing the complete stream
+        /// must consume or emit the signature separately.
         UTF_8_SIG(
                 "utf-8-sig", "UTF-8-SIG", Era.MODERN_WEB, false,
                 List.of(),
@@ -1051,15 +1050,16 @@ public final class EncodingDetector {
             return displayName;
         }
 
-        /// Returns an exact Java charset mapping available in the current runtime.
+        /// Returns a Java charset for the encoded text payload.
         ///
-        /// Availability depends on installed charset providers. This method
-        /// returns `null` instead of substituting a related but semantically
-        /// different charset. For example, [#UTF_8_SIG] is not mapped to plain
-        /// UTF-8, and [#EUC_JIS_2004] is not mapped to EUC-JP. This method is
-        /// safe for concurrent invocation.
+        /// [#UTF_8_SIG] returns [StandardCharsets#UTF_8]; the caller must handle
+        /// its signature framing separately. For every other encoding,
+        /// availability depends on installed charset providers, and this method
+        /// returns `null` instead of substituting a charset with different
+        /// character mappings. For example, [#EUC_JIS_2004] is not mapped to
+        /// EUC-JP. This method is safe for concurrent invocation.
         ///
-        /// @return matching charset, or `null` when no exact mapping is available
+        /// @return payload charset, or `null` when no suitable mapping is available
         /// @implNote Successful provider lookups are cached per encoding. Cache
         /// access is unsynchronized, so concurrent misses may repeat a lookup.
         /// Failed lookups are retried by later invocations.
@@ -1070,6 +1070,7 @@ public final class EncodingDetector {
             }
 
             String preferredName = switch (this) {
+                case UTF_8_SIG -> "UTF-8";
                 case UTF_16_BE -> "UTF-16BE";
                 case UTF_16_LE -> "UTF-16LE";
                 case UTF_32_BE -> "UTF-32BE";
@@ -1114,19 +1115,18 @@ public final class EncodingDetector {
             return charset;
         }
 
-        /// Returns whether the current runtime provides the charset support
-        /// needed to process this encoding.
+        /// Returns whether [#charset()] supplies a Java charset for this
+        /// encoding.
         ///
-        /// An exact mapping returned by [#charset()] counts as support.
-        /// [#UTF_8_SIG] also counts as supported because Java SE provides UTF-8;
-        /// its signature framing can be handled separately even when no exact
-        /// UTF-8-SIG charset is installed. For every other encoding, the result
-        /// may depend on the charset providers installed in the current runtime.
-        /// This method is safe for concurrent invocation.
+        /// This method is equivalent to `charset() != null`. For [#UTF_8_SIG],
+        /// support covers the UTF-8 payload; its signature framing must still be
+        /// handled separately. The result for other encodings may depend on the
+        /// charset providers installed in the current runtime. This method is
+        /// safe for concurrent invocation.
         ///
         /// @return `true` if the runtime can process this encoding
         public boolean isCharsetSupported() {
-            return this == UTF_8_SIG || charset() != null;
+            return charset() != null;
         }
 
         /// Returns the historical or operational group assigned to this target.
@@ -1341,8 +1341,9 @@ public final class EncodingDetector {
     /// @param language   the ISO 639 language code, or `null` when undetermined
     /// @param mimeType   the detected or inferred MIME type, or `null` only for a
     ///                 candidate created directly by an application
-    /// @apiNote [Encoding#charset()] returns an exact Java charset when one is
-    /// available in the current runtime.
+    /// @apiNote [Encoding#charset()] returns a Java charset for the encoded
+    /// payload when one is available in the current runtime. External framing
+    /// associated with an encoding is not represented by that charset.
     @NotNullByDefault
     public record Candidate(
             @Nullable Encoding encoding,
