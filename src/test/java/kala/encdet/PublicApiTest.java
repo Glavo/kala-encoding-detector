@@ -223,11 +223,24 @@ final class PublicApiTest {
         assertEquals(Charset.forName("windows-31j"), Encoding.CP932.charset());
         assertEquals(Charset.forName("x-windows-949"), Encoding.CP949.charset());
         assertEquals(Charset.forName("x-windows-874"), Encoding.CP874.charset());
+        assertEquals(Charset.forName("x-SJIS_0213"), Encoding.SHIFT_JIS_2004.charset());
         assertEquals(Charset.forName("IBM01140"), Encoding.CP1140.charset());
         assertNotEquals(Charset.forName("IBM037"), Encoding.CP1140.charset());
         assertNotEquals(StandardCharsets.UTF_8, Encoding.UTF_8_SIG.charset());
         assertNotEquals(Charset.forName("EUC-JP"), Encoding.EUC_JIS_2004.charset());
         assertNotEquals(Charset.forName("Shift_JIS"), Encoding.SHIFT_JIS_2004.charset());
+    }
+
+    /// Verifies charset availability reporting against exact runtime lookup.
+    @Test
+    void reportsCurrentRuntimeCharsetSupport() {
+        for (Encoding encoding : Encoding.values()) {
+            assertEquals(
+                    encoding.charset() != null,
+                    encoding.isCharsetSupported(),
+                    encoding.name()
+            );
+        }
     }
 
     /// Verifies every display name retained from the compatible string API.

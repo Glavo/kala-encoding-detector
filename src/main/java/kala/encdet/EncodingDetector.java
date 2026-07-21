@@ -59,8 +59,8 @@ public final class EncodingDetector {
     /// [java.nio.charset.spi.CharsetProvider] implementations may add mappings,
     /// while custom runtime images may omit OpenJDK's extended providers. A
     /// related charset with different decoding semantics is not an exact
-    /// substitute. Call [#charset()] to determine availability in the current
-    /// runtime.
+    /// substitute. Call [#isCharsetSupported()] to test availability in the
+    /// current runtime and [#charset()] to obtain the mapping.
     ///
     /// @apiNote [#charset()] returns an exact `java.nio.charset.Charset`
     /// mapping when the current runtime provides one.
@@ -291,8 +291,8 @@ public final class EncodingDetector {
 
         /// The Shift_JIS-2004 multibyte encoding for Japanese text.
         ///
-        /// OpenJDK 17's standard charset providers do not include an exact
-        /// [Charset] mapping for this encoding.
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping under the name `x-SJIS_0213`.
         SHIFT_JIS_2004(
                 "shift_jis_2004", "SHIFT_JIS", Era.MODERN_WEB, true,
                 List.of("ja"),
@@ -1053,8 +1053,8 @@ public final class EncodingDetector {
         /// Availability depends on installed charset providers. This method
         /// returns `null` instead of substituting a related but semantically
         /// different charset. For example, [#UTF_8_SIG] is not mapped to plain
-        /// UTF-8, and the JIS-2004 targets are not mapped to their older JIS
-        /// counterparts. This method is safe for concurrent invocation.
+        /// UTF-8, and [#EUC_JIS_2004] is not mapped to EUC-JP. This method is
+        /// safe for concurrent invocation.
         ///
         /// @return matching charset, or `null` when no exact mapping is available
         /// @implNote Successful provider lookups are cached per encoding. Cache
@@ -1078,6 +1078,7 @@ public final class EncodingDetector {
                 case ISO_2022_JP_2004 -> "ISO-2022-JP-2004";
                 case ISO_2022_JP_EXT -> "ISO-2022-JP-EXT";
                 case ISO_2022_KR -> "ISO-2022-KR";
+                case SHIFT_JIS_2004 -> "x-SJIS_0213";
                 case CP874 -> "x-windows-874";
                 case ISO_8859_10 -> "ISO-8859-10";
                 case ISO_8859_14 -> "ISO-8859-14";
@@ -1108,6 +1109,19 @@ public final class EncodingDetector {
                 charsetCache = charset;
             }
             return charset;
+        }
+
+        /// Returns whether the current runtime provides an exact Java charset
+        /// mapping for this encoding.
+        ///
+        /// This method is equivalent to `charset() != null`. Its result may
+        /// therefore depend on the charset providers installed in the current
+        /// runtime. Related charsets with different decoding semantics do not
+        /// count as support. This method is safe for concurrent invocation.
+        ///
+        /// @return `true` if [#charset()] returns a charset; `false` otherwise
+        public boolean isCharsetSupported() {
+            return charset() != null;
         }
 
         /// Returns the historical or operational group assigned to this target.
