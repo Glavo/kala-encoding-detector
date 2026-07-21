@@ -36,6 +36,17 @@ final class ByteSet {
         this.word3 = word3;
     }
 
+    /// Creates a set from four complete membership words.
+    ///
+    /// @param word0 membership bits for values from 0 through 63
+    /// @param word1 membership bits for values from 64 through 127
+    /// @param word2 membership bits for values from 128 through 191
+    /// @param word3 membership bits for values from 192 through 255
+    /// @return an immutable set with the supplied membership bits
+    static ByteSet fromWords(long word0, long word1, long word2, long word3) {
+        return new ByteSet(word0, word1, word2, word3);
+    }
+
     /// Creates a set containing the supplied unsigned byte values.
     ///
     /// Repeated values have no additional effect. The supplied array is read only

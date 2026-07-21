@@ -41,11 +41,12 @@ The build downloads that commit from
 <https://codeload.github.com/python/cpython/zip/c63aec69bd59c55314c06c23f4c22c03de76fe45>
 and verifies the archive SHA-256 digest
 `ebe31c63a7e1857bac15f64027d97671732ab7db3379a6601cfd80f08c793ca2`.
-Alias metadata is encoded in the `EncodingDetector.Encoding` Java enum. Pure
-Java build logic parses the pinned codec definitions to produce deterministic
-validity and decode resources. The repository does not contain generated binary
-mapping tables, and the build neither invokes Python nor consults installed Java
-charset providers.
+Alias metadata is encoded in the `EncodingDetector.Encoding` Java enum, and
+single-byte validity masks are encoded in the internal `SingleByteValidity`
+table. Pure Java build logic parses the pinned codec definitions to produce
+deterministic multibyte validity and decode resources. The repository does not
+contain generated binary mapping tables, and the build neither invokes Python
+nor consults installed Java charset providers.
 
 CPython is distributed under the Python Software Foundation License Version 2
 and additional component licenses. The applicable license text is available

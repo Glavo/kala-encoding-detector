@@ -9,10 +9,8 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jetbrains.annotations.UnmodifiableView;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -25,9 +23,6 @@ import java.util.Map;
 /// Reproduces strict codec byte-validity filtering without charset providers.
 @NotNullByDefault
 final class ByteValidity {
-    /// Single-byte validity table resource.
-    private static final String SINGLE_RESOURCE = "/kala/encdet/internal/validity.tsv";
-
     /// Stateless multibyte validity table resource.
     private static final String MULTIBYTE_RESOURCE = "/kala/encdet/internal/multibyte-validity.bin";
 
@@ -40,8 +35,8 @@ final class ByteValidity {
     /// Expected number of stateless multibyte tables.
     private static final int MULTIBYTE_TABLE_COUNT = 8;
 
-    /// Bytes in a 256-bit single-byte mask.
-    private static final int SINGLE_MASK_SIZE = 32;
+    /// Bytes in a 256-bit byte mask.
+    private static final int BYTE_MASK_SIZE = 32;
 
     /// Bytes in a 65,536-bit pair mask.
     private static final int PAIR_MASK_SIZE = 8192;
@@ -97,9 +92,9 @@ final class ByteValidity {
             case ISO_2022_JP_2, ISO_2022_JP_2004, ISO_2022_JP_EXT, ISO_2022_KR ->
                     isValidIso2022(data);
             default -> {
-                byte @Nullable [] singleMask = TablesHolder.SINGLE_MASKS.get(encoding);
+                @Nullable ByteSet singleMask = SingleByteValidity.lookup(encoding);
                 if (singleMask != null) {
-                    yield allBytesInMask(data, singleMask);
+                    yield allBytesInSet(data, singleMask);
                 }
                 @Nullable MultibyteTable table = TablesHolder.MULTIBYTE_TABLES.get(encoding);
                 yield table != null && isValidStatelessMultibyte(data, encoding, table);
@@ -481,17 +476,17 @@ final class ByteValidity {
         return true;
     }
 
-    /// Tests whether every byte is present in a 256-bit mask.
+    /// Tests whether every byte is present in a byte set.
     ///
     /// @param data bytes to test
-    /// @param mask valid-byte mask
+    /// @param values valid byte values
     /// @return whether all bytes are valid
-    private static boolean allBytesInMask(
+    private static boolean allBytesInSet(
             @UnmodifiableView ByteBuffer data,
-            byte @Unmodifiable [] mask
+            ByteSet values
     ) {
         for (int index = 0; index < data.remaining(); index++) {
-            if (!contains(mask, Byte.toUnsignedInt(data.get(index)))) {
+            if (!values.contains(data.get(index))) {
                 return false;
             }
         }
@@ -555,64 +550,6 @@ final class ByteValidity {
         return Constants.UTF7_BASE64_VALUES[Byte.toUnsignedInt(value)];
     }
 
-    /// Loads generated single-byte masks.
-    ///
-    /// @return immutable encoding map
-    private static @Unmodifiable Map<Encoding, byte @Unmodifiable []> loadSingleMasks() {
-        @Nullable InputStream input = ByteValidity.class.getResourceAsStream(SINGLE_RESOURCE);
-        if (input == null) {
-            throw new IllegalStateException("Missing byte-validity resource: " + SINGLE_RESOURCE);
-        }
-        EnumMap<Encoding, byte @Unmodifiable []> result = new EnumMap<>(Encoding.class);
-        try (input; BufferedReader reader = new BufferedReader(
-                new InputStreamReader(input, StandardCharsets.US_ASCII)
-        )) {
-            String line;
-            int lineNumber = 0;
-            while ((line = reader.readLine()) != null) {
-                lineNumber++;
-                if (line.isEmpty() || line.charAt(0) == '#') {
-                    continue;
-                }
-                String[] fields = line.split("\\t", -1);
-                if (fields.length != 2 || fields[1].length() != SINGLE_MASK_SIZE * 2) {
-                    throw new IllegalStateException(
-                            "Malformed byte-validity resource at line " + lineNumber
-                    );
-                }
-                @Nullable Encoding encoding = EncodingRegistry.lookup(fields[0]);
-                if (encoding == null) {
-                    throw new IllegalStateException(
-                            "Malformed byte-validity resource at line " + lineNumber
-                                    + ": unknown encoding '" + fields[0] + "'"
-                    );
-                }
-                byte[] mask;
-                try {
-                    mask = java.util.HexFormat.of().parseHex(fields[1]);
-                } catch (IllegalArgumentException exception) {
-                    throw new IllegalStateException(
-                            "Malformed byte-validity resource at line " + lineNumber,
-                            exception
-                    );
-                }
-                if (result.putIfAbsent(encoding, mask) != null) {
-                    throw new IllegalStateException(
-                            "Duplicate byte-validity table for " + encoding.canonicalName()
-                    );
-                }
-            }
-        } catch (IOException exception) {
-            throw new IllegalStateException("Unable to read byte-validity resource", exception);
-        }
-        if (result.size() != 64) {
-            throw new IllegalStateException(
-                    "Malformed byte-validity resource: expected 64 tables but found " + result.size()
-            );
-        }
-        return Collections.unmodifiableMap(result);
-    }
-
     /// Loads exact stateless multibyte sequence maps.
     ///
     /// @return immutable encoding map
@@ -631,7 +568,7 @@ final class ByteValidity {
         for (int tableIndex = 0; tableIndex < count; tableIndex++) {
             requireRemaining(buffer, 1, "truncated name length");
             int nameLength = Byte.toUnsignedInt(buffer.get());
-            requireRemaining(buffer, nameLength + SINGLE_MASK_SIZE + PAIR_MASK_SIZE + 1, "truncated table");
+            requireRemaining(buffer, nameLength + BYTE_MASK_SIZE + PAIR_MASK_SIZE + 1, "truncated table");
             byte[] encodedName = new byte[nameLength];
             buffer.get(encodedName);
             String name = new String(encodedName, StandardCharsets.US_ASCII);
@@ -639,7 +576,7 @@ final class ByteValidity {
             if (encoding == null) {
                 throw corruptMultibyte("unknown encoding '" + name + "'");
             }
-            byte[] singles = new byte[SINGLE_MASK_SIZE];
+            byte[] singles = new byte[BYTE_MASK_SIZE];
             byte[] pairs = new byte[PAIR_MASK_SIZE];
             buffer.get(singles);
             buffer.get(pairs);
@@ -722,13 +659,9 @@ final class ByteValidity {
         return new IllegalStateException("Malformed multibyte validity resource: " + detail);
     }
 
-    /// Initialization-on-demand holder for generated validity resources.
+    /// Initialization-on-demand holder for binary validity resources.
     @NotNullByDefault
     private static final class TablesHolder {
-        /// Canonical single-byte validity masks.
-        private static final @Unmodifiable Map<Encoding, byte @Unmodifiable []> SINGLE_MASKS =
-                loadSingleMasks();
-
         /// Canonical stateless multibyte validity tables.
         private static final @Unmodifiable Map<Encoding, MultibyteTable> MULTIBYTE_TABLES =
                 loadMultibyteTables();

@@ -44,11 +44,14 @@ final class ResourceIntegrityTest {
         }
     }
 
-    /// Verifies encoding metadata has no companion classpath resource.
+    /// Verifies Java-embedded tables have no companion classpath resources.
     @Test
-    void registryResourceIsNotBundled() {
+    void tabularRuntimeResourcesAreNotBundled() {
         assertNull(
                 ResourceIntegrityTest.class.getResource("/kala/encdet/internal/registry.tsv")
+        );
+        assertNull(
+                ResourceIntegrityTest.class.getResource("/kala/encdet/internal/validity.tsv")
         );
     }
 
@@ -216,7 +219,6 @@ final class ResourceIntegrityTest {
         hashes.put("models.bin", "07eb1dabcf4f8e714f9f866eaa355121bf7b3563dcde0d77ed7c3668de5f75f5");
         hashes.put("multibyte-validity.bin", "cabce96fd96e6bba5fff346a9d6c34bd9a0550f89c91be2a3c7f68ad364cf804");
         hashes.put("single-byte-decode.bin", "63912710247ec04e923f411d7022cfa3bbc3f3af2a5af9c3eaa3c601e65ff030");
-        hashes.put("validity.tsv", "f03213c64ec130fc5c00520f8a69753235438e79f64ad4690b0e13d5d8183509");
         return java.util.Collections.unmodifiableMap(hashes);
     }
 

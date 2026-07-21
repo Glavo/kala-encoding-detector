@@ -7,7 +7,6 @@ import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 
-import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,9 +40,6 @@ final class EncodingResourceGenerator {
     /// KVM1 multibyte validity resource magic.
     private static final int MULTIBYTE_MAGIC = 0x4b564d31;
 
-    /// Number of byte values in a single-byte table.
-    private static final int BYTE_VALUE_COUNT = 256;
-
     /// Expected upstream model resource digests.
     private static final @Unmodifiable Map<String, String> UPSTREAM_HASHES = Map.of(
             "confusion.bin", "1c853cd04b400bd2d3772fcaddc4466b32d32db703a7aa415df5a20810bf9ecb",
@@ -55,8 +51,7 @@ final class EncodingResourceGenerator {
     private static final @Unmodifiable Map<String, String> GENERATED_HASHES = Map.of(
             "hz-validity.bin", "313e548cab6a250d0ae374c9b029475dbe9248632f4940f8aa95f30d7a16c3e2",
             "multibyte-validity.bin", "cabce96fd96e6bba5fff346a9d6c34bd9a0550f89c91be2a3c7f68ad364cf804",
-            "single-byte-decode.bin", "63912710247ec04e923f411d7022cfa3bbc3f3af2a5af9c3eaa3c601e65ff030",
-            "validity.tsv", "f03213c64ec130fc5c00520f8a69753235438e79f64ad4690b0e13d5d8183509"
+            "single-byte-decode.bin", "63912710247ec04e923f411d7022cfa3bbc3f3af2a5af9c3eaa3c601e65ff030"
     );
 
     /// Prevents instantiation.
@@ -92,7 +87,6 @@ final class EncodingResourceGenerator {
         @Unmodifiable List<UpstreamSourceParser.SingleByteTable> singleTables =
                 UpstreamSourceParser.readSingleByteTables(cpythonArchive, cpythonRoot, registry);
         writeSingleByteDecode(resourceDirectory.resolve("single-byte-decode.bin"), singleTables);
-        writeSingleByteValidity(resourceDirectory.resolve("validity.tsv"), singleTables);
 
         CpythonMultibyteTables.Result multibyteTables =
                 CpythonMultibyteTables.read(cpythonArchive, cpythonRoot);
@@ -204,35 +198,6 @@ final class EncodingResourceGenerator {
         }
     }
 
-    /// Writes strict single-byte masks as deterministic ASCII TSV.
-    ///
-    /// @param path output path
-    /// @param tables ordered single-byte tables
-    /// @throws IOException if the resource cannot be written
-    private static void writeSingleByteValidity(
-            Path path,
-            @Unmodifiable List<UpstreamSourceParser.SingleByteTable> tables
-    )
-            throws IOException {
-        try (BufferedWriter writer = Files.newBufferedWriter(path, StandardCharsets.US_ASCII)) {
-            writeLine(
-                    writer,
-                    "# Generated from Python codecs used by chardet "
-                            + "e3dfaa1c75256c9d2a06103b566ea92997844f70"
-            );
-            writeLine(writer, "# name\t256-bit-valid-byte-mask-little-bit-order");
-            for (UpstreamSourceParser.SingleByteTable table : tables) {
-                byte[] mask = new byte[BYTE_VALUE_COUNT / Byte.SIZE];
-                for (int byteValue = 0; byteValue < BYTE_VALUE_COUNT; byteValue++) {
-                    if (table.mappings()[byteValue] >= 0) {
-                        setBit(mask, byteValue);
-                    }
-                }
-                writeLine(writer, table.name() + '\t' + HexFormat.of().formatHex(mask));
-            }
-        }
-    }
-
     /// Writes the KVM1 stateless multibyte validity resource.
     ///
     /// @param path output path
@@ -271,14 +236,6 @@ final class EncodingResourceGenerator {
         Files.write(outputPath, mask);
     }
 
-    /// Sets one bit using the runtime's little-bit-order packing.
-    ///
-    /// @param mask packed mask
-    /// @param value bit index
-    private static void setBit(byte[] mask, int value) {
-        mask[value >>> 3] |= (byte) (1 << (value & 7));
-    }
-
     /// Writes a one-byte-length ASCII codec name.
     ///
     /// @param output binary output
@@ -291,16 +248,6 @@ final class EncodingResourceGenerator {
         }
         output.writeByte(encoded.length);
         output.write(encoded);
-    }
-
-    /// Writes one line using an explicit LF terminator.
-    ///
-    /// @param writer destination writer
-    /// @param line line contents
-    /// @throws IOException if writing fails
-    private static void writeLine(BufferedWriter writer, String line) throws IOException {
-        writer.write(line);
-        writer.write('\n');
     }
 
     /// Verifies every resource in one expected digest map.

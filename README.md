@@ -30,12 +30,13 @@ distribution with:
 The source tree does not contain the detector's binary tables, generated codec
 tables, or the binary test corpus. Encoding names, eras, language associations,
 multibyte classifications, and aliases are encoded directly in the
-`EncodingDetector.Encoding` enum. Tasks that process main resources download
-the fixed `chardet@e3dfaa1` and
+`EncodingDetector.Encoding` enum; strict single-byte validity masks are also
+encoded in Java source. Tasks that process main resources download the fixed
+`chardet@e3dfaa1` and
 `CPython@c63aec69bd59c55314c06c23f4c22c03de76fe45` source ZIPs, verify their
 SHA-256 digests, extract the three upstream model files, and generate the
-validity and codec resources by parsing the pinned sources with pure Java code
-under `buildSrc`. Test tasks independently download and verify
+multibyte validity and codec resources by parsing the pinned sources with pure
+Java code under `buildSrc`. Test tasks independently download and verify
 `chardet/test-data@fa16e9f`. Archives are retained in
 `.gradle/upstream-archives`, so later clean builds can run with `--offline`.
 The resulting JAR and application distribution are self-contained and never
@@ -202,9 +203,10 @@ never read a local reference checkout.
 Java source code is licensed under the Mozilla Public License 2.0. The pinned
 upstream implementation and the extracted `models.bin`, `idf.bin`, and
 `confusion.bin` resources are licensed under the 0BSD license. Reviewable alias
-metadata is encoded in Java source, while codec resources are generated from
-pinned CPython commit `c63aec69bd59c55314c06c23f4c22c03de76fe45`, whose
-source is distributed under the Python Software Foundation License Version 2.
+metadata and single-byte validity masks are encoded in Java source, while codec
+resources are generated from pinned CPython commit
+`c63aec69bd59c55314c06c23f4c22c03de76fe45`, whose source is distributed under
+the Python Software Foundation License Version 2.
 The test corpus does not have one uniform license; each file remains copyright
 its respective publisher. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), the generated corpus
