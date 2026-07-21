@@ -11,7 +11,14 @@ import kala.encdet.EncodingDetector.Result;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -242,6 +249,102 @@ final class PublicApiTest {
                     encoding.name()
             );
         }
+    }
+
+    /// Verifies that stream detection replays its prefix and transfers ownership.
+    ///
+    /// @throws IOException if test I/O fails
+    @Test
+    void createsReaderFromInputStreamWithoutDroppingDetectionBytes() throws IOException {
+        byte[] data = "abcdef".getBytes(StandardCharsets.US_ASCII);
+        CloseTrackingInputStream input = new CloseTrackingInputStream(data);
+        EncodingDetector detector = EncodingDetector.DEFAULT.withMaxBytes(3);
+
+        try (Reader reader = detector.newReader(input)) {
+            assertEquals(3, input.available());
+            assertEquals("abcdef", readAll(reader));
+        }
+        assertTrue(input.isClosed());
+    }
+
+    /// Verifies channel ownership and UTF-8 signature consumption.
+    ///
+    /// @throws IOException if test I/O fails
+    @Test
+    void createsReaderFromChannelAndConsumesUtf8Signature() throws IOException {
+        byte[] data = {
+                (byte) 0xef, (byte) 0xbb, (byte) 0xbf,
+                'h', 'e', 'l', 'l', 'o'
+        };
+        CloseTrackingInputStream input = new CloseTrackingInputStream(data);
+        ReadableByteChannel channel = Channels.newChannel(input);
+
+        try (Reader reader = EncodingDetector.DEFAULT.newReader(channel)) {
+            assertTrue(channel.isOpen());
+            assertEquals("hello", readAll(reader));
+        }
+        assertFalse(channel.isOpen());
+        assertTrue(input.isClosed());
+    }
+
+    /// Verifies decoder state across the retained-prefix boundary.
+    ///
+    /// @throws IOException if test I/O fails
+    @Test
+    void readerCompletesMultibyteSequenceAcrossDetectionBoundary() throws IOException {
+        byte[] data = "éx".getBytes(StandardCharsets.UTF_8);
+        EncodingDetector detector = EncodingDetector.DEFAULT
+                .withMaxBytes(1)
+                .withEncodings(Encoding.UTF_8)
+                .withNoMatchEncoding(Encoding.UTF_8);
+
+        try (Reader reader = detector.newReader(new ByteArrayInputStream(data))) {
+            assertEquals("éx", readAll(reader));
+        }
+    }
+
+    /// Verifies single-character reads of a supplementary Unicode code point.
+    ///
+    /// @throws IOException if test I/O fails
+    @Test
+    void readerRetainsLowSurrogateAcrossSingleCharacterReads() throws IOException {
+        String text = "😀x";
+        try (Reader reader = EncodingDetector.DEFAULT.newReader(
+                new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8))
+        )) {
+            assertEquals(text.charAt(0), reader.read());
+            assertEquals(text.charAt(1), reader.read());
+            assertEquals('x', reader.read());
+            assertEquals(-1, reader.read());
+        }
+    }
+
+    /// Verifies the reader's closed-state lifecycle.
+    ///
+    /// @throws IOException if reader creation or closure fails
+    @Test
+    void readerCloseIsIdempotentAndPreventsFurtherReads() throws IOException {
+        Reader reader = EncodingDetector.DEFAULT.newReader(
+                new ByteArrayInputStream("text".getBytes(StandardCharsets.UTF_8))
+        );
+
+        reader.close();
+        reader.close();
+        assertThrows(IOException.class, reader::read);
+    }
+
+    /// Verifies that failure retains consumed progress without closing the source.
+    @Test
+    void readerCreationFailureLeavesInputOpen() {
+        CloseTrackingInputStream input = new CloseTrackingInputStream(
+                "text".getBytes(StandardCharsets.US_ASCII)
+        );
+        EncodingDetector detector = EncodingDetector.DEFAULT.withEncodings(Set.of());
+
+        IOException exception = assertThrows(IOException.class, () -> detector.newReader(input));
+        assertEquals("No character encoding could be selected", exception.getMessage());
+        assertEquals(0, input.available());
+        assertFalse(input.isClosed());
     }
 
     /// Verifies every display name retained from the compatible string API.
@@ -578,6 +681,14 @@ final class PublicApiTest {
     void rejectsNullArgumentsAndInvalidCandidates() {
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect((byte[]) null));
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect((ByteBuffer) null));
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.newReader((InputStream) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.newReader((ReadableByteChannel) null)
+        );
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withEncodingEras((Era[]) null));
         assertThrows(
                 NullPointerException.class,
@@ -618,6 +729,45 @@ final class PublicApiTest {
                 IllegalArgumentException.class,
                 () -> new Candidate(Encoding.ASCII, 1.01, null, null)
         );
+    }
+
+    /// Reads every character from a reader.
+    ///
+    /// @param reader reader to drain
+    /// @return accumulated characters
+    /// @throws IOException if reading fails
+    private static String readAll(Reader reader) throws IOException {
+        StringWriter result = new StringWriter();
+        reader.transferTo(result);
+        return result.toString();
+    }
+
+    /// Byte-array stream that records closure for ownership tests.
+    @NotNullByDefault
+    private static final class CloseTrackingInputStream extends ByteArrayInputStream {
+        /// Whether [#close()] has been invoked.
+        private boolean closed;
+
+        /// Creates a stream over test bytes.
+        ///
+        /// @param data bytes exposed by the stream
+        private CloseTrackingInputStream(byte[] data) {
+            super(data);
+        }
+
+        /// Returns whether this stream has been closed.
+        ///
+        /// @return whether [#close()] has been invoked
+        private boolean isClosed() {
+            return closed;
+        }
+
+        /// Records closure and closes the byte-array stream.
+        @Override
+        public void close() throws IOException {
+            closed = true;
+            super.close();
+        }
     }
 
     /// Returns all encodings classified in one era.
