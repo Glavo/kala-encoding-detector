@@ -32,7 +32,7 @@ The Java source written for this port is separately licensed under MPL-2.0.
 
 ## CPython codec behavior
 
-Registry aliases and codec resources are generated from CPython commit
+Encoding aliases and codec definitions are derived from CPython commit
 `c63aec69bd59c55314c06c23f4c22c03de76fe45`:
 
 <https://github.com/python/cpython/commit/c63aec69bd59c55314c06c23f4c22c03de76fe45>
@@ -41,10 +41,11 @@ The build downloads that commit from
 <https://codeload.github.com/python/cpython/zip/c63aec69bd59c55314c06c23f4c22c03de76fe45>
 and verifies the archive SHA-256 digest
 `ebe31c63a7e1857bac15f64027d97671732ab7db3379a6601cfd80f08c793ca2`.
-Pure Java build logic parses the pinned alias and codec definitions to produce
-the deterministic runtime resources. The repository does not contain derived
-mapping tables, and the build neither invokes Python nor consults installed
-Java charset providers.
+Alias metadata is encoded in the `EncodingDetector.Encoding` Java enum. Pure
+Java build logic parses the pinned codec definitions to produce deterministic
+validity and decode resources. The repository does not contain generated binary
+mapping tables, and the build neither invokes Python nor consults installed Java
+charset providers.
 
 CPython is distributed under the Python Software Foundation License Version 2
 and additional component licenses. The applicable license text is available

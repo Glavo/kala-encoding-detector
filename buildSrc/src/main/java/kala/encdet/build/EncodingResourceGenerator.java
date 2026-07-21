@@ -55,7 +55,6 @@ final class EncodingResourceGenerator {
     private static final @Unmodifiable Map<String, String> GENERATED_HASHES = Map.of(
             "hz-validity.bin", "313e548cab6a250d0ae374c9b029475dbe9248632f4940f8aa95f30d7a16c3e2",
             "multibyte-validity.bin", "cabce96fd96e6bba5fff346a9d6c34bd9a0550f89c91be2a3c7f68ad364cf804",
-            "registry.tsv", "75d70081930d8ca2960debaf642fbd76d1b3e01534cc3e6254983780426bcc2d",
             "single-byte-decode.bin", "63912710247ec04e923f411d7022cfa3bbc3f3af2a5af9c3eaa3c601e65ff030",
             "validity.tsv", "f03213c64ec130fc5c00520f8a69753235438e79f64ad4690b0e13d5d8183509"
     );
@@ -90,7 +89,6 @@ final class EncodingResourceGenerator {
                         cpythonArchive,
                         cpythonRoot
                 );
-        writeRegistry(resourceDirectory.resolve("registry.tsv"), registry);
         @Unmodifiable List<UpstreamSourceParser.SingleByteTable> singleTables =
                 UpstreamSourceParser.readSingleByteTables(cpythonArchive, cpythonRoot, registry);
         writeSingleByteDecode(resourceDirectory.resolve("single-byte-decode.bin"), singleTables);
@@ -181,34 +179,6 @@ final class EncodingResourceGenerator {
         }
         if (input.read() >= 0) {
             throw new IOException("ZIP entry exceeds its declared length: " + label);
-        }
-    }
-
-    /// Writes the augmented ordered encoding registry as deterministic UTF-8 TSV.
-    ///
-    /// @param path output path
-    /// @param entries ordered registry entries
-    /// @throws IOException if the resource cannot be written
-    private static void writeRegistry(
-            Path path,
-            @Unmodifiable List<UpstreamSourceParser.RegistryEntry> entries
-    ) throws IOException {
-        try (BufferedWriter writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
-            writeLine(
-                    writer,
-                    "# Generated from chardet e3dfaa1c75256c9d2a06103b566ea92997844f70"
-            );
-            writeLine(writer, "# name\tera\tmultibyte\tlanguages\taliases");
-            for (UpstreamSourceParser.RegistryEntry entry : entries) {
-                writeLine(
-                        writer,
-                        entry.name()
-                                + '\t' + entry.era()
-                                + '\t' + entry.multibyte()
-                                + '\t' + String.join(",", entry.languages())
-                                + '\t' + String.join("\u001f", entry.aliases())
-                );
-            }
         }
     }
 

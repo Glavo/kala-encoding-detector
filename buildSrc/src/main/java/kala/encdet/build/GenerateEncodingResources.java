@@ -25,7 +25,7 @@ import java.io.IOException;
 /// Generates all runtime resources required by the detector.
 ///
 /// The task extracts the pinned upstream statistical files and builds the
-/// kala-specific registry, validity, and decode tables from pinned source archives.
+/// kala-specific validity and decode tables from pinned source archives.
 @NotNullByDefault
 @CacheableTask
 public abstract class GenerateEncodingResources extends DefaultTask {

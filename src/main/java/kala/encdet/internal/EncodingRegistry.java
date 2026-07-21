@@ -10,15 +10,10 @@ import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -29,9 +24,6 @@ import java.util.Set;
 /// Provides the detector's provider-independent ordered encoding registry.
 @NotNullByDefault
 public final class EncodingRegistry {
-    /// Classpath location of the generated registry table.
-    private static final String RESOURCE = "/kala/encdet/internal/registry.tsv";
-
     /// Number of canonical targets in the pinned upstream registry.
     private static final int EXPECTED_ENTRY_COUNT = 86;
 
@@ -51,7 +43,7 @@ public final class EncodingRegistry {
     private static final @Unmodifiable Set<Encoding> SUPPORTED_ENCODINGS;
 
     static {
-        RegistryData data = readRegistry();
+        RegistryData data = createRegistry();
         ENTRIES = data.entries();
         BY_ENCODING = data.byEncoding();
         EXACT_ALIASES = data.exactAliases();
@@ -113,95 +105,46 @@ public final class EncodingRegistry {
         return List.copyOf(result);
     }
 
-    /// Reads and validates the generated registry resource.
+    /// Builds and validates registry indexes from the encoding enum.
     ///
-    /// @return immutable parsed registry data
-    private static RegistryData readRegistry() {
-        @Nullable InputStream input = EncodingRegistry.class.getResourceAsStream(RESOURCE);
-        if (input == null) {
-            throw new IllegalStateException("Missing encoding registry resource: " + RESOURCE);
+    /// @return immutable registry data
+    private static RegistryData createRegistry() {
+        Encoding[] encodings = Encoding.values();
+        if (encodings.length != EXPECTED_ENTRY_COUNT) {
+            throw new IllegalStateException(
+                    "Expected " + EXPECTED_ENTRY_COUNT + " Encoding values but found "
+                            + encodings.length
+            );
         }
 
         ArrayList<Info> entries = new ArrayList<>(EXPECTED_ENTRY_COUNT);
         EnumMap<Encoding, Info> byEncoding = new EnumMap<>(Encoding.class);
         LinkedHashMap<String, Encoding> exactAliases = new LinkedHashMap<>();
         LinkedHashMap<String, Encoding> normalizedAliases = new LinkedHashMap<>();
-        HashMap<String, Encoding> unregisteredEnums = new HashMap<>();
-        for (Encoding encoding : Encoding.values()) {
-            @Nullable Encoding previous = unregisteredEnums.put(
-                    encoding.canonicalName(),
-                    encoding
-            );
-            if (previous != null) {
+        LinkedHashSet<Encoding> supported = new LinkedHashSet<>(EXPECTED_ENTRY_COUNT);
+        HashSet<String> canonicalNames = new HashSet<>(EXPECTED_ENTRY_COUNT);
+        for (Encoding encoding : encodings) {
+            if (!canonicalNames.add(encoding.canonicalName())) {
                 throw new IllegalStateException(
                         "Duplicate Encoding canonical name: " + encoding.canonicalName()
                 );
             }
-        }
-        try (input; BufferedReader reader = new BufferedReader(
-                new InputStreamReader(input, StandardCharsets.UTF_8)
-        )) {
-            String line;
-            int lineNumber = 0;
-            while ((line = reader.readLine()) != null) {
-                lineNumber++;
-                if (line.isEmpty() || line.charAt(0) == '#') {
-                    continue;
-                }
-                String[] fields = line.split("\\t", -1);
-                if (fields.length != 5) {
-                    throw malformed(lineNumber, "expected five tab-separated fields");
-                }
-                String name = fields[0];
-                @Nullable Encoding encoding = unregisteredEnums.remove(name);
-                if (encoding == null) {
-                    throw malformed(lineNumber, "unknown or duplicate canonical name " + name);
-                }
-                Era era;
-                try {
-                    era = Era.valueOf(fields[1]);
-                } catch (IllegalArgumentException exception) {
-                    throw malformed(lineNumber, "unknown era " + fields[1], exception);
-                }
-                boolean multibyte;
-                if (fields[2].equals("true")) {
-                    multibyte = true;
-                } else if (fields[2].equals("false")) {
-                    multibyte = false;
-                } else {
-                    throw malformed(lineNumber, "invalid multibyte flag " + fields[2]);
-                }
-                List<String> languages = splitList(fields[3], ",");
-                List<String> aliases = splitList(fields[4], "\u001f");
-                Info info = new Info(encoding, aliases, era, multibyte, languages);
-                if (byEncoding.putIfAbsent(encoding, info) != null) {
-                    throw malformed(lineNumber, "duplicate encoding " + name);
-                }
-                entries.add(info);
-                addAlias(exactAliases, normalizedAliases, name, encoding);
-                for (String alias : aliases) {
-                    addAlias(exactAliases, normalizedAliases, alias, encoding);
-                }
+            Info info = new Info(
+                    encoding,
+                    encoding.aliases(),
+                    encoding.era(),
+                    encoding.isMultibyte(),
+                    encoding.languages()
+            );
+            if (byEncoding.put(encoding, info) != null) {
+                throw new IllegalStateException("Duplicate Encoding value: " + encoding);
             }
-        } catch (IOException exception) {
-            throw new IllegalStateException("Unable to read encoding registry resource: " + RESOURCE, exception);
-        }
-
-        if (entries.size() != EXPECTED_ENTRY_COUNT) {
-            throw new IllegalStateException(
-                    "Malformed encoding registry resource: expected " + EXPECTED_ENTRY_COUNT
-                            + " entries but found " + entries.size()
-            );
-        }
-        if (!unregisteredEnums.isEmpty()) {
-            throw new IllegalStateException(
-                    "Encoding enum values missing from registry resource: "
-                            + unregisteredEnums.keySet()
-            );
-        }
-        LinkedHashSet<Encoding> supported = new LinkedHashSet<>(entries.size());
-        for (Info entry : entries) {
-            supported.add(entry.encoding());
+            entries.add(info);
+            supported.add(encoding);
+            addAlias(exactAliases, normalizedAliases, encoding.canonicalName(), encoding);
+            for (String alias : encoding.aliases()) {
+                addAlias(exactAliases, normalizedAliases, alias, encoding);
+            }
         }
         return new RegistryData(
                 List.copyOf(entries),
@@ -210,18 +153,6 @@ public final class EncodingRegistry {
                 Collections.unmodifiableMap(normalizedAliases),
                 Collections.unmodifiableSet(supported)
         );
-    }
-
-    /// Splits one resource field into an immutable list.
-    ///
-    /// @param field     field contents
-    /// @param delimiter literal delimiter
-    /// @return immutable field values
-    private static @Unmodifiable List<String> splitList(String field, String delimiter) {
-        if (field.isEmpty()) {
-            return List.of();
-        }
-        return List.of(field.split(java.util.regex.Pattern.quote(delimiter), -1));
     }
 
     /// Adds exact and normalized forms of one alias.
@@ -277,34 +208,6 @@ public final class EncodingRegistry {
         return result.toString();
     }
 
-    /// Creates a malformed-registry exception.
-    ///
-    /// @param lineNumber one-based source line
-    /// @param detail     error detail
-    /// @return the exception
-    private static IllegalStateException malformed(int lineNumber, String detail) {
-        return new IllegalStateException(
-                "Malformed encoding registry resource at line " + lineNumber + ": " + detail
-        );
-    }
-
-    /// Creates a malformed-registry exception with a cause.
-    ///
-    /// @param lineNumber one-based source line
-    /// @param detail     error detail
-    /// @param cause      underlying parse failure
-    /// @return the exception
-    private static IllegalStateException malformed(
-            int lineNumber,
-            String detail,
-            RuntimeException cause
-    ) {
-        return new IllegalStateException(
-                "Malformed encoding registry resource at line " + lineNumber + ": " + detail,
-                cause
-        );
-    }
-
     /// Stores metadata for one canonical encoding.
     ///
     /// @param encoding encoding identity
@@ -327,7 +230,7 @@ public final class EncodingRegistry {
         }
     }
 
-    /// Holds all immutable indexes built from the registry resource.
+    /// Holds all immutable indexes built from enum metadata.
     ///
     /// @param entries            ordered canonical entries
     /// @param byEncoding         entries indexed by encoding identity

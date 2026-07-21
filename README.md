@@ -27,12 +27,14 @@ distribution with:
 ./gradlew test javadoc installDist
 ```
 
-The source tree does not contain the detector's binary tables, generated
-registry or codec tables, or the binary test corpus. Tasks that process main
-resources download the fixed `chardet@e3dfaa1` and
+The source tree does not contain the detector's binary tables, generated codec
+tables, or the binary test corpus. Encoding names, eras, language associations,
+multibyte classifications, and aliases are encoded directly in the
+`EncodingDetector.Encoding` enum. Tasks that process main resources download
+the fixed `chardet@e3dfaa1` and
 `CPython@c63aec69bd59c55314c06c23f4c22c03de76fe45` source ZIPs, verify their
-SHA-256 digests, extract the three upstream model files, and generate all
-remaining runtime resources by parsing the pinned sources with pure Java code
+SHA-256 digests, extract the three upstream model files, and generate the
+validity and codec resources by parsing the pinned sources with pure Java code
 under `buildSrc`. Test tasks independently download and verify
 `chardet/test-data@fa16e9f`. Archives are retained in
 `.gradle/upstream-archives`, so later clean builds can run with `--offline`.
@@ -123,15 +125,17 @@ configured and otherwise returns an independent detector, so configured
 instances can be reused safely across detection calls and threads.
 
 The `EncodingDetector.Encoding` enum represents all 86 detection targets
-throughout the public API. Its `canonicalName()` and `displayName()` methods
-provide text only at interchange and presentation boundaries. Those names are
-not guaranteed to be accepted by `Charset.forName`, because Java 17's charset
+throughout the public API and owns their fixed registry metadata. Its
+`canonicalName()` and `displayName()` methods provide text only at interchange
+and presentation boundaries; `era()`, `isMultibyte()`, `languages()`, and
+`aliases()` expose the immutable detection metadata. Encoding names are not
+guaranteed to be accepted by `Charset.forName`, because Java 17's charset
 providers do not cover every target. A target is not always an exact decoder
 identity: lookup may fold related aliases such as `cp037` into
 `EncodingDetector.Encoding.CP1140`.
 `EncodingDetector.lookupEncoding` resolves canonical, IANA, WHATWG, and codec
 aliases to enum values without consulting a JDK charset provider;
-`supportedEncodings` returns the enum values in registry order.
+`supportedEncodings` returns the enum values in declaration order.
 
 ## Default behavior
 
@@ -197,11 +201,12 @@ never read a local reference checkout.
 
 Java source code is licensed under the Mozilla Public License 2.0. The pinned
 upstream implementation and the extracted `models.bin`, `idf.bin`, and
-`confusion.bin` resources are licensed under the 0BSD license. Reviewable codec
-and alias resources are generated from pinned CPython commit
-`c63aec69bd59c55314c06c23f4c22c03de76fe45`, whose source is distributed under
-the Python Software Foundation License Version 2. The test corpus does not have
-one uniform license; each file remains copyright its respective publisher. See
+`confusion.bin` resources are licensed under the 0BSD license. Reviewable alias
+metadata is encoded in Java source, while codec resources are generated from
+pinned CPython commit `c63aec69bd59c55314c06c23f4c22c03de76fe45`, whose
+source is distributed under the Python Software Foundation License Version 2.
+The test corpus does not have one uniform license; each file remains copyright
+its respective publisher. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), the generated corpus
 `README.md` and `CATALOG.md`, and the pinned digests in the Gradle build and
 resource generator for details.

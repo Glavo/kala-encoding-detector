@@ -25,6 +25,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /// Verifies bundled resource identities and isolated failure behavior.
@@ -41,6 +42,14 @@ final class ResourceIntegrityTest {
         for (Map.Entry<String, String> entry : EXPECTED_HASHES.entrySet()) {
             assertEquals(entry.getValue(), sha256(resourceBytes(entry.getKey())), entry.getKey());
         }
+    }
+
+    /// Verifies encoding metadata has no companion classpath resource.
+    @Test
+    void registryResourceIsNotBundled() {
+        assertNull(
+                ResourceIntegrityTest.class.getResource("/kala/encdet/internal/registry.tsv")
+        );
     }
 
     /// Verifies the fixed dense model count and exact IDF table size.
@@ -206,7 +215,6 @@ final class ResourceIntegrityTest {
         hashes.put("idf.bin", "8306e28aad48cac54db7834d09f49cbbb92d3928ede53c71f2b9b232b586bb8a");
         hashes.put("models.bin", "07eb1dabcf4f8e714f9f866eaa355121bf7b3563dcde0d77ed7c3668de5f75f5");
         hashes.put("multibyte-validity.bin", "cabce96fd96e6bba5fff346a9d6c34bd9a0550f89c91be2a3c7f68ad364cf804");
-        hashes.put("registry.tsv", "75d70081930d8ca2960debaf642fbd76d1b3e01534cc3e6254983780426bcc2d");
         hashes.put("single-byte-decode.bin", "63912710247ec04e923f411d7022cfa3bbc3f3af2a5af9c3eaa3c601e65ff030");
         hashes.put("validity.tsv", "f03213c64ec130fc5c00520f8a69753235438e79f64ad4690b0e13d5d8183509");
         return java.util.Collections.unmodifiableMap(hashes);
