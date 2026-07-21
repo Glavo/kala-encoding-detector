@@ -27,10 +27,15 @@ import java.util.Objects;
 ///
 /// Construction does not read from the channel. A read with a nonempty target
 /// obtains the detection prefix before producing characters.
+///
+/// Bytes obtained before a channel read fails remain buffered. A later read
+/// resumes from those bytes and continues reading the prefix.
+///
+/// Instances are not safe for concurrent use.
 @NotNullByDefault
 public final class EncodingReader extends Reader {
-    /// Capacity of the byte buffer used after the detection prefix.
-    private static final int BYTE_BUFFER_SIZE = 8192;
+    /// Maximum number of new bytes requested by one post-detection refill.
+    private static final int REFILL_SIZE = 8192;
 
     /// Detector whose immutable configuration selects the encoding.
     private final EncodingDetector detector;
@@ -41,17 +46,17 @@ public final class EncodingReader extends Reader {
     /// Stateful decoder, or `null` until an encoding has been selected.
     private @Nullable CharsetDecoder decoder;
 
-    /// Retained detection prefix, or `null` before detection and after use.
-    private @Nullable ByteBuffer prefix;
-
-    /// Streaming input retained across decoder underflow.
+    /// Encoded input shared by detection and decoding.
     private final ByteBuffer bytes;
 
     /// Decoded characters that did not fit in a caller's target.
     private CharBuffer pendingCharacters;
 
-    /// Retained decoder-selection failure, or `null` if none has occurred.
-    private @Nullable IOException initializationFailure;
+    /// Encoding selected from the detection bytes, or `null` when none matched.
+    private @Nullable Encoding detectedEncoding;
+
+    /// Whether the leading bytes have been read and detection has completed.
+    private boolean detectionComplete;
 
     /// Whether the source channel has reached end of input.
     private boolean endOfInput;
@@ -82,8 +87,8 @@ public final class EncodingReader extends Reader {
                 && !selectableChannel.isBlocking()) {
             throw new IllegalBlockingModeException();
         }
-        this.bytes = ByteBuffer.allocate(BYTE_BUFFER_SIZE);
-        this.bytes.limit(0);
+        this.bytes = ByteBuffer.allocate(Math.max(REFILL_SIZE, detector.maxBytes()));
+        this.bytes.limit(detector.maxBytes());
         this.pendingCharacters = CharBuffer.allocate(2);
         this.pendingCharacters.limit(0);
     }
@@ -100,23 +105,22 @@ public final class EncodingReader extends Reader {
     /// @throws UnsupportedEncodingException if detection selects an encoding
     ///                                      without a suitable charset
     /// @throws IOException             if detection selects no encoding, the
-    ///                                 channel cannot be read, decoder selection
-    ///                                 previously failed, or the reader is closed
+    ///                                 channel cannot be read, the selected
+    ///                                 encoding has no decoder, or the reader is
+    ///                                 closed
     /// @throws NullPointerException     if `target` is `null`
     /// @throws ReadOnlyBufferException if `target` is read-only
     @Override
     public int read(CharBuffer target) throws IOException {
-        synchronized (lock) {
-            if (target.isReadOnly()) {
-                throw new ReadOnlyBufferException();
-            }
-            ReadableByteChannel source = requireOpen();
-            if (!target.hasRemaining()) {
-                return 0;
-            }
-            CharsetDecoder activeDecoder = initialize(source);
-            return decode(target, source, activeDecoder);
+        if (target.isReadOnly()) {
+            throw new ReadOnlyBufferException();
         }
+        ReadableByteChannel source = requireOpen();
+        if (!target.hasRemaining()) {
+            return 0;
+        }
+        CharsetDecoder activeDecoder = ensureDecoder(source);
+        return decode(target, source, activeDecoder);
     }
 
     /// Reads decoded characters into part of an array.
@@ -131,8 +135,9 @@ public final class EncodingReader extends Reader {
     /// @throws UnsupportedEncodingException if detection selects an encoding
     ///                                      without a suitable charset
     /// @throws IOException               if detection selects no encoding, the
-    ///                                   channel cannot be read, decoder selection
-    ///                                   previously failed, or the reader is closed
+    ///                                   channel cannot be read, the selected
+    ///                                   encoding has no decoder, or the reader is
+    ///                                   closed
     /// @throws NullPointerException       if `target` is `null`
     @Override
     public int read(char[] target, int offset, int length) throws IOException {
@@ -148,86 +153,61 @@ public final class EncodingReader extends Reader {
     /// @throws IOException if the channel cannot be closed
     @Override
     public void close() throws IOException {
-        synchronized (lock) {
-            @Nullable ReadableByteChannel source = channel;
-            if (source == null) {
-                return;
-            }
-            channel = null;
-            prefix = null;
-            source.close();
+        @Nullable ReadableByteChannel source = channel;
+        if (source == null) {
+            return;
         }
+        channel = null;
+        source.close();
     }
 
-    /// Selects a decoder from the leading input bytes.
-    ///
-    /// A failure is retained so later reads fail without consuming more input.
+    /// Ensures that the leading bytes have selected a decoder.
     ///
     /// @param source open source channel
     /// @return selected decoder
     /// @throws IOException if input cannot be read, no encoding is selected, or
     ///                     the selected encoding has no suitable charset
-    private CharsetDecoder initialize(ReadableByteChannel source) throws IOException {
+    private CharsetDecoder ensureDecoder(ReadableByteChannel source) throws IOException {
         @Nullable CharsetDecoder currentDecoder = decoder;
         if (currentDecoder != null) {
             return currentDecoder;
         }
 
-        @Nullable IOException previousFailure = initializationFailure;
-        if (previousFailure != null) {
-            throw previousFailure;
-        }
-
-        @Nullable ByteBuffer retainedPrefix = prefix;
-        ByteBuffer initialBytes;
-        if (retainedPrefix == null) {
-            initialBytes = ByteBuffer.allocate(detector.maxBytes());
-            try {
-                while (initialBytes.hasRemaining()) {
-                    int count = source.read(initialBytes);
-                    if (count < 0) {
-                        break;
-                    }
-                    if (count == 0) {
-                        Thread.onSpinWait();
-                    }
+        if (!detectionComplete) {
+            while (bytes.hasRemaining() && !endOfInput) {
+                int count = readNonZero(source, bytes);
+                if (count < 0) {
+                    endOfInput = true;
                 }
-            } catch (IOException exception) {
-                initializationFailure = exception;
-                throw exception;
             }
-            initialBytes.flip();
-            prefix = initialBytes;
-        } else {
-            initialBytes = retainedPrefix;
+            ByteBuffer detectionInput = bytes.duplicate();
+            detectionInput.flip();
+            detectedEncoding = detector.detect(detectionInput).bestEncoding();
+            bytes.flip();
+            detectionComplete = true;
         }
 
-        @Nullable Encoding encoding = detector.detect(initialBytes).bestEncoding();
+        @Nullable Encoding encoding = detectedEncoding;
         if (encoding == null) {
-            IOException exception = new IOException("No character encoding could be selected");
-            initializationFailure = exception;
-            throw exception;
+            throw new IOException("No character encoding could be selected");
         }
 
         @Nullable Charset charset = encoding.charset();
         if (charset == null) {
-            UnsupportedEncodingException exception =
-                    new UnsupportedEncodingException(encoding.canonicalName());
-            initializationFailure = exception;
-            throw exception;
+            throw new UnsupportedEncodingException(encoding.canonicalName());
         }
 
         currentDecoder = charset.newDecoder()
                 .onMalformedInput(CodingErrorAction.REPLACE)
                 .onUnmappableCharacter(CodingErrorAction.REPLACE);
 
-        int start = initialBytes.position();
+        int start = bytes.position();
         if (encoding == Encoding.UTF_8_SIG
-                && initialBytes.remaining() >= 3
-                && initialBytes.get(start) == (byte) 0xef
-                && initialBytes.get(start + 1) == (byte) 0xbb
-                && initialBytes.get(start + 2) == (byte) 0xbf) {
-            initialBytes.position(start + 3);
+                && bytes.remaining() >= 3
+                && bytes.get(start) == (byte) 0xef
+                && bytes.get(start + 1) == (byte) 0xbb
+                && bytes.get(start + 2) == (byte) 0xbf) {
+            bytes.position(start + 3);
         }
 
         decoder = currentDecoder;
@@ -251,13 +231,10 @@ public final class EncodingReader extends Reader {
         if (output.position() != initialPosition) {
             return output.position() - initialPosition;
         }
-        if (!output.hasRemaining()) {
-            return 0;
-        }
 
         while (true) {
             if (flushed) {
-                return produced(output, initialPosition);
+                return -1;
             }
 
             if (decodingComplete) {
@@ -267,7 +244,8 @@ public final class EncodingReader extends Reader {
                 }
                 if (result.isUnderflow()) {
                     flushed = true;
-                    return produced(output, initialPosition);
+                    int count = output.position() - initialPosition;
+                    return count == 0 ? -1 : count;
                 }
                 if (output.position() != initialPosition) {
                     return output.position() - initialPosition;
@@ -278,12 +256,11 @@ public final class EncodingReader extends Reader {
                     flushed = true;
                 }
                 drainPendingCharacters(output);
-                return produced(output, initialPosition);
+                int count = output.position() - initialPosition;
+                return count == 0 ? -1 : count;
             }
 
-            @Nullable ByteBuffer currentPrefix = prefix;
-            ByteBuffer input = currentPrefix == null ? bytes : currentPrefix;
-            CoderResult result = decoder.decode(input, output, endOfInput);
+            CoderResult result = decoder.decode(bytes, output, endOfInput);
             if (result.isError()) {
                 result.throwException();
             }
@@ -291,7 +268,7 @@ public final class EncodingReader extends Reader {
                 if (output.position() != initialPosition) {
                     return output.position() - initialPosition;
                 }
-                result = decodePendingCharacters(input, decoder);
+                result = decodePendingCharacters(bytes, decoder);
                 drainPendingCharacters(output);
             }
             if (endOfInput) {
@@ -388,48 +365,47 @@ public final class EncodingReader extends Reader {
         }
     }
 
-    /// Moves residual prefix bytes when necessary and reads more encoded input.
+    /// Compacts residual input and reads another bounded block.
     ///
     /// @param source open source channel
     /// @throws IOException if reading fails or the decoder cannot make progress
     private void refill(ReadableByteChannel source) throws IOException {
-        @Nullable ByteBuffer currentPrefix = prefix;
-        if (currentPrefix != null) {
-            bytes.clear();
-            if (currentPrefix.remaining() > bytes.remaining()) {
-                throw new IOException("Charset decoder retained an oversized input sequence");
-            }
-            bytes.put(currentPrefix);
-            prefix = null;
-        } else {
-            bytes.compact();
-        }
-
+        bytes.compact();
         if (!bytes.hasRemaining()) {
             throw new IOException("Charset decoder made no progress");
         }
 
+        int refillLength = Math.min(bytes.remaining(), REFILL_SIZE);
+        bytes.limit(bytes.position() + refillLength);
         int count;
-        do {
-            count = source.read(bytes);
-            if (count == 0) {
-                Thread.onSpinWait();
-            }
-        } while (count == 0);
+        try {
+            count = readNonZero(source, bytes);
+        } finally {
+            bytes.flip();
+        }
         if (count < 0) {
             endOfInput = true;
         }
-        bytes.flip();
     }
 
-    /// Returns a read result from the number of characters produced.
+    /// Reads until the channel reports progress or end of input.
     ///
-    /// @param output          output buffer after decoding
-    /// @param initialPosition output position before decoding
-    /// @return produced count, or `-1` when none was produced
-    private static int produced(CharBuffer output, int initialPosition) {
-        int count = output.position() - initialPosition;
-        return count == 0 ? -1 : count;
+    /// The target must have remaining capacity. Selectable channels are required
+    /// to be in blocking mode by the constructor.
+    ///
+    /// @param source open source channel
+    /// @param target buffer receiving bytes
+    /// @return a positive byte count, or `-1` at end of input
+    /// @throws IOException if the channel cannot be read
+    private static int readNonZero(
+            ReadableByteChannel source,
+            ByteBuffer target
+    ) throws IOException {
+        int count;
+        do {
+            count = source.read(target);
+        } while (count == 0);
+        return count;
     }
 
     /// Returns the source channel or reports that the reader is closed.

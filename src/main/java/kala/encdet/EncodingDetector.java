@@ -1862,14 +1862,17 @@ public final class EncodingDetector {
     /// Malformed and unmappable input is replaced with the selected charset's
     /// default replacement text. Detection and source I/O failures are reported
     /// by read operations. If the selected encoding has no Java charset, reads
-    /// throw [java.io.UnsupportedEncodingException]. If selecting the decoder
-    /// fails, later reads fail without consuming more input. The reader remains
-    /// open until closed.
+    /// throw [java.io.UnsupportedEncodingException]. Bytes obtained before a
+    /// source read fails remain buffered, and a later read resumes from them.
+    /// Once detection has completed, an encoding-selection failure is reported
+    /// by later reads without consuming more input. The reader remains open
+    /// until closed.
     ///
     /// The returned reader owns `input`; closing the reader, including before its
     /// first read, closes the stream. The caller must not access the stream
-    /// independently after this method returns. Interruption and asynchronous
-    /// closure follow the behavior of the channel that reads the stream.
+    /// independently after this method returns. Read operations use the blocking
+    /// and interruption behavior of the channel that reads the stream. The
+    /// returned reader is not safe for concurrent use.
     ///
     /// @param input byte stream to detect and decode
     /// @return reader positioned before the first decoded character

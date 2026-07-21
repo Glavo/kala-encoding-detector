@@ -18,6 +18,7 @@ import java.io.Reader;
 import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -291,7 +292,7 @@ final class PublicApiTest {
         assertTrue(input.isClosed());
     }
 
-    /// Verifies decoder state across the retained-prefix boundary.
+    /// Verifies decoder state across the detection-to-refill boundary.
     ///
     /// @throws IOException if test I/O fails
     @Test
@@ -337,11 +338,11 @@ final class PublicApiTest {
         assertThrows(IOException.class, reader::read);
     }
 
-    /// Verifies that failure retains consumed progress without closing the source.
+    /// Verifies that selection failure consumes no additional input on later reads.
     ///
     /// @throws IOException if closing the failed reader fails
     @Test
-    void readerInitializationFailureLeavesInputOpen() throws IOException {
+    void readerSelectionFailureLeavesInputOpen() throws IOException {
         CloseTrackingInputStream input = new CloseTrackingInputStream(
                 "text".getBytes(StandardCharsets.US_ASCII)
         );
@@ -349,14 +350,58 @@ final class PublicApiTest {
         Reader reader = detector.newReader(input);
 
         assertEquals(4, input.available());
-        IOException exception = assertThrows(IOException.class, reader::read);
-        assertEquals("No character encoding could be selected", exception.getMessage());
+        IOException firstFailure = assertThrows(IOException.class, reader::read);
+        assertEquals("No character encoding could be selected", firstFailure.getMessage());
         assertEquals(0, input.available());
         assertFalse(input.isClosed());
-        assertSame(exception, assertThrows(IOException.class, reader::read));
+        IOException secondFailure = assertThrows(IOException.class, reader::read);
+        assertEquals(firstFailure.getMessage(), secondFailure.getMessage());
+        assertEquals(0, input.available());
 
         reader.close();
         assertTrue(input.isClosed());
+    }
+
+    /// Verifies that detection resumes from bytes retained across a channel failure.
+    ///
+    /// @throws IOException if resumed decoding or closure fails
+    @Test
+    void readerResumesDetectionAfterChannelFailure() throws IOException {
+        byte[] data = "éx".getBytes(StandardCharsets.UTF_8);
+        FailOnceReadableByteChannel channel = new FailOnceReadableByteChannel(data);
+        EncodingDetector detector = EncodingDetector.DEFAULT
+                .withMaxBytes(data.length)
+                .withEncodings(Encoding.UTF_8)
+                .withNoMatchEncoding(Encoding.UTF_8);
+        Reader reader = detector.newReader(channel);
+
+        IOException failure = assertThrows(IOException.class, reader::read);
+        assertEquals("Injected read failure", failure.getMessage());
+        try (reader) {
+            assertEquals("éx", readAll(reader));
+        }
+        assertFalse(channel.isOpen());
+    }
+
+    /// Verifies that refill restores readable buffer state after a channel failure.
+    ///
+    /// @throws IOException if resumed decoding or closure fails
+    @Test
+    void readerResumesRefillAfterChannelFailure() throws IOException {
+        byte[] data = "éx".getBytes(StandardCharsets.UTF_8);
+        FailOnceReadableByteChannel channel = new FailOnceReadableByteChannel(data);
+        EncodingDetector detector = EncodingDetector.DEFAULT
+                .withMaxBytes(1)
+                .withEncodings(Encoding.UTF_8)
+                .withNoMatchEncoding(Encoding.UTF_8);
+        Reader reader = detector.newReader(channel);
+
+        IOException failure = assertThrows(IOException.class, reader::read);
+        assertEquals("Injected read failure", failure.getMessage());
+        try (reader) {
+            assertEquals("éx", readAll(reader));
+        }
+        assertFalse(channel.isOpen());
     }
 
     /// Verifies that closing or performing an empty read does not initialize the reader.
@@ -795,6 +840,73 @@ final class PublicApiTest {
         public void close() throws IOException {
             closed = true;
             super.close();
+        }
+    }
+
+    /// Channel that fails its second read after exposing one byte.
+    @NotNullByDefault
+    private static final class FailOnceReadableByteChannel implements ReadableByteChannel {
+        /// Remaining source bytes.
+        private final ByteBuffer data;
+
+        /// Number of read calls received.
+        private int readCount;
+
+        /// Whether the channel remains open.
+        private boolean open = true;
+
+        /// Creates a channel over test bytes.
+        ///
+        /// @param data bytes exposed by the channel
+        private FailOnceReadableByteChannel(byte[] data) {
+            this.data = ByteBuffer.wrap(data);
+        }
+
+        /// Reads bytes, failing on the second invocation.
+        ///
+        /// @param target destination buffer
+        /// @return positive byte count, or `-1` after exhaustion
+        /// @throws ClosedChannelException if the channel is closed
+        /// @throws IOException on the injected second-read failure
+        @Override
+        public int read(ByteBuffer target) throws IOException {
+            if (!open) {
+                throw new ClosedChannelException();
+            }
+            readCount++;
+            if (readCount == 2) {
+                throw new IOException("Injected read failure");
+            }
+            if (!data.hasRemaining()) {
+                return -1;
+            }
+
+            int count = Math.min(target.remaining(), data.remaining());
+            if (readCount == 1) {
+                count = Math.min(count, 1);
+            }
+            int originalLimit = data.limit();
+            data.limit(data.position() + count);
+            try {
+                target.put(data);
+            } finally {
+                data.limit(originalLimit);
+            }
+            return count;
+        }
+
+        /// Returns whether the channel is open.
+        ///
+        /// @return whether [#close()] has not been called
+        @Override
+        public boolean isOpen() {
+            return open;
+        }
+
+        /// Closes this channel.
+        @Override
+        public void close() {
+            open = false;
         }
     }
 
