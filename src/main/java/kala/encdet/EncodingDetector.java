@@ -53,27 +53,23 @@ public final class EncodingDetector {
     ///
     /// ## Java charset support
     ///
-    /// Java SE requires exact mappings for [#ASCII], [#UTF_8], [#UTF_16],
-    /// [#UTF_16_BE], [#UTF_16_LE], and [#ISO_8859_1]. OpenJDK 17's standard
-    /// charset providers supply exact mappings for every other constant except:
-    ///
-    /// - [#UTF_8_SIG], [#UTF_7], [#EUC_JIS_2004], [#HZ],
-    ///   [#ISO_2022_JP_2004], [#ISO_2022_JP_EXT], and [#SHIFT_JIS_2004];
-    /// - [#ISO_8859_10], [#ISO_8859_14], [#CP720], [#CP1125], [#KOI8_T],
-    ///   [#KZ1048], [#PTCP154], and [#HP_ROMAN8].
-    ///
-    /// [#UTF_8_SIG] has no exact mapping because consuming the signature is part
-    /// of its decoding semantics; plain UTF-8 is not an equivalent substitute.
-    /// Extended support is runtime-dependent: installed
+    /// Exact [Charset] availability depends on the runtime. Java SE requires the
+    /// mappings identified on individual constants, while OpenJDK 17 supplies
+    /// additional mappings through its standard charset providers. Installed
     /// [java.nio.charset.spi.CharsetProvider] implementations may add mappings,
-    /// while custom runtime images may omit extended providers. Call [#charset()]
-    /// to determine support in the current runtime.
+    /// while custom runtime images may omit OpenJDK's extended providers. A
+    /// related charset with different decoding semantics is not an exact
+    /// substitute. Call [#charset()] to determine availability in the current
+    /// runtime.
     ///
     /// @apiNote [#charset()] returns an exact `java.nio.charset.Charset`
     /// mapping when the current runtime provides one.
     @NotNullByDefault
     public enum Encoding {
         /// Seven-bit US-ASCII.
+        ///
+        /// Every Java SE implementation must provide an exact [Charset] mapping
+        /// for this encoding.
         ASCII(
                 "ascii", Era.MODERN_WEB, false,
                 List.of(),
@@ -82,6 +78,9 @@ public final class EncodingDetector {
         ),
 
         /// UTF-8 without a BOM-specific result identity.
+        ///
+        /// Every Java SE implementation must provide an exact [Charset] mapping
+        /// for this encoding.
         UTF_8(
                 "utf-8", Era.MODERN_WEB, false,
                 List.of(),
@@ -90,6 +89,9 @@ public final class EncodingDetector {
         ),
 
         /// UTF-8 identified by its leading byte-order mark.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         UTF_8_SIG(
                 "utf-8-sig", "UTF-8-SIG", Era.MODERN_WEB, false,
                 List.of(),
@@ -97,6 +99,9 @@ public final class EncodingDetector {
         ),
 
         /// BOM-selected UTF-16 with no fixed byte order in the identity.
+        ///
+        /// Every Java SE implementation must provide an exact [Charset] mapping
+        /// for this encoding.
         UTF_16(
                 "utf-16", "UTF-16", Era.MODERN_WEB, false,
                 List.of(),
@@ -104,6 +109,9 @@ public final class EncodingDetector {
         ),
 
         /// Big-endian UTF-16 without a required byte-order mark.
+        ///
+        /// Every Java SE implementation must provide an exact [Charset] mapping
+        /// for this encoding.
         UTF_16_BE(
                 "utf-16-be", Era.MODERN_WEB, false,
                 List.of(),
@@ -111,6 +119,9 @@ public final class EncodingDetector {
         ),
 
         /// Little-endian UTF-16 without a required byte-order mark.
+        ///
+        /// Every Java SE implementation must provide an exact [Charset] mapping
+        /// for this encoding.
         UTF_16_LE(
                 "utf-16-le", Era.MODERN_WEB, false,
                 List.of(),
@@ -118,6 +129,9 @@ public final class EncodingDetector {
         ),
 
         /// BOM-selected UTF-32 with no fixed byte order in the identity.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         UTF_32(
                 "utf-32", "UTF-32", Era.MODERN_WEB, false,
                 List.of(),
@@ -125,6 +139,9 @@ public final class EncodingDetector {
         ),
 
         /// Big-endian UTF-32 without a required byte-order mark.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         UTF_32_BE(
                 "utf-32-be", Era.MODERN_WEB, false,
                 List.of(),
@@ -132,6 +149,9 @@ public final class EncodingDetector {
         ),
 
         /// Little-endian UTF-32 without a required byte-order mark.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         UTF_32_LE(
                 "utf-32-le", Era.MODERN_WEB, false,
                 List.of(),
@@ -139,6 +159,9 @@ public final class EncodingDetector {
         ),
 
         /// The stateful seven-bit UTF-7 encoding.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         UTF_7(
                 "utf-7", Era.LEGACY_REGIONAL, false,
                 List.of(),
@@ -146,6 +169,9 @@ public final class EncodingDetector {
         ),
 
         /// The Big5-HKSCS multibyte encoding for Traditional Chinese text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         BIG5_HKSCS(
                 "big5hkscs", "Big5", Era.MODERN_WEB, true,
                 List.of("zh"),
@@ -154,6 +180,9 @@ public final class EncodingDetector {
         ),
 
         /// Microsoft's Japanese CP932 multibyte encoding.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP932(
                 "cp932", Era.MODERN_WEB, true,
                 List.of("ja"),
@@ -161,6 +190,9 @@ public final class EncodingDetector {
         ),
 
         /// Microsoft's Unified Hangul Code CP949 multibyte encoding.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP949(
                 "cp949", "CP949", Era.MODERN_WEB, true,
                 List.of("ko"),
@@ -169,6 +201,9 @@ public final class EncodingDetector {
         ),
 
         /// The EUC-JIS-2004 multibyte encoding for Japanese text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         EUC_JIS_2004(
                 "euc_jis_2004", "EUC-JP", Era.MODERN_WEB, true,
                 List.of("ja"),
@@ -177,6 +212,9 @@ public final class EncodingDetector {
         ),
 
         /// The EUC-KR multibyte encoding for Korean text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         EUC_KR(
                 "euc_kr", "EUC-KR", Era.MODERN_WEB, true,
                 List.of("ko"),
@@ -185,6 +223,9 @@ public final class EncodingDetector {
         ),
 
         /// The GB 18030 multibyte encoding for Chinese text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         GB18030(
                 "gb18030", "GB18030", Era.MODERN_WEB, true,
                 List.of("zh"),
@@ -195,6 +236,9 @@ public final class EncodingDetector {
         ),
 
         /// The stateful HZ-GB-2312 encoding for Chinese text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         HZ(
                 "hz", "HZ-GB-2312", Era.LEGACY_REGIONAL, true,
                 List.of("zh"),
@@ -202,6 +246,9 @@ public final class EncodingDetector {
         ),
 
         /// The ISO-2022-JP-2 stateful encoding for Japanese text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_2022_JP_2(
                 "iso2022_jp_2", "ISO-2022-JP", Era.MODERN_WEB, true,
                 List.of("ja"),
@@ -210,6 +257,9 @@ public final class EncodingDetector {
         ),
 
         /// The ISO-2022-JP-2004 stateful encoding for Japanese text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         ISO_2022_JP_2004(
                 "iso2022_jp_2004", Era.MODERN_WEB, true,
                 List.of("ja"),
@@ -217,6 +267,9 @@ public final class EncodingDetector {
         ),
 
         /// The extended ISO-2022-JP stateful encoding for Japanese text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         ISO_2022_JP_EXT(
                 "iso2022_jp_ext", Era.MODERN_WEB, true,
                 List.of("ja"),
@@ -224,6 +277,9 @@ public final class EncodingDetector {
         ),
 
         /// The ISO-2022-KR stateful encoding for Korean text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_2022_KR(
                 "iso2022_kr", "ISO-2022-KR", Era.LEGACY_REGIONAL, true,
                 List.of("ko"),
@@ -231,6 +287,9 @@ public final class EncodingDetector {
         ),
 
         /// The Shift_JIS-2004 multibyte encoding for Japanese text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         SHIFT_JIS_2004(
                 "shift_jis_2004", "SHIFT_JIS", Era.MODERN_WEB, true,
                 List.of("ja"),
@@ -239,6 +298,9 @@ public final class EncodingDetector {
         ),
 
         /// Microsoft's single-byte Windows encoding for Thai text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP874(
                 "cp874", Era.MODERN_WEB, false,
                 List.of("th"),
@@ -246,6 +308,9 @@ public final class EncodingDetector {
         ),
 
         /// Microsoft's single-byte Windows encoding for Central European text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP1250(
                 "cp1250", Era.MODERN_WEB, false,
                 List.of("pl", "cs", "hu", "hr", "ro", "sk", "sl", "sr"),
@@ -253,6 +318,9 @@ public final class EncodingDetector {
         ),
 
         /// Microsoft's single-byte Windows encoding for Cyrillic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP1251(
                 "cp1251", "Windows-1251", Era.MODERN_WEB, false,
                 List.of("ru", "bg", "uk", "sr", "mk", "be"),
@@ -260,6 +328,9 @@ public final class EncodingDetector {
         ),
 
         /// Microsoft's single-byte Windows encoding for Western European text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP1252(
                 "cp1252", "Windows-1252", Era.MODERN_WEB, false,
                 List.of("br", "cy", "da", "de", "en", "es", "fi", "fr", "ga", "id", "is", "it", "ms", "nl", "no", "pt", "sv"),
@@ -267,6 +338,9 @@ public final class EncodingDetector {
         ),
 
         /// Microsoft's single-byte Windows encoding for Greek text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP1253(
                 "cp1253", "Windows-1253", Era.MODERN_WEB, false,
                 List.of("el"),
@@ -274,6 +348,9 @@ public final class EncodingDetector {
         ),
 
         /// Microsoft's single-byte Windows encoding for Turkish text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP1254(
                 "cp1254", "Windows-1254", Era.MODERN_WEB, false,
                 List.of("tr"),
@@ -281,6 +358,9 @@ public final class EncodingDetector {
         ),
 
         /// Microsoft's single-byte Windows encoding for Hebrew text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP1255(
                 "cp1255", "Windows-1255", Era.MODERN_WEB, false,
                 List.of("he"),
@@ -288,6 +368,9 @@ public final class EncodingDetector {
         ),
 
         /// Microsoft's single-byte Windows encoding for Arabic and Persian text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP1256(
                 "cp1256", Era.MODERN_WEB, false,
                 List.of("ar", "fa"),
@@ -295,6 +378,9 @@ public final class EncodingDetector {
         ),
 
         /// Microsoft's single-byte Windows encoding for Baltic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP1257(
                 "cp1257", Era.MODERN_WEB, false,
                 List.of("et", "lt", "lv"),
@@ -302,6 +388,9 @@ public final class EncodingDetector {
         ),
 
         /// Microsoft's single-byte Windows encoding for Vietnamese text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP1258(
                 "cp1258", Era.MODERN_WEB, false,
                 List.of("vi"),
@@ -309,6 +398,9 @@ public final class EncodingDetector {
         ),
 
         /// The single-byte KOI8-R encoding for Russian text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         KOI8_R(
                 "koi8-r", "KOI8-R", Era.MODERN_WEB, false,
                 List.of("ru"),
@@ -316,6 +408,9 @@ public final class EncodingDetector {
         ),
 
         /// The single-byte KOI8-U encoding for Ukrainian text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         KOI8_U(
                 "koi8-u", Era.MODERN_WEB, false,
                 List.of("uk"),
@@ -323,6 +418,9 @@ public final class EncodingDetector {
         ),
 
         /// The single-byte TIS-620 encoding for Thai text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         TIS_620(
                 "tis-620", "TIS-620", Era.MODERN_WEB, false,
                 List.of("th"),
@@ -332,6 +430,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-1, the single-byte Latin-1 encoding for Western European text.
+        ///
+        /// Every Java SE implementation must provide an exact [Charset] mapping
+        /// for this encoding.
         ISO_8859_1(
                 "iso8859-1", "ISO-8859-1", Era.LEGACY_ISO, false,
                 List.of("br", "cy", "da", "de", "en", "es", "fi", "fr", "ga", "id", "is", "it", "ms", "nl", "no", "pt", "sv"),
@@ -341,6 +442,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-2, the single-byte Latin-2 encoding for Central European text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_8859_2(
                 "iso8859-2", Era.LEGACY_ISO, false,
                 List.of("pl", "cs", "hu", "hr", "ro", "sk", "sl"),
@@ -349,6 +453,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-3, the single-byte Latin-3 encoding for South European text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_8859_3(
                 "iso8859-3", Era.LEGACY_ISO, false,
                 List.of("eo", "mt", "tr"),
@@ -357,6 +464,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-4, the single-byte Latin-4 encoding for North European text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_8859_4(
                 "iso8859-4", Era.LEGACY_ISO, false,
                 List.of("et", "lt", "lv"),
@@ -365,6 +475,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-5, the single-byte encoding for Cyrillic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_8859_5(
                 "iso8859-5", "ISO-8859-5", Era.LEGACY_ISO, false,
                 List.of("ru", "bg", "uk", "sr", "mk", "be"),
@@ -373,6 +486,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-6, the single-byte encoding for Arabic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_8859_6(
                 "iso8859-6", Era.LEGACY_ISO, false,
                 List.of("ar", "fa"),
@@ -382,6 +498,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-7, the single-byte encoding for Greek text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_8859_7(
                 "iso8859-7", "ISO-8859-7", Era.LEGACY_ISO, false,
                 List.of("el"),
@@ -390,6 +509,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-8, the single-byte encoding for Hebrew text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_8859_8(
                 "iso8859-8", "ISO-8859-8", Era.LEGACY_ISO, false,
                 List.of("he"),
@@ -399,6 +521,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-9, the single-byte Latin-5 encoding for Turkish text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_8859_9(
                 "iso8859-9", "ISO-8859-9", Era.LEGACY_ISO, false,
                 List.of("tr"),
@@ -407,6 +532,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-10, the single-byte Latin-6 encoding for Nordic text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         ISO_8859_10(
                 "iso8859-10", Era.LEGACY_ISO, false,
                 List.of("is", "fi"),
@@ -415,6 +543,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-13, the single-byte Latin-7 encoding for Baltic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_8859_13(
                 "iso8859-13", Era.LEGACY_ISO, false,
                 List.of("et", "lt", "lv"),
@@ -423,6 +554,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-14, the single-byte Latin-8 encoding for Celtic text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         ISO_8859_14(
                 "iso8859-14", Era.LEGACY_ISO, false,
                 List.of("cy", "ga", "br", "gd"),
@@ -431,6 +565,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-15, the single-byte Latin-9 encoding with the euro sign.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_8859_15(
                 "iso8859-15", Era.LEGACY_ISO, false,
                 List.of("br", "cy", "da", "de", "en", "es", "fi", "fr", "ga", "id", "is", "it", "ms", "nl", "no", "pt", "sv"),
@@ -439,6 +576,9 @@ public final class EncodingDetector {
         ),
 
         /// ISO 8859-16, the single-byte Latin-10 encoding for South-Eastern European text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         ISO_8859_16(
                 "iso8859-16", Era.LEGACY_ISO, false,
                 List.of("ro", "pl", "hr", "hu", "sk", "sl"),
@@ -447,6 +587,9 @@ public final class EncodingDetector {
         ),
 
         /// The Johab multibyte encoding for Korean text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         JOHAB(
                 "johab", "Johab", Era.LEGACY_ISO, true,
                 List.of("ko"),
@@ -454,6 +597,9 @@ public final class EncodingDetector {
         ),
 
         /// The classic Mac OS single-byte encoding for Cyrillic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         MAC_CYRILLIC(
                 "mac-cyrillic", "MacCyrillic", Era.LEGACY_MAC, false,
                 List.of("ru", "bg", "uk", "sr", "mk", "be"),
@@ -462,6 +608,9 @@ public final class EncodingDetector {
         ),
 
         /// The classic Mac OS single-byte encoding for Greek text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         MAC_GREEK(
                 "mac-greek", "MacGreek", Era.LEGACY_MAC, false,
                 List.of("el"),
@@ -469,6 +618,9 @@ public final class EncodingDetector {
         ),
 
         /// The classic Mac OS single-byte encoding for Icelandic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         MAC_ICELAND(
                 "mac-iceland", "MacIceland", Era.LEGACY_MAC, false,
                 List.of("is"),
@@ -476,6 +628,9 @@ public final class EncodingDetector {
         ),
 
         /// The classic Mac OS single-byte encoding for Central European text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         MAC_LATIN2(
                 "mac-latin2", "MacLatin2", Era.LEGACY_MAC, false,
                 List.of("pl", "cs", "hu", "hr", "sk", "sl"),
@@ -483,6 +638,9 @@ public final class EncodingDetector {
         ),
 
         /// The classic Mac OS single-byte Roman encoding for Western text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         MAC_ROMAN(
                 "mac-roman", "MacRoman", Era.LEGACY_MAC, false,
                 List.of("br", "cy", "da", "de", "en", "es", "fi", "fr", "ga", "id", "is", "it", "ms", "nl", "no", "pt", "sv"),
@@ -491,6 +649,9 @@ public final class EncodingDetector {
         ),
 
         /// The classic Mac OS single-byte encoding for Turkish text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         MAC_TURKISH(
                 "mac-turkish", "MacTurkish", Era.LEGACY_MAC, false,
                 List.of("tr"),
@@ -498,6 +659,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP720 single-byte encoding for Arabic text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         CP720(
                 "cp720", Era.LEGACY_REGIONAL, false,
                 List.of("ar", "fa"),
@@ -505,6 +669,9 @@ public final class EncodingDetector {
         ),
 
         /// The single-byte CP1006 encoding for Urdu text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP1006(
                 "cp1006", Era.LEGACY_REGIONAL, false,
                 List.of("ur"),
@@ -512,6 +679,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP1125 single-byte encoding for Ukrainian text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         CP1125(
                 "cp1125", Era.LEGACY_REGIONAL, false,
                 List.of("uk"),
@@ -519,6 +689,9 @@ public final class EncodingDetector {
         ),
 
         /// The single-byte KOI8-T encoding for Tajik text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         KOI8_T(
                 "koi8-t", Era.LEGACY_REGIONAL, false,
                 List.of("tg"),
@@ -526,6 +699,9 @@ public final class EncodingDetector {
         ),
 
         /// The single-byte KZ-1048 encoding for Kazakh text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         KZ1048(
                 "kz1048", "KZ1048", Era.LEGACY_REGIONAL, false,
                 List.of("kk"),
@@ -533,6 +709,9 @@ public final class EncodingDetector {
         ),
 
         /// The single-byte PTCP154 encoding for Kazakh text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         PTCP154(
                 "ptcp154", Era.LEGACY_REGIONAL, false,
                 List.of("kk"),
@@ -540,6 +719,9 @@ public final class EncodingDetector {
         ),
 
         /// Hewlett-Packard's single-byte Roman8 encoding for Western text.
+        ///
+        /// OpenJDK 17's standard charset providers do not include an exact
+        /// [Charset] mapping for this encoding.
         HP_ROMAN8(
                 "hp-roman8", Era.LEGACY_REGIONAL, false,
                 List.of("br", "cy", "da", "de", "en", "es", "fi", "fr", "ga", "id", "is", "it", "ms", "nl", "no", "pt", "sv"),
@@ -547,6 +729,9 @@ public final class EncodingDetector {
         ),
 
         /// The original IBM PC OEM single-byte code page for United States text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP437(
                 "cp437", Era.DOS, false,
                 List.of("en", "fr", "de", "es", "pt", "it", "nl", "da", "sv", "fi", "ga"),
@@ -554,6 +739,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP737 single-byte encoding for Greek text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP737(
                 "cp737", Era.DOS, false,
                 List.of("el"),
@@ -561,6 +749,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP775 single-byte encoding for Baltic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP775(
                 "cp775", Era.DOS, false,
                 List.of("et", "lt", "lv"),
@@ -568,6 +759,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP850 single-byte encoding for Western European text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP850(
                 "cp850", Era.DOS, false,
                 List.of("br", "cy", "da", "de", "en", "es", "fi", "fr", "ga", "id", "is", "it", "ms", "nl", "no", "pt", "sv"),
@@ -575,6 +769,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP852 single-byte encoding for Central European text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP852(
                 "cp852", Era.DOS, false,
                 List.of("pl", "cs", "hu", "hr", "ro", "sk", "sl"),
@@ -582,6 +779,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP855 single-byte encoding for Cyrillic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP855(
                 "cp855", "IBM855", Era.DOS, false,
                 List.of("ru", "bg", "uk", "sr", "mk", "be"),
@@ -589,6 +789,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP856 single-byte encoding for Hebrew text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP856(
                 "cp856", Era.DOS, false,
                 List.of("he"),
@@ -596,6 +799,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP857 single-byte encoding for Turkish text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP857(
                 "cp857", Era.DOS, false,
                 List.of("tr"),
@@ -603,6 +809,9 @@ public final class EncodingDetector {
         ),
 
         /// The euro-enabled DOS CP858 variant of CP850.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP858(
                 "cp858", Era.DOS, false,
                 List.of("br", "cy", "da", "de", "en", "es", "fi", "fr", "ga", "id", "is", "it", "ms", "nl", "no", "pt", "sv"),
@@ -611,6 +820,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP860 single-byte encoding for Portuguese text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP860(
                 "cp860", Era.DOS, false,
                 List.of("pt"),
@@ -618,6 +830,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP861 single-byte encoding for Icelandic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP861(
                 "cp861", Era.DOS, false,
                 List.of("is"),
@@ -625,6 +840,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP862 single-byte encoding for Hebrew text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP862(
                 "cp862", Era.DOS, false,
                 List.of("he"),
@@ -632,6 +850,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP863 single-byte encoding for Canadian French text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP863(
                 "cp863", Era.DOS, false,
                 List.of("fr"),
@@ -639,6 +860,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP864 single-byte encoding for Arabic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP864(
                 "cp864", Era.DOS, false,
                 List.of("ar"),
@@ -646,6 +870,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP865 single-byte encoding for Nordic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP865(
                 "cp865", Era.DOS, false,
                 List.of("da", "no"),
@@ -653,6 +880,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP866 single-byte encoding for Cyrillic text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP866(
                 "cp866", "IBM866", Era.DOS, false,
                 List.of("ru", "bg", "uk", "sr", "mk", "be"),
@@ -660,6 +890,9 @@ public final class EncodingDetector {
         ),
 
         /// The DOS CP869 single-byte encoding for Greek text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP869(
                 "cp869", Era.DOS, false,
                 List.of("el"),
@@ -667,6 +900,9 @@ public final class EncodingDetector {
         ),
 
         /// The euro-enabled EBCDIC CP1140 encoding derived from code page 37.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP1140(
                 "cp1140", Era.MAINFRAME, false,
                 List.of("br", "cy", "da", "de", "en", "es", "fi", "fr", "ga", "id", "is", "it", "ms", "nl", "no", "pt", "sv", "tr"),
@@ -676,6 +912,9 @@ public final class EncodingDetector {
         ),
 
         /// The EBCDIC CP424 single-byte encoding for Hebrew text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP424(
                 "cp424", Era.MAINFRAME, false,
                 List.of("he"),
@@ -683,6 +922,9 @@ public final class EncodingDetector {
         ),
 
         /// The EBCDIC CP500 single-byte encoding for international Latin text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP500(
                 "cp500", Era.MAINFRAME, false,
                 List.of("br", "cy", "da", "de", "en", "es", "fi", "fr", "ga", "id", "is", "it", "ms", "nl", "no", "pt", "sv"),
@@ -690,6 +932,9 @@ public final class EncodingDetector {
         ),
 
         /// The EBCDIC CP875 single-byte encoding for Greek text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP875(
                 "cp875", Era.MAINFRAME, false,
                 List.of("el"),
@@ -697,6 +942,9 @@ public final class EncodingDetector {
         ),
 
         /// The EBCDIC CP1026 single-byte encoding for Turkish text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP1026(
                 "cp1026", Era.MAINFRAME, false,
                 List.of("tr"),
@@ -704,6 +952,9 @@ public final class EncodingDetector {
         ),
 
         /// The EBCDIC CP273 single-byte encoding for German text.
+        ///
+        /// OpenJDK 17's standard charset providers include an exact [Charset]
+        /// mapping for this encoding.
         CP273(
                 "cp273", Era.MAINFRAME, false,
                 List.of("de"),
