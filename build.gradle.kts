@@ -6,6 +6,10 @@ import java.util.Properties
 plugins {
     id("java-library")
     id("application")
+    id("maven-publish")
+    id("signing")
+    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
+    id("org.glavo.load-maven-publish-properties") version "0.1.0"
     id("org.glavo.gradle-wrapper-neo") version "0.2.0"
 }
 
@@ -29,6 +33,27 @@ val projectGroup = requireNotNull(projectMetadata.getProperty("group")) {
 val baseVersion = requireNotNull(projectMetadata.getProperty("version")) {
     "Missing version in gradle/project.properties"
 }
+val projectDescription = requireNotNull(projectMetadata.getProperty("description")) {
+    "Missing description in gradle/project.properties"
+}
+val projectUrl = requireNotNull(projectMetadata.getProperty("url")) {
+    "Missing url in gradle/project.properties"
+}
+val projectLicenseName = requireNotNull(projectMetadata.getProperty("licenseName")) {
+    "Missing licenseName in gradle/project.properties"
+}
+val projectLicenseUrl = requireNotNull(projectMetadata.getProperty("licenseUrl")) {
+    "Missing licenseUrl in gradle/project.properties"
+}
+val projectDeveloperId = requireNotNull(projectMetadata.getProperty("developerId")) {
+    "Missing developerId in gradle/project.properties"
+}
+val projectDeveloperName = requireNotNull(projectMetadata.getProperty("developerName")) {
+    "Missing developerName in gradle/project.properties"
+}
+val projectDeveloperEmail = requireNotNull(projectMetadata.getProperty("developerEmail")) {
+    "Missing developerEmail in gradle/project.properties"
+}
 require(projectGroup.isNotEmpty() && projectGroup.none(Char::isWhitespace)) {
     "group in gradle/project.properties must be a non-empty value without whitespace"
 }
@@ -39,6 +64,7 @@ require(!baseVersion.endsWith("-SNAPSHOT")) {
     "version in gradle/project.properties must not contain the -SNAPSHOT suffix"
 }
 group = projectGroup
+description = projectDescription
 version = if (providers.gradleProperty("release").isPresent) {
     baseVersion
 } else {
@@ -68,6 +94,11 @@ dependencies {
         "org.openjdk.jmh:jmh-generator-annprocess:1.37"
     )
     add(jmhSourceSet.compileOnlyConfigurationName, "org.jetbrains:annotations:26.1.0")
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
 }
 
 val downloadChardetSource = tasks.register<DownloadPinnedArchive>("downloadChardetSource") {
@@ -152,6 +183,10 @@ tasks.jar {
     manifest.attributes["Implementation-Version"] = project.version
 }
 
+tasks.named<Jar>("sourcesJar") {
+    dependsOn(generateEncodingResources)
+}
+
 tasks.processResources {
     dependsOn(generateEncodingResources)
     duplicatesStrategy = DuplicatesStrategy.FAIL
@@ -165,6 +200,7 @@ tasks.processTestResources {
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
     options.release = 17
+    options.javaModuleVersion = project.version.toString()
 }
 
 tasks.test {
@@ -189,5 +225,66 @@ tasks.javadoc {
             "implSpec:a:Implementation Requirements:",
             "implNote:a:Implementation Note:"
         )
+    }
+}
+
+tasks.withType<GenerateModuleMetadata> {
+    enabled = false
+}
+
+publishing.publications.create<MavenPublication>("maven") {
+    groupId = project.group.toString()
+    artifactId = project.name
+    version = project.version.toString()
+
+    from(components["java"])
+
+    pom {
+        name.set(project.name)
+        description.set(project.description)
+        url.set(projectUrl)
+
+        licenses {
+            license {
+                name.set(projectLicenseName)
+                url.set(projectLicenseUrl)
+            }
+        }
+
+        developers {
+            developer {
+                id.set(projectDeveloperId)
+                name.set(projectDeveloperName)
+                email.set(projectDeveloperEmail)
+            }
+        }
+
+        scm {
+            url.set(projectUrl)
+        }
+    }
+}
+
+if (System.getenv("JITPACK").isNullOrBlank() && rootProject.ext.has("signing.key")) {
+    signing {
+        useInMemoryPgpKeys(
+            rootProject.ext["signing.keyId"].toString(),
+            rootProject.ext["signing.key"].toString(),
+            rootProject.ext["signing.password"].toString(),
+        )
+        sign(publishing.publications["maven"])
+    }
+}
+
+// ./gradlew -Prelease publishToSonatype closeAndReleaseSonatypeStagingRepository
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
+
+            username.set(rootProject.ext["sonatypeUsername"].toString())
+            password.set(rootProject.ext["sonatypePassword"].toString())
+        }
     }
 }
