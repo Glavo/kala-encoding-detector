@@ -2004,6 +2004,70 @@ public final class EncodingDetector {
         return withEncodingSet(result);
     }
 
+    /// Returns a detector also permitting every encoding in one era.
+    ///
+    /// Existing permitted encodings remain enabled.
+    ///
+    /// @param value era whose encodings are added
+    /// @return this detector if every encoding in the era is already permitted;
+    /// otherwise a new detector
+    /// @throws NullPointerException if `value` is `null`
+    public EncodingDetector addEncodingEra(Era value) {
+        EnumSet<Encoding> result = encodings.clone();
+        for (Encoding encoding : Encoding.values()) {
+            if (value.equals(encoding.era())) {
+                result.add(encoding);
+            }
+        }
+        return withEncodingSet(result);
+    }
+
+    /// Returns a detector also permitting every encoding in the supplied eras.
+    ///
+    /// Existing permitted encodings remain enabled. Argument order and
+    /// duplicate eras have no effect. The argument array is read during this
+    /// invocation and is not retained.
+    ///
+    /// @param value zero or more eras whose encodings are added
+    /// @return this detector if no permitted encoding is added; otherwise a new
+    /// detector
+    /// @throws NullPointerException if `value` or an element is `null`
+    public EncodingDetector addEncodingEras(Era... value) {
+        EnumSet<Era> eras = EnumSet.noneOf(Era.class);
+        Collections.addAll(eras, value);
+
+        EnumSet<Encoding> result = encodings.clone();
+        for (Encoding encoding : Encoding.values()) {
+            if (eras.contains(encoding.era())) {
+                result.add(encoding);
+            }
+        }
+        return withEncodingSet(result);
+    }
+
+    /// Returns a detector also permitting every encoding in the supplied eras.
+    ///
+    /// Existing permitted encodings remain enabled. Argument order and
+    /// duplicate eras have no effect. The collection is copied and is not
+    /// retained.
+    ///
+    /// @param value eras whose encodings are added; may be empty
+    /// @return this detector if no permitted encoding is added; otherwise a new
+    /// detector
+    /// @throws NullPointerException if `value` or an element is `null`
+    public EncodingDetector addEncodingEras(Collection<Era> value) {
+        EnumSet<Era> eras = EnumSet.noneOf(Era.class);
+        eras.addAll(value);
+
+        EnumSet<Encoding> result = encodings.clone();
+        for (Encoding encoding : Encoding.values()) {
+            if (eras.contains(encoding.era())) {
+                result.add(encoding);
+            }
+        }
+        return withEncodingSet(result);
+    }
+
     /// Returns a detector with a new maximum input length.
     ///
     /// @param value a positive byte count
@@ -2131,6 +2195,55 @@ public final class EncodingDetector {
         EnumSet<Encoding> copy = EnumSet.noneOf(Encoding.class);
         copy.addAll(value);
         return withEncodingSet(copy);
+    }
+
+    /// Returns a detector also permitting one encoding target.
+    ///
+    /// Existing permitted encodings remain enabled.
+    ///
+    /// @param value encoding target to add
+    /// @return this detector if `value` is already permitted; otherwise a new
+    /// detector
+    /// @throws NullPointerException if `value` is `null`
+    public EncodingDetector addEncoding(Encoding value) {
+        if (encodings.contains(value)) {
+            return this;
+        }
+        EnumSet<Encoding> result = encodings.clone();
+        result.add(value);
+        return withEncodingSet(result);
+    }
+
+    /// Returns a detector also permitting the supplied encoding targets.
+    ///
+    /// Existing permitted encodings remain enabled. Argument order and
+    /// duplicate encodings have no effect. The argument array is read during
+    /// this invocation and is not retained.
+    ///
+    /// @param value zero or more encoding targets to add
+    /// @return this detector if no permitted encoding is added; otherwise a new
+    /// detector
+    /// @throws NullPointerException if `value` or an element is `null`
+    public EncodingDetector addEncodings(Encoding... value) {
+        EnumSet<Encoding> result = encodings.clone();
+        Collections.addAll(result, value);
+        return withEncodingSet(result);
+    }
+
+    /// Returns a detector also permitting the supplied encoding targets.
+    ///
+    /// Existing permitted encodings remain enabled. Argument order and
+    /// duplicate encodings have no effect. The collection is copied and is not
+    /// retained.
+    ///
+    /// @param value encoding targets to add; may be empty
+    /// @return this detector if no permitted encoding is added; otherwise a new
+    /// detector
+    /// @throws NullPointerException if `value` or an element is `null`
+    public EncodingDetector addEncodings(Collection<Encoding> value) {
+        EnumSet<Encoding> result = encodings.clone();
+        result.addAll(value);
+        return withEncodingSet(result);
     }
 
     /// Returns a detector using the supplied optional fallback encoding.

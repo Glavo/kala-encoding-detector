@@ -187,6 +187,69 @@ final class PublicApiTest {
         assertTrue(EncodingDetector.DEFAULT.withEncodings().encodings().isEmpty());
     }
 
+    /// Verifies additive encoding selectors retain the existing selection and
+    /// defensively copy their inputs.
+    @Test
+    void encodingSelectorsAddToCurrentState() {
+        EncodingDetector base = EncodingDetector.DEFAULT.withEncodings(Encoding.UTF_8);
+
+        EncodingDetector single = base.addEncoding(Encoding.CP1252);
+        assertNotSame(base, single);
+        assertEquals(Set.of(Encoding.UTF_8), base.encodings());
+        assertEquals(Set.of(Encoding.UTF_8, Encoding.CP1252), single.encodings());
+        assertSame(single, single.addEncoding(Encoding.CP1252));
+
+        Encoding[] array = {Encoding.ASCII, Encoding.GB18030, Encoding.ASCII};
+        EncodingDetector fromArray = single.addEncodings(array);
+        array[0] = Encoding.CP437;
+        assertEquals(
+                Set.of(
+                        Encoding.UTF_8,
+                        Encoding.CP1252,
+                        Encoding.ASCII,
+                        Encoding.GB18030
+                ),
+                fromArray.encodings()
+        );
+
+        EnumSet<Encoding> additions = EnumSet.of(Encoding.ASCII, Encoding.CP437);
+        EncodingDetector fromCollection = base.addEncodings(additions);
+        additions.clear();
+        assertEquals(
+                Set.of(Encoding.UTF_8, Encoding.ASCII, Encoding.CP437),
+                fromCollection.encodings()
+        );
+
+        EncodingDetector dos = base.addEncodingEra(Era.DOS);
+        EnumSet<Encoding> expectedDos = encodingsIn(Era.DOS);
+        expectedDos.add(Encoding.UTF_8);
+        assertEquals(expectedDos, dos.encodings());
+        assertSame(dos, dos.addEncodingEra(Era.DOS));
+
+        EnumSet<Encoding> expectedEras = EnumSet.of(Encoding.UTF_8);
+        expectedEras.addAll(encodingsIn(Era.LEGACY_MAC));
+        expectedEras.addAll(encodingsIn(Era.MAINFRAME));
+        assertEquals(
+                expectedEras,
+                base.addEncodingEras(Era.LEGACY_MAC, Era.MAINFRAME, Era.LEGACY_MAC)
+                        .encodings()
+        );
+
+        EnumSet<Era> eras = EnumSet.of(Era.LEGACY_MAC, Era.MAINFRAME);
+        EncodingDetector fromEras = base.addEncodingEras(eras);
+        eras.clear();
+        assertEquals(expectedEras, fromEras.encodings());
+
+        assertSame(base, base.addEncodings());
+        assertSame(base, base.addEncodings(List.of()));
+        assertSame(base, base.addEncodingEras());
+        assertSame(base, base.addEncodingEras(List.of()));
+        assertSame(
+                EncodingDetector.DEFAULT,
+                EncodingDetector.DEFAULT.addEncoding(Encoding.UTF_8)
+        );
+    }
+
     /// Verifies invalid configuration states are rejected eagerly.
     @Test
     void configurationMethodsRejectInvalidValues() {
@@ -1023,6 +1086,25 @@ final class PublicApiTest {
                         Collections.singleton(null)
                 )
         );
+        assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.addEncodingEra(null));
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.addEncodingEras((Era[]) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.addEncodingEras(Era.MODERN_WEB, null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.addEncodingEras((Collection<Era>) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.addEncodingEras(
+                        Collections.singleton(null)
+                )
+        );
         assertThrows(
                 NullPointerException.class,
                 () -> EncodingDetector.DEFAULT.withEncodings((Collection<Encoding>) null)
@@ -1038,6 +1120,25 @@ final class PublicApiTest {
         assertThrows(
                 NullPointerException.class,
                 () -> EncodingDetector.DEFAULT.withEncodings(
+                        Collections.singleton(null)
+                )
+        );
+        assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.addEncoding(null));
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.addEncodings((Encoding[]) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.addEncodings(Encoding.UTF_8, null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.addEncodings((Collection<Encoding>) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.addEncodings(
                         Collections.singleton(null)
                 )
         );
