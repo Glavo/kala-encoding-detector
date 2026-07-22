@@ -1,9 +1,11 @@
 # Kala Encoding Detector
 
 Kala Encoding Detector is a Java port of
-[chardet7](https://github.com/chardet/chardet), providing a pure Java character encoding detection library.
+[chardet7](https://github.com/chardet/chardet), providing a pure Java character
+encoding detection library.
 
-Its main purpose is to infer a file's character encoding and MIME type from binary data.
+Its main purpose is to infer a file's character encoding and MIME type from
+binary data.
 
 ## Features
 
@@ -34,7 +36,8 @@ EncodingDetector.Result result = EncodingDetector.DEFAULT.detect(data);
 // EncodingDetector.Result result = EncodingDetector.DEFAULT.detect(ByteBuffer.wrap(data));
 ```
 
-After obtaining an `EncodingDetector.Result`, its encoding, MIME type, and detection confidence can be inspected:
+After obtaining an `EncodingDetector.Result`, its encoding, MIME type, and
+detection confidence can be inspected:
 
 ```java
 EncodingDetector.Encoding encoding = result.bestEncoding();
@@ -54,8 +57,9 @@ String mimeType = candidate.mimeType();
 List<EncodingDetector.Candidate> candidates = result.candidates();
 ```
 
-When no detection details are needed, a `String` can be created directly from a `byte[]` or `ByteBuffer`. The data is
-decoded using the best detected encoding:
+When no detection details are needed, a `String` can be created directly from
+a `byte[]` or `ByteBuffer`. The data is decoded using the best detected
+encoding:
 
 ```java
 String text0 = EncodingDetector.DEFAULT.toString(data);
@@ -64,7 +68,8 @@ String text1 = EncodingDetector.DEFAULT.toString(ByteBuffer.wrap(data));
 
 ### Reading a string from a `Path`, `InputStream`, or `ReadableByteChannel` with an unknown encoding
 
-Use `EncodingDetector.readString` to read a string from a file or byte stream whose encoding is unknown:
+Use `EncodingDetector.readString` to read a string from a file or byte stream
+whose encoding is unknown:
 
 ```java
 Path file = Path.of("document.txt");
@@ -86,49 +91,46 @@ For large files, create a `BufferedReader` from a `Path`, `InputStream`, or
 Path file = Path.of("document.txt");
 
 // Create a BufferedReader from a Path.
-try(
-var reader = EncodingDetector.DEFAULT.newBufferedReader(file)){
-        }
+try (var reader = EncodingDetector.DEFAULT.newBufferedReader(file)) {
+}
 
 // Create a BufferedReader from an InputStream.
-        try(
-var reader = EncodingDetector.DEFAULT.newBufferedReader(Files.newInputStream(file))){
-        }
+try (var reader = EncodingDetector.DEFAULT.newBufferedReader(Files.newInputStream(file))) {
+}
 
 // Create a BufferedReader from a ReadableByteChannel.
-        try(
-var reader = EncodingDetector.DEFAULT.newBufferedReader(Files.newByteChannel(file))){
-        }
+try (var reader = EncodingDetector.DEFAULT.newBufferedReader(Files.newByteChannel(file))) {
+}
 ```
 
 ### Configuring `EncodingDetector`
 
-`EncodingDetector` is immutable. Use `EncodingDetector.DEFAULT` to enable all supported encodings, or
-`EncodingDetector.MODERN_WEB` to detect only encodings commonly used by modern software and web content. Options can be
-adjusted with the `withXxx` methods:
+`EncodingDetector` is immutable. Options can be adjusted with the `withXxx`
+methods:
 
 ```java
+// DEFAULT enables every supported encoding.
+// MODERN_WEB enables only encodings commonly used by modern software and web content.
 EncodingDetector detector = EncodingDetector.MODERN_WEB
-        .withMinimumConfidence(0.35)
+        // Examine at most 100,000 leading bytes during detection.
         .withMaxBytes(100_000)
+        // Retain candidates whose confidence is at least 0.35.
+        .withMinimumConfidence(0.35)
+        // Report certain encodings as a preferred superset when possible.
+        .withPreferredSuperset(true)
+        // Recommend CP1252 when nonempty input has no matching text candidate.
         .withFallbackEncoding(EncodingDetector.Encoding.CP1252)
+        // Recommend UTF-8 for empty input.
+        .withEmptyInputEncoding(EncodingDetector.Encoding.UTF_8)
+        // Require an exact Java Charset when decoding detected text.
         .withCharsetApproximation(false);
+
+// Use withEncodings, withEncodingEra, or withEncodingEras to select another encoding set.
 ```
-
-The available settings are:
-
-| Setting                                                              | Default       | Description                                                                                                                                                   |
-|----------------------------------------------------------------------|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `maxBytes()` / `withMaxBytes(long)`                                  | `200_000`     | Maximum number of leading bytes examined during detection.                                                                                                    |
-| `minimumConfidence()` / `withMinimumConfidence(double)`              | `0.20`        | Minimum confidence required for a candidate to be retained.                                                                                                   |
-| `preferSuperset()` / `withPreferredSuperset(boolean)`                | `false`       | Whether certain encodings are reported as a preferred superset.                                                                                               |
-| `allowsCharsetApproximation()` / `withCharsetApproximation(boolean)` | `true`        | Whether text-decoding APIs may use an approximate Java charset when an exact mapping is unavailable.                                                          |
-| `encodings()` / `withEncodings(...)`                                 | All encodings | Encoding targets enabled for detection. Use `withEncodingEra` or `withEncodingEras` to select targets by era; `MODERN_WEB` enables only modern web encodings. |
-| `fallbackEncoding()` / `withFallbackEncoding(Encoding)`              | `null`        | Encoding recommended when nonempty input has no qualifying text candidate.                                                                                    |
-| `emptyInputEncoding()` / `withEmptyInputEncoding(Encoding)`          | `UTF_8`       | Encoding recommended for empty input.                                                                                                                         |
 
 ## License
 
 Project Java source is licensed under the
-[Mozilla Public License 2.0](LICENSE). Model data, generated codec data, and test data retain their upstream terms. See
+[Mozilla Public License 2.0](LICENSE). Model data, generated codec data, and
+test data retain their upstream terms. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for details.
