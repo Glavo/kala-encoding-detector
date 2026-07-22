@@ -1316,7 +1316,7 @@ public final class EncodingDetector {
             }
 
             List<String> approximateNames = switch (this) {
-                case BIG5_HKSCS -> List.of("Big5");
+                case BIG5_HKSCS -> List.of("x-Big5-HKSCS-2001", "Big5");
                 case CP932 -> List.of("x-MS932_0213", "Shift_JIS");
                 case SHIFT_JIS_2004 -> List.of("Shift_JIS");
                 case CP949 -> List.of("EUC-KR");
