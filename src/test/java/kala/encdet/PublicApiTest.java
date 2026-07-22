@@ -26,6 +26,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -312,6 +313,104 @@ final class PublicApiTest {
             );
             assertEquals(Encoding.EUC_JIS_2004.canonicalName(), exception.getMessage());
         }
+    }
+
+    /// Verifies direct array and buffer decoding, including UTF-8 signature
+    /// removal and source-buffer state preservation.
+    @Test
+    void decodesArraysAndBuffersWithoutChangingBufferState() {
+        String expected = "héllo 😀";
+        byte[] payload = expected.getBytes(StandardCharsets.UTF_8);
+        byte[] data = ByteBuffer.allocate(3 + payload.length)
+                .put((byte) 0xef)
+                .put((byte) 0xbb)
+                .put((byte) 0xbf)
+                .put(payload)
+                .array();
+
+        assertEquals(expected, EncodingDetector.DEFAULT.toString(data));
+        assertEquals(
+                expected,
+                EncodingDetector.DEFAULT.withMaxBytes(3).toString(data)
+        );
+
+        ByteBuffer direct = ByteBuffer.allocateDirect(data.length + 3);
+        direct.put((byte) 1).put((byte) 2).put(data).put((byte) 3).flip();
+        direct.position(2);
+        direct.limit(2 + data.length);
+        direct.mark();
+
+        assertEquals(expected, EncodingDetector.DEFAULT.toString(direct));
+        assertEquals(2, direct.position());
+        assertEquals(2 + data.length, direct.limit());
+        direct.position(3);
+        direct.reset();
+        assertEquals(2, direct.position());
+    }
+
+    /// Verifies direct decoding follows the detector's charset approximation
+    /// policy and reports absent selections.
+    @Test
+    void directDecodingUsesConfiguredCharsetPolicy() {
+        byte[] data = "text".getBytes(StandardCharsets.US_ASCII);
+        EncodingDetector detector = EncodingDetector.DEFAULT
+                .withEncodings(Encoding.EUC_JIS_2004)
+                .withFallbackEncoding(Encoding.EUC_JIS_2004);
+
+        assertEquals("text", detector.toString(data));
+
+        UnsupportedCharsetException unsupported = assertThrows(
+                UnsupportedCharsetException.class,
+                () -> detector.withCharsetApproximation(false).toString(data)
+        );
+        assertEquals(Encoding.EUC_JIS_2004.canonicalName(), unsupported.getCharsetName());
+
+        IllegalStateException noSelection = assertThrows(
+                IllegalStateException.class,
+                () -> EncodingDetector.DEFAULT.withEncodings(Set.of()).toString(data)
+        );
+        assertEquals("No character encoding could be selected", noSelection.getMessage());
+    }
+
+    /// Verifies string-reading overloads consume and close files, streams, and
+    /// channels.
+    ///
+    /// @param tempDirectory temporary directory receiving the test file
+    /// @throws IOException if test I/O fails
+    @Test
+    void readsStringsFromPathsStreamsAndChannels(@TempDir Path tempDirectory) throws IOException {
+        String expected = "first\nsecond";
+        byte[] data = expected.getBytes(StandardCharsets.UTF_8);
+
+        Path path = tempDirectory.resolve("text.txt");
+        Files.write(path, data);
+        assertEquals(expected, EncodingDetector.DEFAULT.readString(path));
+
+        CloseTrackingInputStream streamInput = new CloseTrackingInputStream(data);
+        assertEquals(expected, EncodingDetector.DEFAULT.readString(streamInput));
+        assertTrue(streamInput.isClosed());
+
+        CloseTrackingInputStream channelInput = new CloseTrackingInputStream(data);
+        ReadableByteChannel channel = Channels.newChannel(channelInput);
+        assertEquals(expected, EncodingDetector.DEFAULT.readString(channel));
+        assertFalse(channel.isOpen());
+        assertTrue(channelInput.isClosed());
+    }
+
+    /// Verifies string reading closes an owned source when encoding selection
+    /// fails.
+    @Test
+    void readStringClosesInputAfterFailure() {
+        CloseTrackingInputStream input = new CloseTrackingInputStream(
+                "text".getBytes(StandardCharsets.US_ASCII)
+        );
+
+        IOException failure = assertThrows(
+                IOException.class,
+                () -> EncodingDetector.DEFAULT.withEncodings(Set.of()).readString(input)
+        );
+        assertEquals("No character encoding could be selected", failure.getMessage());
+        assertTrue(input.isClosed());
     }
 
     /// Verifies that stream detection replays its prefix and transfers ownership.
@@ -874,6 +973,20 @@ final class PublicApiTest {
     void rejectsNullArguments() {
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect((byte[]) null));
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.detect((ByteBuffer) null));
+        assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.toString((byte[]) null));
+        assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.toString((ByteBuffer) null));
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.readString((InputStream) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.readString((ReadableByteChannel) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.readString((Path) null)
+        );
         assertThrows(
                 NullPointerException.class,
                 () -> EncodingDetector.DEFAULT.newReader((InputStream) null)

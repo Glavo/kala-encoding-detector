@@ -1801,7 +1801,7 @@ public final class EncodingDetector {
     ///
     /// It examines at most 200,000 bytes, retains candidates with confidence of
     /// at least `0.20`, disables preferred-superset remapping, permits
-    /// charset approximation for readers, allows every encoding target,
+    /// charset approximation for text decoding, allows every encoding target,
     /// makes no recommendation when nonempty input has no qualifying text
     /// candidate, and recommends [Encoding#UTF_8] for empty input.
     public static final EncodingDetector DEFAULT = new EncodingDetector(
@@ -1817,7 +1817,7 @@ public final class EncodingDetector {
     /// Preset detector limited to encodings classified in [Era#MODERN_WEB].
     ///
     /// Its maximum input length, confidence threshold, preferred-superset
-    /// setting, reader charset policy, and recommendation encodings are
+    /// setting, charset policy, and recommendation encodings are
     /// identical to those of [#DEFAULT].
     public static final EncodingDetector MODERN_WEB =
             DEFAULT.withEncodingEra(Era.MODERN_WEB);
@@ -1831,7 +1831,7 @@ public final class EncodingDetector {
     /// Whether subset encodings are remapped to preferred supersets.
     private final boolean preferSuperset;
 
-    /// Whether readers may use charset approximation.
+    /// Whether text-decoding operations may use charset approximation.
     private final boolean allowCharsetApproximation;
 
     /// Encoding targets permitted to participate in detection.
@@ -1848,7 +1848,7 @@ public final class EncodingDetector {
     /// @param maxBytes                  maximum leading input bytes examined
     /// @param minimumConfidence         inclusive candidate confidence bound
     /// @param preferSuperset            whether to remap subset encodings
-    /// @param allowCharsetApproximation whether readers may use charset approximation
+    /// @param allowCharsetApproximation whether decoding may use charset approximation
     /// @param encodings                 immutable permitted encoding targets
     /// @param fallbackEncoding          nonempty-input fallback, or `null` for none
     /// @param emptyInputEncoding        empty-input recommendation
@@ -1891,13 +1891,13 @@ public final class EncodingDetector {
         return preferSuperset;
     }
 
-    /// Reports whether readers may use charset approximation.
+    /// Reports whether text-decoding operations may use charset approximation.
     ///
-    /// When enabled, [#newReader(InputStream)] and
-    /// [#newReader(ReadableByteChannel)] use [Encoding#approximateCharset()].
-    /// Otherwise they require [Encoding#charset()]. Detection is unaffected.
+    /// When enabled, methods that decode detected text use
+    /// [Encoding#approximateCharset()]. Otherwise they require
+    /// [Encoding#charset()]. Detection is unaffected.
     ///
-    /// @return whether charset approximation is permitted for readers
+    /// @return whether charset approximation is permitted for decoding
     public boolean allowsCharsetApproximation() {
         return allowCharsetApproximation;
     }
@@ -2078,10 +2078,10 @@ public final class EncodingDetector {
 
     /// Returns a detector that permits or rejects charset approximation.
     ///
-    /// This option affects readers created by [#newReader(InputStream)] and
-    /// [#newReader(ReadableByteChannel)]; it does not affect detection.
+    /// This option affects methods that decode detected text; it does not
+    /// affect detection.
     ///
-    /// @param enabled whether readers may use [Encoding#approximateCharset()]
+    /// @param enabled whether decoding may use [Encoding#approximateCharset()]
     /// @return this detector if unchanged; otherwise a new detector
     public EncodingDetector withCharsetApproximation(boolean enabled) {
         if (allowCharsetApproximation == enabled) {
@@ -2211,6 +2211,92 @@ public final class EncodingDetector {
         return detectNormalized(ByteBufferSupport.view(input));
     }
 
+    /// Detects and decodes an input array.
+    ///
+    /// Only the first [#maxBytes()] bytes participate in detection; the complete
+    /// array is decoded with the selected charset. The configured charset
+    /// approximation policy is applied, malformed and unmappable input is
+    /// replaced, and a leading UTF-8 signature is omitted when
+    /// [Encoding#UTF_8_SIG] is selected.
+    ///
+    /// The array is read directly without copying, is not retained, and is
+    /// never modified. Its contents must not change while this method runs.
+    ///
+    /// @param input bytes to detect and decode
+    /// @return decoded text
+    /// @throws IllegalStateException       if no encoding can be selected
+    /// @throws UnsupportedCharsetException if the selected encoding has no
+    ///                                     permitted charset mapping
+    /// @throws NullPointerException        if `input` is `null`
+    public String toString(byte[] input) {
+        return decodeNormalized(ByteBufferSupport.wrap(input));
+    }
+
+    /// Detects and decodes the remaining bytes of a buffer.
+    ///
+    /// This method has the detection and decoding semantics of
+    /// [#toString(byte[])]. The buffer's content, position, limit, and mark are
+    /// unchanged. Its remaining bytes are accessed directly without copying
+    /// and must not change while this method runs.
+    ///
+    /// @param input buffer whose remaining bytes are decoded
+    /// @return decoded text
+    /// @throws IllegalStateException       if no encoding can be selected
+    /// @throws UnsupportedCharsetException if the selected encoding has no
+    ///                                     permitted charset mapping
+    /// @throws NullPointerException        if `input` is `null`
+    public String toString(ByteBuffer input) {
+        return decodeNormalized(ByteBufferSupport.view(input));
+    }
+
+    /// Reads and decodes a file as a string.
+    ///
+    /// The file is decoded with the semantics of [#newReader(Path)]. The opened
+    /// channel is closed before this method returns, including when reading or
+    /// decoding fails.
+    ///
+    /// @param path file to read
+    /// @return decoded file contents
+    /// @throws IOException          if the file cannot be opened, read,
+    ///                              decoded, or closed
+    /// @throws NullPointerException if `path` is `null`
+    public String readString(Path path) throws IOException {
+        return readAndClose(newReader(path));
+    }
+
+    /// Reads and decodes an input stream as a string.
+    ///
+    /// This method takes ownership of `input`, reads it to end of stream, and
+    /// closes it before returning, including when reading or decoding fails.
+    /// Detection and decoding otherwise follow [#newReader(InputStream)].
+    ///
+    /// @param input byte stream to read
+    /// @return decoded stream contents
+    /// @throws IOException          if the stream cannot be read, decoded, or
+    ///                              closed
+    /// @throws NullPointerException if `input` is `null`
+    public String readString(InputStream input) throws IOException {
+        return readAndClose(newReader(input));
+    }
+
+    /// Reads and decodes a byte channel as a string.
+    ///
+    /// This method takes ownership of `channel`, reads it to end of input, and
+    /// closes it before returning, including when reading or decoding fails.
+    /// Detection and decoding otherwise follow
+    /// [#newReader(ReadableByteChannel)].
+    ///
+    /// @param channel byte channel to read
+    /// @return decoded channel contents
+    /// @throws IOException                  if the channel cannot be read,
+    ///                                      decoded, or closed
+    /// @throws IllegalBlockingModeException if `channel` is a selectable
+    ///                                      channel configured in non-blocking mode
+    /// @throws NullPointerException         if `channel` is `null`
+    public String readString(ReadableByteChannel channel) throws IOException {
+        return readAndClose(newReader(channel));
+    }
+
     /// Creates a reader that detects and decodes an input stream.
     ///
     /// The reader uses at most [#maxBytes()] leading bytes to select
@@ -2297,6 +2383,63 @@ public final class EncodingDetector {
     /// @throws NullPointerException if `path` is `null`
     public BufferedReader newBufferedReader(Path path) throws IOException {
         return new BufferedReader(newReader(path));
+    }
+
+    /// Reads every character from a reader and then closes it.
+    ///
+    /// @param reader owned reader to consume
+    /// @return all decoded characters
+    /// @throws IOException if reading or closure fails
+    private static String readAndClose(Reader reader) throws IOException {
+        try (reader) {
+            StringBuilder result = new StringBuilder();
+            char[] buffer = new char[8192];
+            int count;
+            while ((count = reader.read(buffer)) >= 0) {
+                result.append(buffer, 0, count);
+            }
+            return result.toString();
+        }
+    }
+
+    /// Decodes a normalized byte-buffer view with its detected encoding.
+    ///
+    /// @param input normalized bytes to detect and decode
+    /// @return decoded text
+    /// @throws IllegalStateException       if no encoding can be selected
+    /// @throws UnsupportedCharsetException if the selected encoding has no
+    ///                                     permitted charset mapping
+    private String decodeNormalized(@UnmodifiableView ByteBuffer input) {
+        @Nullable Encoding encoding = detectNormalized(input).bestEncoding();
+        if (encoding == null) {
+            throw new IllegalStateException("No character encoding could be selected");
+        }
+
+        @Nullable Charset charset = allowCharsetApproximation
+                ? encoding.approximateCharset()
+                : encoding.charset();
+        if (charset == null) {
+            throw new UnsupportedCharsetException(encoding.canonicalName());
+        }
+
+        int start = input.position();
+        if (encoding == Encoding.UTF_8_SIG
+                && input.remaining() >= 3
+                && input.get(start) == (byte) 0xef
+                && input.get(start + 1) == (byte) 0xbb
+                && input.get(start + 2) == (byte) 0xbf) {
+            input.position(start + 3);
+        }
+
+        if (input.hasArray()) {
+            return new String(
+                    input.array(),
+                    input.arrayOffset() + input.position(),
+                    input.remaining(),
+                    charset
+            );
+        }
+        return charset.decode(input).toString();
     }
 
     /// Detects candidates for a normalized buffer view.
