@@ -18,6 +18,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 /// Runs the complete ordered detection pipeline.
 @NotNullByDefault
@@ -65,15 +66,15 @@ public final class DetectionEngine {
     ///
     /// @param input    caller-owned bytes, which are never modified or retained
     /// @param detector immutable detector configuration
-    /// @return immutable internal candidates in stable ranking order; empty when
-    /// no candidate matched
-    public static @Unmodifiable List<PipelineResult> detect(
+    /// @return sequential stream of internal candidates in stable ranking
+    /// order, possibly empty
+    public static Stream<PipelineResult> detect(
             @UnmodifiableView ByteBuffer input,
             EncodingDetector detector
     ) {
         @UnmodifiableView ByteBuffer data = ByteBufferSupport.prefix(input, Math.toIntExact(detector.maxBytes()));
         List<PipelineResult> results = runCore(data, detector);
-        return List.copyOf(fillLanguages(data, results));
+        return fillLanguages(data, results);
     }
 
     /// Runs all detection stages through post-processing in their defined order.
@@ -460,8 +461,9 @@ public final class DetectionEngine {
     ///
     /// @param original bounded detection input
     /// @param results  pipeline results
-    /// @return results with languages filled where possible
-    private static List<PipelineResult> fillLanguages(
+    /// @return sequential stream preserving result order, with missing languages
+    /// filled where possible
+    private static Stream<PipelineResult> fillLanguages(
             @UnmodifiableView ByteBuffer original,
             List<PipelineResult> results
     ) {
@@ -503,7 +505,7 @@ public final class DetectionEngine {
                     result.mimeType()
             ));
         }
-        return filled;
+        return filled.stream();
     }
 
     /// Counts bytes having their high bit set.

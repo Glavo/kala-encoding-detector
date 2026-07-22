@@ -2246,7 +2246,7 @@ public final class EncodingDetector {
     /// @param input bytes to examine
     /// @return immutable aggregate result
     private Result detectNormalized(@UnmodifiableView ByteBuffer input) {
-        List<Candidate> detectedCandidates = DetectionEngine.detect(input, this).stream()
+        List<Candidate> detectedCandidates = DetectionEngine.detect(input, this)
                 .map(result -> {
                     @Nullable Encoding encoding = transformEncoding(result.encoding());
                     double confidence = Math.max(
