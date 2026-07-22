@@ -2207,31 +2207,16 @@ public final class EncodingDetector {
 
     /// Creates a reader that detects and decodes an input stream.
     ///
-    /// This method does not read from `input` or perform detection. The first
-    /// read operation with a nonempty target blocks while the reader obtains up
-    /// to [#maxBytes()] leading bytes or reaches end of stream before returning
-    /// decoded characters. A read operation with an empty target does not access
-    /// `input`. When [Encoding#UTF_8_SIG] is selected, the reader consumes its
-    /// leading signature before decoding.
+    /// The reader uses at most [#maxBytes()] leading bytes to select
+    /// [Result#bestEncoding()], then decodes the stream with the charset mapping
+    /// permitted by [#allowsCharsetApproximation()]. Malformed and unmappable
+    /// input is replaced. When [Encoding#UTF_8_SIG] is selected, its leading
+    /// signature is consumed.
     ///
-    /// The selected encoding is [Result#bestEncoding()], including any eligible
-    /// empty-input or no-match recommendation configured on this detector.
-    /// When [#allowsCharsetApproximation()] is enabled, the reader selects the
-    /// decoder through [Encoding#approximateCharset()]; otherwise it uses
-    /// [Encoding#charset()]. Malformed and unmappable input is replaced with
-    /// the selected charset's default replacement text. Detection and source
-    /// I/O failures are reported by read operations. If the permitted mapping
-    /// is unavailable, reads throw [java.io.UnsupportedEncodingException].
-    /// Bytes obtained before a source read fails remain buffered, and a later
-    /// read resumes from them. Once detection has completed, an
-    /// encoding-selection failure is reported by later reads without consuming
-    /// more input. The reader remains open until closed.
-    ///
-    /// The returned reader owns `input`; closing the reader, including before its
-    /// first read, closes the stream. The caller must not access the stream
-    /// independently after this method returns. Read operations use the blocking
-    /// and interruption behavior of the channel that reads the stream. The
-    /// returned reader is not safe for concurrent use.
+    /// Detection and I/O failures are reported by read operations. If the
+    /// selected encoding has no permitted charset mapping, reads throw
+    /// [java.io.UnsupportedEncodingException]. The reader owns and closes
+    /// `input` and is not safe for concurrent use.
     ///
     /// @param input byte stream to detect and decode
     /// @return reader positioned before the first decoded character
