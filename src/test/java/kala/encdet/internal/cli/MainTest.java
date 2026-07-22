@@ -226,7 +226,7 @@ final class MainTest {
     void printsVersionAndHelp() {
         RunResult version = invoke(new String[]{"--version"}, new byte[0]);
         assertEquals(0, version.status());
-        assertEquals("kala-encdet 0.1.0-SNAPSHOT" + System.lineSeparator(), version.output());
+        assertEquals("kala-encdet development" + System.lineSeparator(), version.output());
 
         RunResult help = invoke(new String[]{"--help"}, new byte[0]);
         assertEquals(0, help.status());

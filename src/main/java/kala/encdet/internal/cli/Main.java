@@ -15,6 +15,8 @@ import org.jetbrains.annotations.Unmodifiable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.net.JarURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -24,13 +26,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.jar.Attributes;
 
 /// Implements the `kala-encdet` command-line application.
 @NotNullByDefault
 public final class Main {
-    /// Application version shown by `--version`.
-    private static final String VERSION = "0.1.0-SNAPSHOT";
-
     /// Human-readable language names keyed by ISO 639 code.
     private static final @Unmodifiable Map<String, String> LANGUAGE_NAMES = Map.ofEntries(
             Map.entry("ar", "arabic"), Map.entry("be", "belarusian"),
@@ -102,7 +102,7 @@ public final class Main {
             return 0;
         }
         if (parsed.version) {
-            output.println("kala-encdet " + VERSION);
+            output.println("kala-encdet " + implementationVersion());
             return 0;
         }
 
@@ -144,6 +144,26 @@ public final class Main {
         } catch (RuntimeException exception) {
             error.println("kala-encdet: stdin: detection failed: " + exception.getMessage());
             return 1;
+        }
+    }
+
+    /// Returns the application version.
+    ///
+    /// @return application version, or `development` when unavailable
+    private static String implementationVersion() {
+        @Nullable URL classResource = Main.class.getResource("Main.class");
+        if (classResource == null) {
+            return "development";
+        }
+        try {
+            if (!(classResource.openConnection() instanceof JarURLConnection connection)) {
+                return "development";
+            }
+            @Nullable String version = connection.getMainAttributes()
+                    .getValue(Attributes.Name.IMPLEMENTATION_VERSION);
+            return version == null ? "development" : version;
+        } catch (IOException exception) {
+            return "development";
         }
     }
 

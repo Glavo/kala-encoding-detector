@@ -1,6 +1,7 @@
 import kala.encdet.build.DownloadPinnedArchive
 import kala.encdet.build.ExtractChardetTestData
 import kala.encdet.build.GenerateEncodingResources
+import java.util.Properties
 
 plugins {
     id("java-library")
@@ -15,8 +16,34 @@ val cpythonArchiveSha256 = "ebe31c63a7e1857bac15f64027d97671732ab7db3379a6601cfd
 val testDataCommit = "fa16e9ffde8fd55606e2c7be7423a5fa702cb4a1"
 val testDataArchiveSha256 = "a323ac01da5007b41d59cf9e741d862cd14aada832e7182c19be19c1bd984449"
 
-group = "org.glavo"
-version = "0.1.0-SNAPSHOT"
+val projectMetadata = Properties().apply {
+    load(
+        providers.fileContents(
+            layout.projectDirectory.file("gradle/project.properties")
+        ).asText.get().reader()
+    )
+}
+val projectGroup = requireNotNull(projectMetadata.getProperty("group")) {
+    "Missing group in gradle/project.properties"
+}
+val baseVersion = requireNotNull(projectMetadata.getProperty("version")) {
+    "Missing version in gradle/project.properties"
+}
+require(projectGroup.isNotEmpty() && projectGroup.none(Char::isWhitespace)) {
+    "group in gradle/project.properties must be a non-empty value without whitespace"
+}
+require(baseVersion.isNotEmpty() && baseVersion.none(Char::isWhitespace)) {
+    "version in gradle/project.properties must be a non-empty value without whitespace"
+}
+require(!baseVersion.endsWith("-SNAPSHOT")) {
+    "version in gradle/project.properties must not contain the -SNAPSHOT suffix"
+}
+group = projectGroup
+version = if (providers.gradleProperty("release").isPresent) {
+    baseVersion
+} else {
+    "$baseVersion-SNAPSHOT"
+}
 
 repositories {
     mavenCentral()
