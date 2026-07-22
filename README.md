@@ -90,6 +90,7 @@ EncodingDetector detector = EncodingDetector.MODERN_WEB
         .withMaxBytes(100_000)
         .withMinimumConfidence(0.35)
         .withNoMatchEncoding(Encoding.CP1252)
+        .withApproximateCharset(false)
         .withPreferredSuperset(false);
 ```
 
@@ -99,6 +100,7 @@ EncodingDetector detector = EncodingDetector.MODERN_WEB
 - `minimumConfidence = EncodingDetector.DEFAULT_MINIMUM_CONFIDENCE` (`0.20`)
 - every registered detection target
 - no preferred-superset remapping
+- approximate charset mappings enabled for readers
 - no recommendation for unmatched nonempty text
 - `Encoding.UTF_8` as the empty-input recommendation
 
@@ -155,12 +157,14 @@ System.out.println(text);
 from the source. The first read with a nonempty target obtains up to
 `maxBytes()` leading bytes, selects `Result.bestEncoding()`, replays the
 detection prefix, and continues decoding the source. A UTF-8 signature is
-consumed when `Encoding.UTF_8_SIG` is selected.
+consumed when `Encoding.UTF_8_SIG` is selected. Readers use
+`Encoding.approximateCharset()` by default; use
+`withApproximateCharset(false)` to require an exact mapping.
 
 The reader owns and closes its source. Malformed and unmappable input is
-replaced using the selected charset. A selected encoding that has no Java
-charset causes read operations to throw `UnsupportedEncodingException`.
-Detection and source I/O failures are likewise reported by read operations.
+replaced using the selected charset. If the permitted charset mapping is
+unavailable, read operations throw `UnsupportedEncodingException`. Detection
+and source I/O failures are likewise reported by read operations.
 
 ## Command line
 

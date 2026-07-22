@@ -37,7 +37,7 @@ public final class EncodingReader extends Reader {
     /// Maximum number of new bytes requested by one post-detection refill.
     private static final int REFILL_SIZE = 8192;
 
-    /// Detector whose immutable configuration selects the encoding.
+    /// Detector whose immutable configuration selects the encoding and charset mapping.
     private final EncodingDetector detector;
 
     /// Owned source channel, or `null` after closure.
@@ -72,7 +72,7 @@ public final class EncodingReader extends Reader {
     /// This constructor does not read from `channel` or perform detection. The
     /// caller must not access the channel after this constructor returns.
     ///
-    /// @param detector detector used to select an encoding
+    /// @param detector detector used to select an encoding and charset mapping
     /// @param channel  source owned by the reader
     /// @throws IllegalBlockingModeException if `channel` is a selectable channel
     ///                                      configured in non-blocking mode
@@ -192,7 +192,9 @@ public final class EncodingReader extends Reader {
             throw new IOException("No character encoding could be selected");
         }
 
-        @Nullable Charset charset = encoding.charset();
+        @Nullable Charset charset = detector.useApproximateCharset()
+                ? encoding.approximateCharset()
+                : encoding.charset();
         if (charset == null) {
             throw new UnsupportedEncodingException(encoding.canonicalName());
         }
