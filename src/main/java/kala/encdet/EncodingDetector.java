@@ -1796,7 +1796,7 @@ public final class EncodingDetector {
     ///
     /// It examines at most 200,000 bytes, retains candidates with confidence of
     /// at least `0.20`, disables preferred-superset remapping, permits
-    /// approximate charset mappings for readers, allows every encoding target,
+    /// charset approximation for readers, allows every encoding target,
     /// makes no recommendation when nonempty input has no qualifying text
     /// candidate, and recommends [Encoding#UTF_8] for empty input.
     public static final EncodingDetector DEFAULT = new EncodingDetector(
@@ -1826,8 +1826,8 @@ public final class EncodingDetector {
     /// Whether subset encodings are remapped to preferred supersets.
     private final boolean preferSuperset;
 
-    /// Whether readers may use approximate charset mappings.
-    private final boolean useApproximateCharset;
+    /// Whether readers may use charset approximation.
+    private final boolean allowCharsetApproximation;
 
     /// Encoding targets permitted to participate in detection.
     private final @Unmodifiable EnumSet<Encoding> encodings;
@@ -1840,18 +1840,18 @@ public final class EncodingDetector {
 
     /// Creates a detector from validated immutable configuration state.
     ///
-    /// @param maxBytes              maximum leading input bytes examined
-    /// @param minimumConfidence     inclusive candidate confidence bound
-    /// @param preferSuperset        whether to remap subset encodings
-    /// @param useApproximateCharset whether readers may use approximate charset mappings
-    /// @param encodings             immutable permitted encoding targets
-    /// @param noMatchEncoding       no-match recommendation, or `null` for none
-    /// @param emptyInputEncoding    empty-input recommendation
+    /// @param maxBytes                  maximum leading input bytes examined
+    /// @param minimumConfidence         inclusive candidate confidence bound
+    /// @param preferSuperset            whether to remap subset encodings
+    /// @param allowCharsetApproximation whether readers may use charset approximation
+    /// @param encodings                 immutable permitted encoding targets
+    /// @param noMatchEncoding           no-match recommendation, or `null` for none
+    /// @param emptyInputEncoding        empty-input recommendation
     private EncodingDetector(
             int maxBytes,
             double minimumConfidence,
             boolean preferSuperset,
-            boolean useApproximateCharset,
+            boolean allowCharsetApproximation,
             @Unmodifiable EnumSet<Encoding> encodings,
             @Nullable Encoding noMatchEncoding,
             Encoding emptyInputEncoding
@@ -1859,7 +1859,7 @@ public final class EncodingDetector {
         this.maxBytes = maxBytes;
         this.minimumConfidence = minimumConfidence;
         this.preferSuperset = preferSuperset;
-        this.useApproximateCharset = useApproximateCharset;
+        this.allowCharsetApproximation = allowCharsetApproximation;
         this.encodings = encodings;
         this.noMatchEncoding = noMatchEncoding;
         this.emptyInputEncoding = emptyInputEncoding;
@@ -1886,15 +1886,15 @@ public final class EncodingDetector {
         return preferSuperset;
     }
 
-    /// Reports whether readers may use an approximate charset mapping.
+    /// Reports whether readers may use charset approximation.
     ///
     /// When enabled, [#newReader(InputStream)] and
     /// [#newReader(ReadableByteChannel)] use [Encoding#approximateCharset()].
     /// Otherwise they require [Encoding#charset()]. Detection is unaffected.
     ///
-    /// @return whether approximate mappings are permitted for readers
-    public boolean useApproximateCharset() {
-        return useApproximateCharset;
+    /// @return whether charset approximation is permitted for readers
+    public boolean allowsCharsetApproximation() {
+        return allowCharsetApproximation;
     }
 
     /// Returns the encoding targets permitted to participate in detection.
@@ -2015,7 +2015,7 @@ public final class EncodingDetector {
                 value,
                 minimumConfidence,
                 preferSuperset,
-                useApproximateCharset,
+                allowCharsetApproximation,
                 encodings,
                 noMatchEncoding,
                 emptyInputEncoding
@@ -2045,7 +2045,7 @@ public final class EncodingDetector {
                 maxBytes,
                 value,
                 preferSuperset,
-                useApproximateCharset,
+                allowCharsetApproximation,
                 encodings,
                 noMatchEncoding,
                 emptyInputEncoding
@@ -2064,29 +2064,29 @@ public final class EncodingDetector {
                 maxBytes,
                 minimumConfidence,
                 value,
-                useApproximateCharset,
+                allowCharsetApproximation,
                 encodings,
                 noMatchEncoding,
                 emptyInputEncoding
         );
     }
 
-    /// Returns a detector that permits or rejects approximate charset mappings.
+    /// Returns a detector that permits or rejects charset approximation.
     ///
     /// This option affects readers created by [#newReader(InputStream)] and
     /// [#newReader(ReadableByteChannel)]; it does not affect detection.
     ///
-    /// @param value whether readers may use [Encoding#approximateCharset()]
+    /// @param enabled whether readers may use [Encoding#approximateCharset()]
     /// @return this detector if unchanged; otherwise a new detector
-    public EncodingDetector withApproximateCharset(boolean value) {
-        if (useApproximateCharset == value) {
+    public EncodingDetector withCharsetApproximation(boolean enabled) {
+        if (allowCharsetApproximation == enabled) {
             return this;
         }
         return new EncodingDetector(
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
-                value,
+                enabled,
                 encodings,
                 noMatchEncoding,
                 emptyInputEncoding
@@ -2145,7 +2145,7 @@ public final class EncodingDetector {
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
-                useApproximateCharset,
+                allowCharsetApproximation,
                 encodings,
                 value,
                 emptyInputEncoding
@@ -2169,7 +2169,7 @@ public final class EncodingDetector {
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
-                useApproximateCharset,
+                allowCharsetApproximation,
                 encodings,
                 noMatchEncoding,
                 value
@@ -2216,7 +2216,7 @@ public final class EncodingDetector {
     ///
     /// The selected encoding is [Result#bestEncoding()], including any eligible
     /// empty-input or no-match recommendation configured on this detector.
-    /// When [#useApproximateCharset()] is enabled, the reader selects the
+    /// When [#allowsCharsetApproximation()] is enabled, the reader selects the
     /// decoder through [Encoding#approximateCharset()]; otherwise it uses
     /// [Encoding#charset()]. Malformed and unmappable input is replaced with
     /// the selected charset's default replacement text. Detection and source
@@ -2339,7 +2339,7 @@ public final class EncodingDetector {
                 maxBytes,
                 minimumConfidence,
                 preferSuperset,
-                useApproximateCharset,
+                allowCharsetApproximation,
                 value,
                 noMatchEncoding,
                 emptyInputEncoding

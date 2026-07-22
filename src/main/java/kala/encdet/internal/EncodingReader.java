@@ -192,7 +192,7 @@ public final class EncodingReader extends Reader {
             throw new IOException("No character encoding could be selected");
         }
 
-        @Nullable Charset charset = detector.useApproximateCharset()
+        @Nullable Charset charset = detector.allowsCharsetApproximation()
                 ? encoding.approximateCharset()
                 : encoding.charset();
         if (charset == null) {

@@ -90,7 +90,7 @@ EncodingDetector detector = EncodingDetector.MODERN_WEB
         .withMaxBytes(100_000)
         .withMinimumConfidence(0.35)
         .withNoMatchEncoding(Encoding.CP1252)
-        .withApproximateCharset(false)
+        .withCharsetApproximation(false)
         .withPreferredSuperset(false);
 ```
 
@@ -100,7 +100,7 @@ EncodingDetector detector = EncodingDetector.MODERN_WEB
 - `minimumConfidence = EncodingDetector.DEFAULT_MINIMUM_CONFIDENCE` (`0.20`)
 - every registered detection target
 - no preferred-superset remapping
-- approximate charset mappings enabled for readers
+- charset approximation enabled for readers
 - no recommendation for unmatched nonempty text
 - `Encoding.UTF_8` as the empty-input recommendation
 
@@ -159,7 +159,7 @@ from the source. The first read with a nonempty target obtains up to
 detection prefix, and continues decoding the source. A UTF-8 signature is
 consumed when `Encoding.UTF_8_SIG` is selected. Readers use
 `Encoding.approximateCharset()` by default; use
-`withApproximateCharset(false)` to require an exact mapping.
+`withCharsetApproximation(false)` to require an exact mapping.
 
 The reader owns and closes its source. Malformed and unmappable input is
 replaced using the selected charset. If the permitted charset mapping is

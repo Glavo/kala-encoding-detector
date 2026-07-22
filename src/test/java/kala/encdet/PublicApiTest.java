@@ -50,8 +50,8 @@ final class PublicApiTest {
                 detector.minimumConfidence()
         );
         assertFalse(detector.preferSuperset());
-        assertTrue(detector.useApproximateCharset());
-        assertSame(detector, detector.withApproximateCharset(true));
+        assertTrue(detector.allowsCharsetApproximation());
+        assertSame(detector, detector.withCharsetApproximation(true));
         assertEquals(EnumSet.allOf(Encoding.class), detector.encodings());
         assertNull(detector.noMatchEncoding());
         assertEquals(Encoding.UTF_8, detector.emptyInputEncoding());
@@ -72,7 +72,10 @@ final class PublicApiTest {
         assertEquals(defaults.maxBytes(), detector.maxBytes());
         assertEquals(defaults.minimumConfidence(), detector.minimumConfidence());
         assertEquals(defaults.preferSuperset(), detector.preferSuperset());
-        assertEquals(defaults.useApproximateCharset(), detector.useApproximateCharset());
+        assertEquals(
+                defaults.allowsCharsetApproximation(),
+                detector.allowsCharsetApproximation()
+        );
         assertEquals(defaults.noMatchEncoding(), detector.noMatchEncoding());
         assertEquals(defaults.emptyInputEncoding(), detector.emptyInputEncoding());
         assertSame(detector, detector.withEncodingEra(Era.MODERN_WEB));
@@ -123,7 +126,7 @@ final class PublicApiTest {
                 .withMaxBytes(12)
                 .withMinimumConfidence(0.4)
                 .withPreferredSuperset(true)
-                .withApproximateCharset(false)
+                .withCharsetApproximation(false)
                 .withEncodings(Set.of(Encoding.CP437))
                 .withNoMatchEncoding(Encoding.CP437)
                 .withEmptyInputEncoding(Encoding.ASCII);
@@ -133,8 +136,8 @@ final class PublicApiTest {
         assertSame(detector, detector.withMaxBytes(12));
         assertSame(detector, detector.withMinimumConfidence(0.4));
         assertSame(detector, detector.withPreferredSuperset(true));
-        assertFalse(detector.useApproximateCharset());
-        assertSame(detector, detector.withApproximateCharset(false));
+        assertFalse(detector.allowsCharsetApproximation());
+        assertSame(detector, detector.withCharsetApproximation(false));
         assertSame(detector, detector.withEncodings(Set.of(Encoding.CP437)));
         assertSame(detector, detector.withNoMatchEncoding(Encoding.CP437));
         assertSame(detector, detector.withEmptyInputEncoding(Encoding.ASCII));
@@ -286,7 +289,7 @@ final class PublicApiTest {
     ///
     /// @throws IOException if reader decoding or closure fails
     @Test
-    void readerUsesApproximateCharsetUnlessDisabled() throws IOException {
+    void readerUsesCharsetApproximationUnlessDisabled() throws IOException {
         byte[] data = "text".getBytes(StandardCharsets.US_ASCII);
         EncodingDetector detector = EncodingDetector.DEFAULT
                 .withEncodings(Encoding.EUC_JIS_2004)
@@ -296,7 +299,7 @@ final class PublicApiTest {
             assertEquals("text", readAll(reader));
         }
 
-        EncodingDetector exactOnly = detector.withApproximateCharset(false);
+        EncodingDetector exactOnly = detector.withCharsetApproximation(false);
         assertEquals(detector.detect(data), exactOnly.detect(data));
         try (Reader reader = exactOnly.newReader(new ByteArrayInputStream(data))) {
             UnsupportedEncodingException exception = assertThrows(
