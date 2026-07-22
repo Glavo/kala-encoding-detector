@@ -87,8 +87,8 @@ public final class EncodingReader extends Reader {
                 && !selectableChannel.isBlocking()) {
             throw new IllegalBlockingModeException();
         }
-        this.bytes = ByteBuffer.allocate(Math.max(REFILL_SIZE, detector.maxBytes()));
-        this.bytes.limit(detector.maxBytes());
+        this.bytes = ByteBuffer.allocate(Math.max(REFILL_SIZE, Math.toIntExact(detector.maxBytes())));
+        this.bytes.limit(Math.toIntExact(detector.maxBytes()));
         this.pendingCharacters = CharBuffer.allocate(2);
         this.pendingCharacters.limit(0);
     }

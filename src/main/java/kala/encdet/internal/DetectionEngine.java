@@ -71,7 +71,7 @@ public final class DetectionEngine {
             @UnmodifiableView ByteBuffer input,
             EncodingDetector detector
     ) {
-        @UnmodifiableView ByteBuffer data = ByteBufferSupport.prefix(input, detector.maxBytes());
+        @UnmodifiableView ByteBuffer data = ByteBufferSupport.prefix(input, Math.toIntExact(detector.maxBytes()));
         List<PipelineResult> results = runCore(data, detector);
         return List.copyOf(fillLanguages(data, results));
     }

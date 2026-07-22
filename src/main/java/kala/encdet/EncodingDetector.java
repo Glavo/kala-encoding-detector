@@ -1818,7 +1818,7 @@ public final class EncodingDetector {
             DEFAULT.withEncodingEra(Era.MODERN_WEB);
 
     /// Maximum number of leading input bytes examined.
-    private final int maxBytes;
+    private final long maxBytes;
 
     /// Inclusive lower confidence bound applied to result candidate lists.
     private final double minimumConfidence;
@@ -1848,7 +1848,7 @@ public final class EncodingDetector {
     /// @param noMatchEncoding           no-match recommendation, or `null` for none
     /// @param emptyInputEncoding        empty-input recommendation
     private EncodingDetector(
-            int maxBytes,
+            long maxBytes,
             double minimumConfidence,
             boolean preferSuperset,
             boolean allowCharsetApproximation,
@@ -1868,7 +1868,7 @@ public final class EncodingDetector {
     /// Returns the maximum number of leading bytes examined.
     ///
     /// @return a positive byte count
-    public int maxBytes() {
+    public long maxBytes() {
         return maxBytes;
     }
 
@@ -2004,8 +2004,8 @@ public final class EncodingDetector {
     /// @param value a positive byte count
     /// @return this detector if unchanged; otherwise a new detector
     /// @throws IllegalArgumentException if `value` is not positive
-    public EncodingDetector withMaxBytes(int value) {
-        if (value < 1) {
+    public EncodingDetector withMaxBytes(long value) {
+        if (value < 1L) {
             throw new IllegalArgumentException("value must be a positive integer");
         }
         if (maxBytes == value) {
