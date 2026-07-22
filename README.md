@@ -1,22 +1,18 @@
-# Kala Encoding Detector - Pure Java Character Encoding Detector
+# Kala Encoding Detector
 
-A dependency-free, pure Java character encoding detector library. It supports
-86 ordered detection targets covering 99 encodings, and can also report
-language and MIME type.
+Kala Encoding Detector is a Java port of
+[chardet7](https://github.com/chardet/chardet), providing a pure Java character encoding detection library.
 
-The detection behavior and model data are based on
-[chardet commit e3dfaa1](https://github.com/chardet/chardet/commit/e3dfaa1c75256c9d2a06103b566ea92997844f70).
+Its main purpose is to infer a file's character encoding and MIME type from binary data.
 
 ## Features
 
 - Pure Java implementation with no native or runtime dependencies.
-- JPMS module: `kala.encdet`.
-- Accepts `byte[]` and heap or direct `ByteBuffer` inputs.
-- Provides `Reader` and `BufferedReader` APIs for `Path`, `InputStream`,
-  and `ReadableByteChannel`.
-- Reports ranked candidates with confidence, language, and MIME type.
-- Immutable detectors are safe to reuse between threads.
-- Includes the `kala-encdet` command-line application.
+- Depends only on the `java.base` module at runtime.
+- Supports detecting the character encoding and MIME type of data in a
+  `byte[]` or `ByteBuffer`.
+- Supports creating a `Reader` directly from a `Path`, `InputStream`, or
+  `ReadableByteChannel` whose encoding is unknown.
 
 ## Requirements
 
@@ -24,37 +20,92 @@ The detection behavior and model data are based on
 
 ## Basic Usage
 
-Detect a byte array:
+### Detecting the encoding of data in a `byte[]` or `ByteBuffer`
+
+When binary data is stored in a `byte[]` or `ByteBuffer`, use
+`EncodingDetector` to detect its encoding:
 
 ```java
 byte[] data = Files.readAllBytes(Path.of("document.txt"));
-EncodingDetector.Result result = EncodingDetector.DEFAULT.detect(data);
 
-EncodingDetector.Encoding encoding = result.bestEncoding();
-System.out.println(encoding == null ? "unknown" : encoding.canonicalName());
+// Detect the encoding of data in a byte array.
+EncodingDetector.Result result = EncodingDetector.DEFAULT.detect(data);
+// ByteBuffer is also supported, which is convenient for off-heap data.
+// EncodingDetector.Result result = EncodingDetector.DEFAULT.detect(ByteBuffer.wrap(data));
 ```
 
-Use `result.candidates()` to inspect all retained candidates. `detect` also
-accepts a `ByteBuffer`; its position, limit, and content are not modified.
-
-Read a file using the detected encoding:
+After obtaining an `EncodingDetector.Result`, its encoding, MIME type, and detection confidence can be inspected:
 
 ```java
-try (BufferedReader reader = EncodingDetector.DEFAULT.newBufferedReader(
-        Path.of("document.txt")
-)) {
-    reader.lines().forEach(System.out::println);
-}
+EncodingDetector.Encoding encoding = result.bestEncoding();
+// Obtain the corresponding Java Charset.
+Charset charset = encoding.charset();
+
+// Use Candidate when more information is needed.
+EncodingDetector.Candidate candidate = result.bestCandidate();
+// Detected encoding.
+EncodingDetector.Encoding candidateEncoding = candidate.encoding();
+// Candidate confidence in the range [0.0, 1.0].
+double confidence = candidate.confidence();
+// Detected MIME type.
+String mimeType = candidate.mimeType();
+
+// All candidates are ordered from highest to lowest confidence.
+List<EncodingDetector.Candidate> candidates = result.candidates();
 ```
 
-`newReader` and `newBufferedReader` also accept `InputStream` and
-`ReadableByteChannel`. The returned reader owns and closes its source.
+When no detection details are needed, a `String` can be created directly from a `byte[]` or `ByteBuffer`. The data is
+decoded using the best detected encoding:
 
-Not every detection target has an exact `Charset` implementation in the JDK.
-Readers use `Encoding.approximateCharset()` by default. Use
-`withCharsetApproximation(false)` to require exact mappings.
+```java
+String text0 = EncodingDetector.DEFAULT.toString(data);
+String text1 = EncodingDetector.DEFAULT.toString(ByteBuffer.wrap(data));
+```
 
-Create a customized detector with the `withXxx` methods:
+### Reading a string from a `Path`, `InputStream`, or `ReadableByteChannel` with an unknown encoding
+
+Use `EncodingDetector.readString` to read a string from a file or byte stream whose encoding is unknown:
+
+```java
+Path file = Path.of("document.txt");
+InputStream inputStream = Files.newInputStream(file);
+ByteChannel channel = Files.newByteChannel(file);
+
+// Read a string from a Path.
+String text0 = EncodingDetector.DEFAULT.readString(file);
+// Read a string from an InputStream.
+String text1 = EncodingDetector.DEFAULT.readString(inputStream);
+// Read a string from a ReadableByteChannel.
+String text2 = EncodingDetector.DEFAULT.readString(channel);
+```
+
+For large files, create a `BufferedReader` from a `Path`, `InputStream`, or
+`ReadableByteChannel` and process the input incrementally:
+
+```java
+Path file = Path.of("document.txt");
+
+// Create a BufferedReader from a Path.
+try(
+var reader = EncodingDetector.DEFAULT.newBufferedReader(file)){
+        }
+
+// Create a BufferedReader from an InputStream.
+        try(
+var reader = EncodingDetector.DEFAULT.newBufferedReader(Files.newInputStream(file))){
+        }
+
+// Create a BufferedReader from a ReadableByteChannel.
+        try(
+var reader = EncodingDetector.DEFAULT.newBufferedReader(Files.newByteChannel(file))){
+        }
+```
+
+### Configuring `EncodingDetector`
+
+`EncodingDetector` is immutable. Use `EncodingDetector.DEFAULT` to enable all supported encodings, or
+`EncodingDetector.MODERN_WEB` to detect only encodings commonly used by modern software and web content. Options can be
+adjusted with the `withXxx` methods:
 
 ```java
 EncodingDetector detector = EncodingDetector.MODERN_WEB
@@ -64,56 +115,20 @@ EncodingDetector detector = EncodingDetector.MODERN_WEB
         .withCharsetApproximation(false);
 ```
 
-`EncodingDetector.DEFAULT` enables every detection target.
-`EncodingDetector.MODERN_WEB` limits detection to encodings in
-`EncodingDetector.Era.MODERN_WEB`.
+The available settings are:
 
-## Command Line
-
-Create the command-line distribution:
-
-```text
-./gradlew installDist
-```
-
-Run it against one or more files:
-
-```text
-build/install/kala-encdet/bin/kala-encdet document.txt
-build/install/kala-encdet/bin/kala-encdet --language document.txt
-build/install/kala-encdet/bin/kala-encdet --encoding-era modern_web document.txt
-```
-
-Use `kala-encdet.bat` on Windows. Run `kala-encdet --help` to list all
-options. Without file arguments, the command reads standard input.
-
-## Building and Testing
-
-Run all tests:
-
-```text
-./gradlew test
-```
-
-The build downloads pinned chardet and CPython source archives and generates
-the model and codec resources used by the library. Tests also use the pinned
-chardet test corpus. All downloaded inputs are verified before use.
-
-Generate Javadoc:
-
-```text
-./gradlew javadoc
-```
-
-Run the JMH benchmarks:
-
-```text
-./gradlew jmh
-```
+| Setting                                                              | Default       | Description                                                                                                                                                   |
+|----------------------------------------------------------------------|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `maxBytes()` / `withMaxBytes(long)`                                  | `200_000`     | Maximum number of leading bytes examined during detection.                                                                                                    |
+| `minimumConfidence()` / `withMinimumConfidence(double)`              | `0.20`        | Minimum confidence required for a candidate to be retained.                                                                                                   |
+| `preferSuperset()` / `withPreferredSuperset(boolean)`                | `false`       | Whether certain encodings are reported as a preferred superset.                                                                                               |
+| `allowsCharsetApproximation()` / `withCharsetApproximation(boolean)` | `true`        | Whether text-decoding APIs may use an approximate Java charset when an exact mapping is unavailable.                                                          |
+| `encodings()` / `withEncodings(...)`                                 | All encodings | Encoding targets enabled for detection. Use `withEncodingEra` or `withEncodingEras` to select targets by era; `MODERN_WEB` enables only modern web encodings. |
+| `fallbackEncoding()` / `withFallbackEncoding(Encoding)`              | `null`        | Encoding recommended when nonempty input has no qualifying text candidate.                                                                                    |
+| `emptyInputEncoding()` / `withEmptyInputEncoding(Encoding)`          | `UTF_8`       | Encoding recommended for empty input.                                                                                                                         |
 
 ## License
 
 Project Java source is licensed under the
-[Mozilla Public License 2.0](LICENSE). Model data, generated codec data, and
-test data retain their upstream terms. See
+[Mozilla Public License 2.0](LICENSE). Model data, generated codec data, and test data retain their upstream terms. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for details.
