@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jetbrains.annotations.UnmodifiableView;
 
+import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.ByteBuffer;
@@ -2241,6 +2242,32 @@ public final class EncodingDetector {
     /// @throws NullPointerException         if `channel` is `null`
     public Reader newReader(ReadableByteChannel channel) {
         return new EncodingReader(this, channel);
+    }
+
+    /// Creates a buffered reader that detects and decodes an input stream.
+    ///
+    /// The returned reader has the detection, decoding, and ownership semantics
+    /// of [#newReader(InputStream)].
+    ///
+    /// @param input byte stream to detect and decode
+    /// @return buffered reader positioned before the first decoded character
+    /// @throws NullPointerException if `input` is `null`
+    public BufferedReader newBufferedReader(InputStream input) {
+        return new BufferedReader(newReader(input));
+    }
+
+    /// Creates a buffered reader that detects and decodes a byte channel.
+    ///
+    /// The returned reader has the detection, decoding, and ownership semantics
+    /// of [#newReader(ReadableByteChannel)].
+    ///
+    /// @param channel byte channel to detect and decode
+    /// @return buffered reader positioned before the first decoded character
+    /// @throws IllegalBlockingModeException if `channel` is a selectable channel
+    ///                                      configured in non-blocking mode
+    /// @throws NullPointerException         if `channel` is `null`
+    public BufferedReader newBufferedReader(ReadableByteChannel channel) {
+        return new BufferedReader(newReader(channel));
     }
 
     /// Detects candidates for a normalized buffer view.

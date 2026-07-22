@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -348,6 +349,31 @@ final class PublicApiTest {
         }
         assertFalse(channel.isOpen());
         assertTrue(input.isClosed());
+    }
+
+    /// Verifies buffered-reader overloads decode lines and retain source ownership.
+    ///
+    /// @throws IOException if reading or closure fails
+    @Test
+    void createsBufferedReadersForStreamsAndChannels() throws IOException {
+        byte[] data = "first\nsecond".getBytes(StandardCharsets.UTF_8);
+        CloseTrackingInputStream streamInput = new CloseTrackingInputStream(data);
+        try (BufferedReader reader = EncodingDetector.DEFAULT.newBufferedReader(streamInput)) {
+            assertEquals("first", reader.readLine());
+            assertEquals("second", reader.readLine());
+            assertNull(reader.readLine());
+        }
+        assertTrue(streamInput.isClosed());
+
+        CloseTrackingInputStream channelInput = new CloseTrackingInputStream(data);
+        ReadableByteChannel channel = Channels.newChannel(channelInput);
+        try (BufferedReader reader = EncodingDetector.DEFAULT.newBufferedReader(channel)) {
+            assertEquals("first", reader.readLine());
+            assertEquals("second", reader.readLine());
+            assertNull(reader.readLine());
+        }
+        assertFalse(channel.isOpen());
+        assertTrue(channelInput.isClosed());
     }
 
     /// Verifies decoder state across the detection-to-refill boundary.
@@ -833,6 +859,14 @@ final class PublicApiTest {
         assertThrows(
                 NullPointerException.class,
                 () -> EncodingDetector.DEFAULT.newReader((ReadableByteChannel) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.newBufferedReader((InputStream) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.newBufferedReader((ReadableByteChannel) null)
         );
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withEncodingEras((Era[]) null));
         assertThrows(

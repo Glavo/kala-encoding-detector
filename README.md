@@ -161,6 +161,9 @@ consumed when `Encoding.UTF_8_SIG` is selected. Readers use
 `Encoding.approximateCharset()` by default; use
 `withCharsetApproximation(false)` to require an exact mapping.
 
+`newBufferedReader` provides the same source overloads and returns a
+`BufferedReader` for line-oriented input.
+
 The reader owns and closes its source. Malformed and unmappable input is
 replaced using the selected charset. If the permitted charset mapping is
 unavailable, read operations throw `UnsupportedEncodingException`. Detection
