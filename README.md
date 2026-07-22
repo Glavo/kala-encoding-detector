@@ -20,6 +20,26 @@ binary data.
 
 - Java 17 or newer
 
+## Add to Your Project
+
+Gradle:
+
+```kotlin
+dependencies {
+    implementation("org.glavo:kala-encoding-detector:0.1.0")
+}
+```
+
+Maven:
+
+```xml
+<dependency>
+    <groupId>org.glavo</groupId>
+    <artifactId>kala-encoding-detector</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
+
 ## Basic Usage
 
 ### Detecting the encoding of data in a `byte[]` or `ByteBuffer`
