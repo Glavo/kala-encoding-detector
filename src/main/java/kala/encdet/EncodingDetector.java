@@ -1789,6 +1789,9 @@ public final class EncodingDetector {
         }
     }
 
+    /// Greatest maximum input length accepted by [#withMaxBytes(long)].
+    public static final long MAX_BYTES_LIMIT = 1L << 30;
+
     /// Default maximum number of leading input bytes examined.
     ///
     /// This limit is used by [#DEFAULT] and the bundled command-line application.
@@ -1872,7 +1875,7 @@ public final class EncodingDetector {
 
     /// Returns the maximum number of leading bytes examined.
     ///
-    /// @return a positive byte count
+    /// @return a byte count in `[1, MAX_BYTES_LIMIT]`
     public long maxBytes() {
         return maxBytes;
     }
@@ -2070,12 +2073,15 @@ public final class EncodingDetector {
 
     /// Returns a detector with a new maximum input length.
     ///
-    /// @param value a positive byte count
+    /// @param value a byte count in `[1, MAX_BYTES_LIMIT]`
     /// @return this detector if unchanged; otherwise a new detector
-    /// @throws IllegalArgumentException if `value` is not positive
+    /// @throws IllegalArgumentException if `value` is outside
+    /// `[1, MAX_BYTES_LIMIT]`
     public EncodingDetector withMaxBytes(long value) {
-        if (value < 1L) {
-            throw new IllegalArgumentException("value must be a positive integer");
+        if (value < 1L || value > MAX_BYTES_LIMIT) {
+            throw new IllegalArgumentException(
+                    "value must be between 1 and " + MAX_BYTES_LIMIT
+            );
         }
         if (maxBytes == value) {
             return this;

@@ -48,6 +48,7 @@ final class PublicApiTest {
     @Test
     void defaultDetectorUsesDocumentedConfiguration() {
         EncodingDetector detector = EncodingDetector.DEFAULT;
+        assertEquals(1L << 30, EncodingDetector.MAX_BYTES_LIMIT);
         assertEquals(256 * 1024L, EncodingDetector.DEFAULT_MAX_BYTES);
         assertEquals(EncodingDetector.DEFAULT_MAX_BYTES, detector.maxBytes());
         assertEquals(
@@ -253,9 +254,25 @@ final class PublicApiTest {
     /// Verifies invalid configuration states are rejected eagerly.
     @Test
     void configurationMethodsRejectInvalidValues() {
+        assertEquals(
+                EncodingDetector.MAX_BYTES_LIMIT,
+                EncodingDetector.DEFAULT
+                        .withMaxBytes(EncodingDetector.MAX_BYTES_LIMIT)
+                        .maxBytes()
+        );
         assertThrows(
                 IllegalArgumentException.class,
                 () -> EncodingDetector.DEFAULT.withMaxBytes(0)
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> EncodingDetector.DEFAULT.withMaxBytes(
+                        EncodingDetector.MAX_BYTES_LIMIT + 1L
+                )
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> EncodingDetector.DEFAULT.withMaxBytes(Long.MAX_VALUE)
         );
         for (double value : new double[]{
                 -0.01,
