@@ -11,6 +11,7 @@ import kala.encdet.EncodingDetector.Result;
 import org.jetbrains.annotations.NotNullByDefault;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -25,6 +26,8 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -374,6 +377,25 @@ final class PublicApiTest {
         }
         assertFalse(channel.isOpen());
         assertTrue(channelInput.isClosed());
+    }
+
+    /// Verifies path overloads open and decode files.
+    ///
+    /// @param tempDirectory temporary directory receiving the test file
+    /// @throws IOException if creating, reading, or closing the file fails
+    @Test
+    void createsReadersForPaths(@TempDir Path tempDirectory) throws IOException {
+        Path path = tempDirectory.resolve("text.txt");
+        Files.writeString(path, "first\nsecond", StandardCharsets.UTF_8);
+
+        try (Reader reader = EncodingDetector.DEFAULT.newReader(path)) {
+            assertEquals("first\nsecond", readAll(reader));
+        }
+        try (BufferedReader reader = EncodingDetector.DEFAULT.newBufferedReader(path)) {
+            assertEquals("first", reader.readLine());
+            assertEquals("second", reader.readLine());
+            assertNull(reader.readLine());
+        }
     }
 
     /// Verifies decoder state across the detection-to-refill boundary.
@@ -867,6 +889,14 @@ final class PublicApiTest {
         assertThrows(
                 NullPointerException.class,
                 () -> EncodingDetector.DEFAULT.newBufferedReader((ReadableByteChannel) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.newReader((Path) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> EncodingDetector.DEFAULT.newBufferedReader((Path) null)
         );
         assertThrows(NullPointerException.class, () -> EncodingDetector.DEFAULT.withEncodingEras((Era[]) null));
         assertThrows(

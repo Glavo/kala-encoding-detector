@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Unmodifiable;
 import org.jetbrains.annotations.UnmodifiableView;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.ByteBuffer;
@@ -19,6 +20,8 @@ import java.nio.channels.Channels;
 import java.nio.channels.IllegalBlockingModeException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 /// Detects character encodings using immutable reusable configuration.
@@ -2244,6 +2247,19 @@ public final class EncodingDetector {
         return new EncodingReader(this, channel);
     }
 
+    /// Creates a reader that detects and decodes a file.
+    ///
+    /// The returned reader owns the opened file channel and otherwise has the
+    /// semantics of [#newReader(ReadableByteChannel)].
+    ///
+    /// @param path file to open and decode
+    /// @return reader positioned before the first decoded character
+    /// @throws IOException if the file cannot be opened for reading
+    /// @throws NullPointerException if `path` is `null`
+    public Reader newReader(Path path) throws IOException {
+        return newReader(Files.newByteChannel(path));
+    }
+
     /// Creates a buffered reader that detects and decodes an input stream.
     ///
     /// The returned reader has the detection, decoding, and ownership semantics
@@ -2268,6 +2284,19 @@ public final class EncodingDetector {
     /// @throws NullPointerException         if `channel` is `null`
     public BufferedReader newBufferedReader(ReadableByteChannel channel) {
         return new BufferedReader(newReader(channel));
+    }
+
+    /// Creates a buffered reader that detects and decodes a file.
+    ///
+    /// The returned reader owns the opened file channel and otherwise has the
+    /// semantics of [#newBufferedReader(ReadableByteChannel)].
+    ///
+    /// @param path file to open and decode
+    /// @return buffered reader positioned before the first decoded character
+    /// @throws IOException if the file cannot be opened for reading
+    /// @throws NullPointerException if `path` is `null`
+    public BufferedReader newBufferedReader(Path path) throws IOException {
+        return new BufferedReader(newReader(path));
     }
 
     /// Detects candidates for a normalized buffer view.

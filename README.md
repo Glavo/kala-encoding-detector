@@ -141,20 +141,19 @@ import kala.encdet.EncodingDetector;
 
 import java.io.Reader;
 import java.io.StringWriter;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 StringWriter text = new StringWriter();
 try (Reader reader = EncodingDetector.DEFAULT.newReader(
-        Files.newInputStream(Path.of("document.txt"))
+        Path.of("document.txt")
 )) {
     reader.transferTo(text);
 }
 System.out.println(text);
 ```
 
-`newReader` also accepts a `ReadableByteChannel`. The factory does not read
-from the source. The first read with a nonempty target obtains up to
+`newReader` also accepts an `InputStream` or `ReadableByteChannel`. The first
+read with a nonempty target obtains up to
 `maxBytes()` leading bytes, selects `Result.bestEncoding()`, replays the
 detection prefix, and continues decoding the source. A UTF-8 signature is
 consumed when `Encoding.UTF_8_SIG` is selected. Readers use
