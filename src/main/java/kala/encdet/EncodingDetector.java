@@ -1175,10 +1175,12 @@ public final class EncodingDetector {
         private final @Unmodifiable List<String> aliases;
 
         /// Successfully resolved exact runtime charset.
-        private @Nullable Charset charsetCache;
+        @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+        private @Nullable Optional<Charset> charsetCache;
 
         /// Successfully resolved approximate runtime charset.
-        private @Nullable Charset approximateCharsetCache;
+        @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+        private @Nullable Optional<Charset> approximateCharsetCache;
 
         /// Creates an encoding whose display and canonical names are identical.
         ///
@@ -1246,9 +1248,10 @@ public final class EncodingDetector {
         ///
         /// @return payload charset, or `null` when no suitable mapping is available
         public @Nullable Charset charset() {
-            @Nullable Charset charset = charsetCache;
-            if (charset != null) {
-                return charset;
+            @Nullable Optional<Charset> charsetCache = this.charsetCache;
+            //noinspection OptionalAssignedToNull
+            if (charsetCache != null) {
+                return charsetCache.orElse(null);
             }
 
             String preferredName = switch (this) {
@@ -1281,9 +1284,9 @@ public final class EncodingDetector {
                 case KZ1048 -> "KZ-1048";
                 default -> canonicalName;
             };
-            charset = findCharset(preferredName);
+            @Nullable Charset charset = findCharset(preferredName);
             if (charset != null) {
-                charsetCache = charset;
+                this.charsetCache = Optional.of(charset);
                 return charset;
             }
             // OpenJDK assigns these ambiguous numeric names to IBM variants.
@@ -1291,9 +1294,7 @@ public final class EncodingDetector {
                 return null;
             }
             charset = findCharset(canonicalName);
-            if (charset != null) {
-                charsetCache = charset;
-            }
+            this.charsetCache = Optional.ofNullable(charset);
             return charset;
         }
 
@@ -1310,9 +1311,11 @@ public final class EncodingDetector {
             if (charset != null) {
                 return charset;
             }
-            charset = approximateCharsetCache;
-            if (charset != null) {
-                return charset;
+
+            @Nullable Optional<Charset> approximateCharsetCache = this.approximateCharsetCache;
+            //noinspection OptionalAssignedToNull
+            if (approximateCharsetCache != null) {
+                return approximateCharsetCache.orElse(null);
             }
 
             List<String> approximateNames = switch (this) {
@@ -1337,11 +1340,12 @@ public final class EncodingDetector {
             for (String approximateName : approximateNames) {
                 charset = findCharset(approximateName);
                 if (charset != null) {
-                    approximateCharsetCache = charset;
+                    this.approximateCharsetCache = Optional.of(charset);
                     return charset;
                 }
             }
 
+            this.approximateCharsetCache = Optional.empty();
             return null;
         }
 
@@ -1587,10 +1591,10 @@ public final class EncodingDetector {
 
         /// Creates a complete candidate.
         ///
-        /// @param encoding detected encoding, or `null` for a non-text result
+        /// @param encoding   detected encoding, or `null` for a non-text result
         /// @param confidence confidence in the range `[0.0, 1.0]`
-        /// @param language ISO 639 language code, or `null` when undetermined
-        /// @param mimeType detected or inferred MIME type
+        /// @param language   ISO 639 language code, or `null` when undetermined
+        /// @param mimeType   detected or inferred MIME type
         private Candidate(
                 @Nullable Encoding encoding,
                 double confidence,
@@ -2199,7 +2203,7 @@ public final class EncodingDetector {
     /// @return reader positioned before the first decoded character
     /// @throws IllegalBlockingModeException if `channel` is a selectable channel
     ///                                      configured in non-blocking mode
-    /// @throws NullPointerException if `channel` is `null`
+    /// @throws NullPointerException         if `channel` is `null`
     public Reader newReader(ReadableByteChannel channel) {
         return new EncodingReader(this, channel);
     }
