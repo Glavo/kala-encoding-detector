@@ -1685,10 +1685,11 @@ public final class EncodingDetector {
     /// applications cannot construct arbitrary results.
     ///
     /// A recommendation can exist without a candidate. This occurs when the
-    /// detector applies its configured empty-input or no-match policy. Such a
-    /// recommendation carries no confidence, language, or MIME type. When a
-    /// candidate is present, the recommendation is exactly the first candidate's
-    /// encoding and may therefore be `null` for a non-text classification.
+    /// detector applies its empty-input recommendation or configured fallback
+    /// encoding. Such a recommendation carries no confidence, language, or
+    /// MIME type. When a candidate is present, the recommendation is exactly
+    /// the first candidate's encoding and may therefore be `null` for a
+    /// non-text classification.
     @NotNullByDefault
     public static final class Result {
         /// Qualifying candidates in descending-confidence order.
@@ -1833,7 +1834,7 @@ public final class EncodingDetector {
     private final @Unmodifiable EnumSet<Encoding> encodings;
 
     /// Optional encoding recommended when nonempty input has no qualifying text candidate.
-    private final @Nullable Encoding noMatchEncoding;
+    private final @Nullable Encoding fallbackEncoding;
 
     /// Encoding recommended for empty input.
     private final Encoding emptyInputEncoding;
@@ -1845,7 +1846,7 @@ public final class EncodingDetector {
     /// @param preferSuperset            whether to remap subset encodings
     /// @param allowCharsetApproximation whether readers may use charset approximation
     /// @param encodings                 immutable permitted encoding targets
-    /// @param noMatchEncoding           no-match recommendation, or `null` for none
+    /// @param fallbackEncoding          nonempty-input fallback, or `null` for none
     /// @param emptyInputEncoding        empty-input recommendation
     private EncodingDetector(
             long maxBytes,
@@ -1853,7 +1854,7 @@ public final class EncodingDetector {
             boolean preferSuperset,
             boolean allowCharsetApproximation,
             @Unmodifiable EnumSet<Encoding> encodings,
-            @Nullable Encoding noMatchEncoding,
+            @Nullable Encoding fallbackEncoding,
             Encoding emptyInputEncoding
     ) {
         this.maxBytes = maxBytes;
@@ -1861,7 +1862,7 @@ public final class EncodingDetector {
         this.preferSuperset = preferSuperset;
         this.allowCharsetApproximation = allowCharsetApproximation;
         this.encodings = encodings;
-        this.noMatchEncoding = noMatchEncoding;
+        this.fallbackEncoding = fallbackEncoding;
         this.emptyInputEncoding = emptyInputEncoding;
     }
 
@@ -1914,11 +1915,11 @@ public final class EncodingDetector {
         return Collections.unmodifiableSet(encodings);
     }
 
-    /// Returns the optional no-match recommendation.
+    /// Returns the encoding recommended for unmatched nonempty input.
     ///
-    /// @return recommended encoding, or `null` when none is configured
-    public @Nullable Encoding noMatchEncoding() {
-        return noMatchEncoding;
+    /// @return configured fallback encoding, or `null` when none is configured
+    public @Nullable Encoding fallbackEncoding() {
+        return fallbackEncoding;
     }
 
     /// Returns the empty-input recommendation.
@@ -2017,7 +2018,7 @@ public final class EncodingDetector {
                 preferSuperset,
                 allowCharsetApproximation,
                 encodings,
-                noMatchEncoding,
+                fallbackEncoding,
                 emptyInputEncoding
         );
     }
@@ -2047,7 +2048,7 @@ public final class EncodingDetector {
                 preferSuperset,
                 allowCharsetApproximation,
                 encodings,
-                noMatchEncoding,
+                fallbackEncoding,
                 emptyInputEncoding
         );
     }
@@ -2066,7 +2067,7 @@ public final class EncodingDetector {
                 value,
                 allowCharsetApproximation,
                 encodings,
-                noMatchEncoding,
+                fallbackEncoding,
                 emptyInputEncoding
         );
     }
@@ -2088,7 +2089,7 @@ public final class EncodingDetector {
                 preferSuperset,
                 enabled,
                 encodings,
-                noMatchEncoding,
+                fallbackEncoding,
                 emptyInputEncoding
         );
     }
@@ -2128,17 +2129,18 @@ public final class EncodingDetector {
         return withEncodingSet(copy);
     }
 
-    /// Returns a detector using the supplied optional no-match recommendation.
+    /// Returns a detector using the supplied optional fallback encoding.
     ///
-    /// When nonempty input has no qualifying text candidate, the configured
-    /// encoding is returned by [Result#bestEncoding()] without adding a
-    /// [Candidate]. A `null` value disables that recommendation. This policy
-    /// does not replace a detected non-text classification.
+    /// When nonempty input has no qualifying text candidate and this encoding
+    /// is permitted by [#encodings()], it is returned by
+    /// [Result#bestEncoding()] without adding a [Candidate]. A `null` value
+    /// disables that recommendation. This policy does not replace a detected
+    /// non-text classification.
     ///
-    /// @param value recommended encoding, or `null` to disable the recommendation
+    /// @param value fallback encoding, or `null` to disable the recommendation
     /// @return this detector if unchanged; otherwise a new detector
-    public EncodingDetector withNoMatchEncoding(@Nullable Encoding value) {
-        if (noMatchEncoding == value) {
+    public EncodingDetector withFallbackEncoding(@Nullable Encoding value) {
+        if (fallbackEncoding == value) {
             return this;
         }
         return new EncodingDetector(
@@ -2171,7 +2173,7 @@ public final class EncodingDetector {
                 preferSuperset,
                 allowCharsetApproximation,
                 encodings,
-                noMatchEncoding,
+                fallbackEncoding,
                 value
         );
     }
@@ -2291,7 +2293,7 @@ public final class EncodingDetector {
                 && detectedCandidates.get(0).encoding() == null) {
             bestEncoding = null;
         } else {
-            @Nullable Encoding fallback = noMatchEncoding;
+            @Nullable Encoding fallback = fallbackEncoding;
             bestEncoding = fallback != null && encodings.contains(fallback)
                     ? transformEncoding(fallback)
                     : null;
@@ -2326,7 +2328,7 @@ public final class EncodingDetector {
                 preferSuperset,
                 allowCharsetApproximation,
                 value,
-                noMatchEncoding,
+                fallbackEncoding,
                 emptyInputEncoding
         );
     }

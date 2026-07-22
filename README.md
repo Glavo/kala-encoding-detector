@@ -71,10 +71,10 @@ detector's `minimumConfidence()`. Set the threshold to `0.0` to retain every
 candidate produced by the pipeline.
 
 `bestCandidate()` returns the first retained candidate or `null`.
-`bestEncoding()` returns the recommended encoding. Empty-input and no-match
-policies may provide a recommendation without creating a candidate. A binary
-classification has a candidate with a `null` encoding and an appropriate MIME
-type.
+`bestEncoding()` returns the recommended encoding. The empty-input
+recommendation and fallback encoding may provide a result without creating a
+candidate. A binary classification has a candidate with a `null` encoding and
+an appropriate MIME type.
 
 ## Configuring detection
 
@@ -89,7 +89,7 @@ import kala.encdet.EncodingDetector.Encoding;
 EncodingDetector detector = EncodingDetector.MODERN_WEB
         .withMaxBytes(100_000)
         .withMinimumConfidence(0.35)
-        .withNoMatchEncoding(Encoding.CP1252)
+        .withFallbackEncoding(Encoding.CP1252)
         .withCharsetApproximation(false)
         .withPreferredSuperset(false);
 ```
@@ -112,10 +112,10 @@ The detector has one effective encoding set. `withEncodingEra(...)`,
 last selector in a chain wins. An empty set permits no text encoding or
 configured recommendation, but binary classification remains enabled.
 
-`withNoMatchEncoding(...)` controls the optional recommendation used when
-nonempty input has no retained text candidate. It does not create a candidate
-and does not replace a detected binary classification. Passing `null`
-disables the recommendation.
+`withFallbackEncoding(...)` controls the optional recommendation used when
+nonempty input has no retained text candidate. The fallback must also be
+present in `encodings()`. It does not create a candidate or replace a detected
+binary classification. Passing `null` disables the recommendation.
 
 ## Encoding identities and Java charsets
 
@@ -177,7 +177,7 @@ kala-encdet --minimal document.txt
 kala-encdet --language document.txt
 kala-encdet --encoding-era modern_web document.txt
 kala-encdet --include-encodings utf-8,windows-1252 document.txt
-kala-encdet --no-match-encoding cp1252 document.txt
+kala-encdet --fallback-encoding cp1252 document.txt
 ```
 
 Use `kala-encdet --help` for all options. Argument errors return status 2.

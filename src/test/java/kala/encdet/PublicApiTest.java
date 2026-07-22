@@ -53,7 +53,7 @@ final class PublicApiTest {
         assertTrue(detector.allowsCharsetApproximation());
         assertSame(detector, detector.withCharsetApproximation(true));
         assertEquals(EnumSet.allOf(Encoding.class), detector.encodings());
-        assertNull(detector.noMatchEncoding());
+        assertNull(detector.fallbackEncoding());
         assertEquals(Encoding.UTF_8, detector.emptyInputEncoding());
         assertThrows(
                 UnsupportedOperationException.class,
@@ -76,7 +76,7 @@ final class PublicApiTest {
                 defaults.allowsCharsetApproximation(),
                 detector.allowsCharsetApproximation()
         );
-        assertEquals(defaults.noMatchEncoding(), detector.noMatchEncoding());
+        assertEquals(defaults.fallbackEncoding(), detector.fallbackEncoding());
         assertEquals(defaults.emptyInputEncoding(), detector.emptyInputEncoding());
         assertSame(detector, detector.withEncodingEra(Era.MODERN_WEB));
     }
@@ -90,7 +90,7 @@ final class PublicApiTest {
         EncodingDetector detector = eraDetector
                 .withMinimumConfidence(0.75)
                 .withEncodings(encodings)
-                .withNoMatchEncoding(Encoding.CP1252)
+                .withFallbackEncoding(Encoding.CP1252)
                 .withEmptyInputEncoding(Encoding.ASCII);
 
         eras.add(Era.DOS);
@@ -98,12 +98,12 @@ final class PublicApiTest {
         assertEquals(encodingsIn(Era.MODERN_WEB), eraDetector.encodings());
         assertEquals(0.75, detector.minimumConfidence());
         assertEquals(Set.of(Encoding.CP1252, Encoding.UTF_8), detector.encodings());
-        assertEquals(Encoding.CP1252, detector.noMatchEncoding());
+        assertEquals(Encoding.CP1252, detector.fallbackEncoding());
         assertEquals(Encoding.ASCII, detector.emptyInputEncoding());
-        EncodingDetector noFallback = detector.withNoMatchEncoding(null);
+        EncodingDetector noFallback = detector.withFallbackEncoding(null);
         assertNotSame(detector, noFallback);
-        assertNull(noFallback.noMatchEncoding());
-        assertSame(noFallback, noFallback.withNoMatchEncoding(null));
+        assertNull(noFallback.fallbackEncoding());
+        assertSame(noFallback, noFallback.withFallbackEncoding(null));
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> detector.encodings().add(Encoding.ASCII)
@@ -128,7 +128,7 @@ final class PublicApiTest {
                 .withPreferredSuperset(true)
                 .withCharsetApproximation(false)
                 .withEncodings(Set.of(Encoding.CP437))
-                .withNoMatchEncoding(Encoding.CP437)
+                .withFallbackEncoding(Encoding.CP437)
                 .withEmptyInputEncoding(Encoding.ASCII);
 
         assertSame(dosDetector, dosDetector.withEncodingEras(Set.of(Era.DOS)));
@@ -139,11 +139,11 @@ final class PublicApiTest {
         assertFalse(detector.allowsCharsetApproximation());
         assertSame(detector, detector.withCharsetApproximation(false));
         assertSame(detector, detector.withEncodings(Set.of(Encoding.CP437)));
-        assertSame(detector, detector.withNoMatchEncoding(Encoding.CP437));
+        assertSame(detector, detector.withFallbackEncoding(Encoding.CP437));
         assertSame(detector, detector.withEmptyInputEncoding(Encoding.ASCII));
         assertSame(
                 EncodingDetector.DEFAULT,
-                EncodingDetector.DEFAULT.withNoMatchEncoding(null)
+                EncodingDetector.DEFAULT.withFallbackEncoding(null)
         );
         assertSame(
                 EncodingDetector.DEFAULT,
@@ -293,7 +293,7 @@ final class PublicApiTest {
         byte[] data = "text".getBytes(StandardCharsets.US_ASCII);
         EncodingDetector detector = EncodingDetector.DEFAULT
                 .withEncodings(Encoding.EUC_JIS_2004)
-                .withNoMatchEncoding(Encoding.EUC_JIS_2004);
+                .withFallbackEncoding(Encoding.EUC_JIS_2004);
 
         try (Reader reader = detector.newReader(new ByteArrayInputStream(data))) {
             assertEquals("text", readAll(reader));
@@ -359,7 +359,7 @@ final class PublicApiTest {
         EncodingDetector detector = EncodingDetector.DEFAULT
                 .withMaxBytes(1)
                 .withEncodings(Encoding.UTF_8)
-                .withNoMatchEncoding(Encoding.UTF_8);
+                .withFallbackEncoding(Encoding.UTF_8);
 
         try (Reader reader = detector.newReader(new ByteArrayInputStream(data))) {
             assertEquals("éx", readAll(reader));
@@ -430,7 +430,7 @@ final class PublicApiTest {
         EncodingDetector detector = EncodingDetector.DEFAULT
                 .withMaxBytes(data.length)
                 .withEncodings(Encoding.UTF_8)
-                .withNoMatchEncoding(Encoding.UTF_8);
+                .withFallbackEncoding(Encoding.UTF_8);
         Reader reader = detector.newReader(channel);
 
         IOException failure = assertThrows(IOException.class, reader::read);
@@ -451,7 +451,7 @@ final class PublicApiTest {
         EncodingDetector detector = EncodingDetector.DEFAULT
                 .withMaxBytes(1)
                 .withEncodings(Encoding.UTF_8)
-                .withNoMatchEncoding(Encoding.UTF_8);
+                .withFallbackEncoding(Encoding.UTF_8);
         Reader reader = detector.newReader(channel);
 
         IOException failure = assertThrows(IOException.class, reader::read);
@@ -611,7 +611,7 @@ final class PublicApiTest {
 
         EncodingDetector preferredRecommendation = preferred
                 .withEncodings(Encoding.ASCII)
-                .withNoMatchEncoding(Encoding.ASCII)
+                .withFallbackEncoding(Encoding.ASCII)
                 .withEmptyInputEncoding(Encoding.ASCII);
         assertEquals(
                 Encoding.CP1252,
@@ -651,28 +651,28 @@ final class PublicApiTest {
 
         EncodingDetector noRecommendation = EncodingDetector.DEFAULT
                 .withEncodings(Set.of(Encoding.ASCII));
-        Result noMatch = noRecommendation.detect(
+        Result unmatched = noRecommendation.detect(
                 new byte[]{(byte) 0x80, (byte) 0x81, (byte) 0x82}
         );
-        assertTrue(noMatch.candidates().isEmpty());
-        assertNull(noMatch.bestCandidate());
-        assertNull(noMatch.bestEncoding());
+        assertTrue(unmatched.candidates().isEmpty());
+        assertNull(unmatched.bestCandidate());
+        assertNull(unmatched.bestEncoding());
 
         EncodingDetector customRecommendations = EncodingDetector.DEFAULT
                 .withEncodings(Set.of(Encoding.ASCII))
-                .withNoMatchEncoding(Encoding.ASCII)
+                .withFallbackEncoding(Encoding.ASCII)
                 .withEmptyInputEncoding(Encoding.ASCII);
         Result emptyRecommendation = customRecommendations.detect(new byte[0]);
         assertTrue(emptyRecommendation.candidates().isEmpty());
         assertNull(emptyRecommendation.bestCandidate());
         assertEquals(Encoding.ASCII, emptyRecommendation.bestEncoding());
 
-        Result noMatchRecommendation = customRecommendations.detect(
+        Result fallbackResult = customRecommendations.detect(
                 new byte[]{(byte) 0x80, (byte) 0x81, (byte) 0x82}
         );
-        assertTrue(noMatchRecommendation.candidates().isEmpty());
-        assertNull(noMatchRecommendation.bestCandidate());
-        assertEquals(Encoding.ASCII, noMatchRecommendation.bestEncoding());
+        assertTrue(fallbackResult.candidates().isEmpty());
+        assertNull(fallbackResult.bestCandidate());
+        assertEquals(Encoding.ASCII, fallbackResult.bestEncoding());
     }
 
     /// Verifies BOM results are gated by the same candidate filters.
@@ -778,7 +778,7 @@ final class PublicApiTest {
         assertNull(rejected.bestEncoding());
 
         Result recommendation = detector.withMinimumConfidence(1.0)
-                .withNoMatchEncoding(Encoding.ASCII)
+                .withFallbackEncoding(Encoding.ASCII)
                 .detect(data);
         assertTrue(recommendation.candidates().isEmpty());
         assertNull(recommendation.bestCandidate());

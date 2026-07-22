@@ -127,9 +127,9 @@ final class MainTest {
         assertEquals("", result.error());
     }
 
-    /// Verifies the no-match recommendation is disabled by default and configurable.
+    /// Verifies the fallback encoding is disabled by default and configurable.
     @Test
-    void configuresOptionalNoMatchRecommendation() {
+    void configuresOptionalFallbackEncoding() {
         byte[] input = {(byte) 0xe9, (byte) 0xe9, (byte) 0xe9};
         RunResult disabled = invoke(
                 new String[]{"--minimal", "--include-encodings", "ascii"},
@@ -154,7 +154,7 @@ final class MainTest {
                 new String[]{
                         "--minimal",
                         "--include-encodings", "ascii",
-                        "--no-match-encoding", "ascii"
+                        "--fallback-encoding", "ascii"
                 },
                 input
         );
@@ -165,7 +165,7 @@ final class MainTest {
         RunResult configuredDetailed = invoke(
                 new String[]{
                         "--include-encodings", "ascii",
-                        "--no-match-encoding", "ascii"
+                        "--fallback-encoding", "ascii"
                 },
                 input
         );
@@ -231,7 +231,7 @@ final class MainTest {
         RunResult help = invoke(new String[]{"--help"}, new byte[0]);
         assertEquals(0, help.status());
         assertTrue(help.output().startsWith("usage: kala-encdet"));
-        assertTrue(help.output().contains("no-match recommendation (default: none)"));
+        assertTrue(help.output().contains("fallback encoding (default: none)"));
         assertEquals("", help.error());
     }
 

@@ -105,7 +105,7 @@ final class PipelineEdgeCaseTest {
 
         Result filteredBinary = EncodingDetector.DEFAULT
                 .withMinimumConfidence(1.0)
-                .withNoMatchEncoding(Encoding.ASCII)
+                .withFallbackEncoding(Encoding.ASCII)
                 .detect(new byte[100]);
         assertTrue(filteredBinary.candidates().isEmpty());
         assertNull(filteredBinary.bestCandidate());

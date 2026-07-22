@@ -35,7 +35,7 @@ final class CorpusGoldenTest {
     private static final EncodingDetector REFERENCE_DETECTOR =
             EncodingDetector.DEFAULT
                     .withMinimumConfidence(0.0)
-                    .withNoMatchEncoding(Encoding.CP1252);
+                    .withFallbackEncoding(Encoding.CP1252);
 
     /// Maximum mismatch details retained in one assertion message.
     private static final int MAX_DETAILS = 40;
