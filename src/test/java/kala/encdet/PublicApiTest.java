@@ -48,7 +48,7 @@ final class PublicApiTest {
     @Test
     void defaultDetectorUsesDocumentedConfiguration() {
         EncodingDetector detector = EncodingDetector.DEFAULT;
-        assertEquals(200_000, EncodingDetector.DEFAULT_MAX_BYTES);
+        assertEquals(256 * 1024L, EncodingDetector.DEFAULT_MAX_BYTES);
         assertEquals(EncodingDetector.DEFAULT_MAX_BYTES, detector.maxBytes());
         assertEquals(
                 EncodingDetector.DEFAULT_MINIMUM_CONFIDENCE,

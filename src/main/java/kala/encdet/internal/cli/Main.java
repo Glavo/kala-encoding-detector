@@ -111,7 +111,7 @@ public final class Main {
             for (String file : parsed.files) {
                 byte[] data;
                 try (InputStream fileInput = Files.newInputStream(Path.of(file))) {
-                    data = fileInput.readNBytes(EncodingDetector.DEFAULT_MAX_BYTES);
+                    data = fileInput.readNBytes(Math.toIntExact(EncodingDetector.DEFAULT_MAX_BYTES));
                 } catch (IOException | RuntimeException exception) {
                     error.println("kala-encdet: " + file + ": " + exception.getMessage());
                     errors++;
@@ -132,7 +132,7 @@ public final class Main {
 
         byte[] data;
         try {
-            data = input.readNBytes(EncodingDetector.DEFAULT_MAX_BYTES);
+            data = input.readNBytes(Math.toIntExact(EncodingDetector.DEFAULT_MAX_BYTES));
         } catch (IOException exception) {
             error.println("kala-encdet: stdin: detection failed: " + exception.getMessage());
             return 1;

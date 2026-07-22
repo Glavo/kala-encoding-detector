@@ -1792,14 +1792,14 @@ public final class EncodingDetector {
     /// Default maximum number of leading input bytes examined.
     ///
     /// This limit is used by [#DEFAULT] and the bundled command-line application.
-    public static final int DEFAULT_MAX_BYTES = 200_000;
+    public static final long DEFAULT_MAX_BYTES = 256 * 1024L;
 
     /// Default inclusive confidence threshold used by [Result#candidates()].
     public static final double DEFAULT_MINIMUM_CONFIDENCE = 0.20;
 
     /// Default detector with every encoding target enabled.
     ///
-    /// It examines at most 200,000 bytes, retains candidates with confidence of
+    /// It examines at most 256 KiB, retains candidates with confidence of
     /// at least `0.20`, disables preferred-superset remapping, permits
     /// charset approximation for text decoding, allows every encoding target,
     /// makes no recommendation when nonempty input has no qualifying text

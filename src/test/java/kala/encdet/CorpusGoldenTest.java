@@ -34,6 +34,7 @@ final class CorpusGoldenTest {
     /// Detector configured to expose every candidate from the pinned reference behavior.
     private static final EncodingDetector REFERENCE_DETECTOR =
             EncodingDetector.DEFAULT
+                    .withMaxBytes(200_000)
                     .withMinimumConfidence(0.0)
                     .withFallbackEncoding(Encoding.CP1252);
 

@@ -153,7 +153,7 @@ public class EncodingDetectorBenchmark {
         public String content = "ASCII";
 
         /// Selects the exact input length in bytes.
-        @Param({"1024", "16384", "200000"})
+        @Param({"1024", "16384", "262144"})
         public int size = 1024;
 
         /// Prepared array input.
